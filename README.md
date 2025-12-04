@@ -6,7 +6,7 @@
 
 **The world's first native UPnP/DLNA renderer with Diretta protocol support**
 
-Stream bit-perfect high-resolution audio (up to DSD1024 and PCM 1536kHz) from any UPnP control point directly to your Diretta-compatible DAC, bypassing the OS audio stack entirely.
+Stream bit-perfect high-resolution audio (up to DSD1024 and PCM 768kHz) from any UPnP control point directly to your Diretta-compatible DAC, bypassing the OS audio stack entirely.
 
 ⚠️ **PERSONAL USE ONLY** - This software requires the Diretta Host SDK which is licensed for personal use only. Commercial use is prohibited.
 
@@ -15,7 +15,7 @@ Stream bit-perfect high-resolution audio (up to DSD1024 and PCM 1536kHz) from an
 ## ✨ Features
 
 - 🎵 **Bit-perfect streaming** via native Diretta protocol
-- 🎚️ **Hi-Res audio support**: DSD1024, PCM up to 1536kHz/32bit
+- 🎚️ **Hi-Res audio support**: DSD1024, PCM up to 768kHz/32bit
 - 📱 **UPnP/DLNA compatible**: Works with JPlay, BubbleUPnP, mConnect, and other control points
 - 🔄 **Gapless playback**: Seamless transitions between tracks
 - ⏯️ **Full transport control**: Play, Stop, Pause, Resume, Seek
