@@ -429,4 +429,4 @@ This project was created to bring audiophile-grade streaming to everyone. We hop
 
 ---
 
-*Project started: 2024 | Last updated: December 2024*
+*Project started: 2025 | Last updated: 12/04/D2025*
