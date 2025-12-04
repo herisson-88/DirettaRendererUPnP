@@ -163,8 +163,6 @@ pkg-config --modversion libupnp
 ### 2. Extract the SDK
 
 ```bash
-# Create directory if needed
-mkdir -p ~/audio-projects
 
 # Extract SDK to home directory
 cd ~
@@ -175,7 +173,7 @@ ls -la ~/DirettaHostSDK_147/
 # Should show: Host/, lib/, include/, etc.
 ```
 
-### 3. Set SDK Environment Variable (Optional)
+### 3. Set SDK Environment Variable (Optional not needed)
 
 ```bash
 # Add to ~/.bashrc for convenience
@@ -195,21 +193,7 @@ git clone https://github.com/cometdom/DirettaRendererUPnP.git
 cd DirettaRendererUPnP
 ```
 
-### 2. Configure Makefile
-
-Edit the `Makefile` to point to your SDK location:
-
-```bash
-nano Makefile
-
-# Find this line:
-# SDK_PATH = /home/dommusic/DirettaHostSDK_147
-
-# Change to your path:
-SDK_PATH = $(HOME)/DirettaHostSDK_147
-```
-
-### 3. Build
+### 2. Build
 
 ```bash
 # Clean build (recommended for first time)
@@ -223,7 +207,7 @@ make
 # ✓ Build complete: bin/DirettaRendererUPnP
 ```
 
-### 4. Verify Binary
+### 3. Verify Binary
 
 ```bash
 ls -lh bin/DirettaRendererUPnP
