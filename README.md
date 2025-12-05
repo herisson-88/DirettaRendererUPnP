@@ -1,103 +1,263 @@
 # Diretta UPnP Renderer
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/platform-Linux-blue.svg)](https://www.linux.org/)
-[![C++](https://img.shields.io/badge/C++-17-00599C.svg)](https://isocpp.org/)
-
 **The world's first native UPnP/DLNA renderer with Diretta protocol support**
 
-Stream bit-perfect high-resolution audio (up to DSD1024 and PCM 768kHz) from any UPnP control point directly to your Diretta-compatible DAC, bypassing the OS audio stack entirely.
-
-⚠️ **PERSONAL USE ONLY** - This software requires the Diretta Host SDK which is licensed for personal use only. Commercial use is prohibited.
-
----
-
-## ✨ Features
-
-- 🎵 **Bit-perfect streaming** via native Diretta protocol
-- 🎚️ **Hi-Res audio support**: DSD1024, PCM up to 768kHz/32bit
-- 📱 **UPnP/DLNA compatible**: Works with JPlay, BubbleUPnP, mConnect, and other control points
-- 🔄 **Gapless playback**: Seamless transitions between tracks
-- ⏯️ **Full transport control**: Play, Stop, Pause, Resume, Seek
-- 🚀 **Adaptive network optimization**: 
-  - Jumbo frames (16k) for Hi-Res formats
-  - Optimized packets (~1-3k) for CD-quality
-- 📦 **Compressed format support**: FLAC, ALAC decoded on-the-fly via FFmpeg
-- 🔊 **Memory Play quality**: Same audio quality as Memory Play, with renderer convenience
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/Platform-Linux-blue.svg)](https://www.linux.org/)
+[![C++17](https://img.shields.io/badge/C++-17-00599C.svg)](https://isocpp.org/)
 
 ---
 
-## 🎯 Why Use This?
+## ⚠️ IMPORTANT - PERSONAL USE ONLY
 
-### The Problem
-- **Memory Play**: Excellent sound quality but no remote control, requires local files
-- **Standard UPnP renderers**: Remote control but compromised audio quality (OS audio stack, resampling)
-
-### The Solution
-This renderer combines the best of both worlds:
-- **Diretta protocol** → Bit-perfect audio, bypasses OS stack
-- **UPnP/DLNA** → Standard remote control from any app
-- **Result** → Memory Play quality with renderer convenience
+This renderer uses the **Diretta Host SDK**, which is proprietary software by Yu Harada available for **personal use only**. Commercial use is strictly prohibited. See [LICENSE](LICENSE) for details.
 
 ---
 
-## 📋 Requirements
+## 📖 Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Supported Formats](#supported-formats)
+- [Performance](#performance)
+- [Compatible Control Points](#compatible-control-points)
+- [System Optimization](#system-optimization)
+- [Documentation](#documentation)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Credits](#credits)
+- [License](#license)
+
+---
+
+## Overview
+
+This is a **native UPnP/DLNA renderer** that streams high-resolution audio using the **Diretta protocol** for bit-perfect playback. Unlike software-based solutions that go through the OS audio stack, this renderer sends audio directly to a **Diretta Target endpoint** (such as Memory Play, GentooPlayer, or hardware with Diretta support), which then connects to your DAC.
+
+### What is Diretta?
+
+Diretta is a proprietary audio streaming protocol developed by Yu Harada that enables ultra-low latency, bit-perfect audio transmission over Ethernet. The protocol uses two components:
+
+- **Diretta Host**: Sends audio data (this renderer uses the Diretta Host SDK)
+- **Diretta Target**: Receives audio data and outputs to DAC (e.g., Memory Play, GentooPlayer, or DACs with native Diretta support)
+
+### Key Benefits
+
+- ✅ **Bit-perfect streaming** - Bypasses OS audio stack entirely
+- ✅ **Ultra-low latency** - Direct network-to-DAC path via Diretta Target
+- ✅ **High-resolution support** - Up to DSD1024 and PCM 1536kHz
+- ✅ **Gapless playback** - Seamless track transitions
+- ✅ **UPnP/DLNA compatible** - Works with any UPnP control point
+- ✅ **Network optimization** - Adaptive packet sizing with jumbo frame support
+
+---
+
+## Architecture
+
+### Complete Signal Path
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         AUDIO STREAMING PATH                             │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    UPnP Control Point              Diretta Renderer              Diretta Target              DAC
+    (JPlay, BubbleUPnP)          (This Application)          (Memory Play, etc.)        (Holo, etc.)
+          │                              │                           │                      │
+          │  ① UPnP Commands            │                           │                      │
+          │  (Play/Stop/Seek)           │                           │                      │
+          ├─────────────────────────────>│                           │                      │
+          │                              │                           │                      │
+          │  ② HTTP Audio Stream         │                           │                      │
+          │  (FLAC/WAV/DSD from         │                           │                      │
+          │   media server)              │                           │                      │
+          ├─────────────────────────────>│                           │                      │
+          │                              │                           │                      │
+          │                              │  ③ Diretta Protocol       │                      │
+          │                              │  (Bit-perfect PCM/DSD)    │                      │
+          │                              │  via Ethernet             │                      │
+          │                              ├──────────────────────────>│                      │
+          │                              │                           │                      │
+          │                              │                           │  ④ Audio Output      │
+          │                              │                           │  (USB/I2S/SPDIF)     │
+          │                              │                           ├─────────────────────>│
+          │                              │                           │                      │
+          │                              │                           │                   ┌──┴──┐
+          │                              │                           │                   │ D/A │
+          │                              │                           │                   └──┬──┘
+          │                              │                           │                      │
+          │                              │                           │                   Analog
+          │                              │                           │                    Audio
+          ▼                              ▼                           ▼                      ▼
+```
+
+### Component Details
+
+#### 1. **UPnP Control Point** (Your music player app)
+- **Examples**: JPlay iOS, BubbleUPnP, mConnect, Linn Kazoo
+- **Role**: Sends playback commands (Play, Stop, Pause, Seek)
+- **Protocol**: UPnP/DLNA over HTTP
+
+#### 2. **Diretta Renderer** (This application)
+- **Components**:
+  - `UPnPDevice`: Handles UPnP protocol and device discovery
+  - `AudioEngine`: Decodes audio files (FLAC, WAV, ALAC, etc.) using FFmpeg
+  - `DirettaOutput`: Interfaces with Diretta Host SDK
+- **Role**: 
+  - Receives UPnP commands from control point
+  - Streams and decodes audio files from media server
+  - Sends decoded PCM/DSD to Diretta Target via Diretta protocol
+- **Network**: Uses Ethernet with jumbo frames (up to 16k MTU)
+
+#### 3. **Diretta Target** (Endpoint software or hardware)
+- **Examples**: 
+  - **Software**: Memory Play (endpoint mode), GentooPlayer, Diretta Target PC
+  - **Hardware**: Some DACs with native Diretta support (rare)
+- **Role**: 
+  - Receives Diretta audio stream
+  - Outputs to DAC via USB, I2S, or SPDIF
+  - Handles timing and synchronization
+- **Location**: Usually runs on a separate computer/device connected to the DAC
+
+#### 4. **DAC** (Digital-to-Analog Converter)
+- **Examples**: Holo Audio Spring 3, May KTE, Rockna, T+A DAC 200
+- **Role**: Converts digital audio to analog signal
+- **Connection**: USB, I2S, SPDIF, or AES from Diretta Target
+
+---
+
+### Why This Architecture?
+
+**Traditional Renderer → DAC:**
+```
+Renderer → OS Audio Stack → USB Driver → DAC
+           ↑ Adds latency, jitter, potential quality loss
+```
+
+**Diretta Renderer → Target → DAC:**
+```
+Renderer → Ethernet (Diretta) → Target → DAC
+           ↑ Bypasses OS audio stack
+           ↑ Bit-perfect transmission
+           ↑ Ultra-low latency
+```
+
+The **Diretta Target** acts as a dedicated audio endpoint that receives the pristine digital stream and outputs it directly to your DAC, completely bypassing the OS audio subsystem.
+
+---
+
+## Features
+
+### Audio Quality
+- **Bit-perfect streaming**: No resampling or processing
+- **High-resolution support**:
+  - PCM: Up to 32-bit/1536kHz
+  - DSD: DSD64, DSD128, DSD256, DSD512, DSD1024
+- **Format support**: FLAC, ALAC, WAV, AIFF, MP3, AAC, OGG
+- **Gapless playback**: Seamless album listening experience
+
+### UPnP/DLNA Features
+- **Full transport control**: Play, Stop, Pause, Resume, Seek
+- **Device discovery**: SSDP advertisement for automatic detection
+- **Dynamic protocol info**: Exposes all supported formats to control points
+- **Position tracking**: Real-time playback position updates
+
+### Network Optimization
+- **Adaptive packet sizing**:
+  - CD-quality (16/44.1): ~1-3k packets (prevents fragmentation)
+  - Hi-Res/DSD: ~16k packets (maximizes throughput)
+- **Jumbo frame support**: Up to 16k MTU for maximum performance
+- **Network interface detection**: Automatic MTU configuration
+- **Buffer management**: Configurable buffer size (1-5 seconds)
+
+### Diretta Integration
+- **Native SDK integration**: Uses Diretta Host SDK 147
+- **Automatic target discovery**: Finds Diretta Target endpoints on network
+- **Format negotiation**: Automatic format compatibility checking
+- **Connection management**: Robust error handling and reconnection
+
+---
+
+## Requirements
 
 ### Hardware
-- **Computer**: Linux x86_64 with Ethernet
-- **Network**: 
-  - Gigabit Ethernet adapter
-  - Network switch supporting jumbo frames (recommended)
-  - CAT6+ cables
-- **DAC**: Diretta-compatible DAC
-  - Holo Audio Spring 3
-  - Musician Pegasus
-  - Other DACs with Diretta support
+- **Minimum**: Dual-core CPU, 1GB RAM, Gigabit Ethernet
+- **Recommended**: Quad-core CPU, 2GB RAM, 2.5/10G Ethernet with jumbo frames
+- **Network**: Gigabit Ethernet (10G recommended for DSD512+)
+- **Diretta Target**: Separate device/computer running Diretta Target software or hardware
+- **DAC**: Any DAC supported by your Diretta Target (USB, I2S, SPDIF)
 
 ### Software
-- **Linux** (Fedora, AudioLinux, Ubuntu, or similar)
-- **Diretta Host SDK** v147+ (download from [diretta.link](https://www.diretta.link/hostsdk.html))
-- **FFmpeg** development libraries
-- **libupnp** development library
+- **OS**: Linux (Fedora, Ubuntu, Arch, or AudioLinux recommended)
+- **Kernel**: Linux kernel 5.x+ (RT kernel recommended for optimal performance)
+- **Diretta Host SDK**: Version 147 (download from [diretta.link](https://www.diretta.link))
+- **Libraries**: FFmpeg, libupnp, pthread
+
+### Network
+- **MTU**: 9000 bytes recommended (jumbo frames)
+- **Switch**: Managed switch with jumbo frame support
+- **Latency**: <1ms on local network
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Install Dependencies
 
+**Fedora:**
 ```bash
-# Fedora
-sudo dnf install ffmpeg-devel libupnp-devel gcc-c++ make
-
-# Ubuntu/Debian
-sudo apt install libavformat-dev libavcodec-dev libavutil-dev libswresample-dev libupnp-dev build-essential
+sudo dnf install -y gcc-c++ make ffmpeg-free-devel libupnp-devel
 ```
 
-### 2. Download Diretta SDK
+**Ubuntu/Debian:**
+```bash
+sudo apt install -y build-essential libavformat-dev libavcodec-dev libavutil-dev \
+    libswresample-dev libupnp-dev
+```
 
-1. Visit **https://www.diretta.link/hostsdk.html**
-2. Go to **"Download Preview"** section
-3. Download **DirettaHostSDK_147.tar.gz**
-4. Extract to home directory:
-   ```bash
-   cd ~
-   tar xzf DirettaHostSDK_147.tar.gz
-   ```
+**Arch Linux:**
+```bash
+sudo pacman -S base-devel ffmpeg libupnp
+```
 
-### 3. Build the Renderer
+### 2. Download Diretta Host SDK
+
+1. Visit [diretta.link](https://www.diretta.link)
+2. Navigate to "Download Preview" section
+3. Download **DirettaHostSDK_147** (or latest version)
+4. Extract to one of these locations:
+   - `~/DirettaHostSDK_147`
+   - `./DirettaHostSDK_147`
+   - `/opt/DirettaHostSDK_147`
+
+### 3. Clone and Build
 
 ```bash
+# Clone repository
 git clone https://github.com/cometdom/DirettaRendererUPnP.git
 cd DirettaRendererUPnP
+
+# Build (Makefile auto-detects SDK location)
 make
+
+# Or use install script
+chmod +x install.sh
+sudo ./install.sh
 ```
 
 ### 4. Configure Network
 
+Enable jumbo frames:
 ```bash
-# Enable jumbo frames (adjust interface name)
+# Temporary (until reboot)
 sudo ip link set enp4s0 mtu 9000
+
+# Permanent (NetworkManager)
+sudo nmcli connection modify "Your Connection" 802-3-ethernet.mtu 9000
+sudo nmcli connection up "Your Connection"
 ```
 
 ### 5. Run
@@ -106,327 +266,253 @@ sudo ip link set enp4s0 mtu 9000
 sudo ./bin/DirettaRendererUPnP --port 4005 --buffer 2.0
 ```
 
-### 6. Connect & Play
+### 6. Configure Your Diretta Target
 
-1. Open your UPnP control point (JPlay, BubbleUPnP, etc.)
-2. Select "Diretta Renderer" as output
-3. Play your music!
+Ensure your **Diretta Target** (Memory Play, GentooPlayer, etc.) is:
+- Running on your network
+- Connected to your DAC (USB/I2S/SPDIF)
+- Configured to accept Diretta connections
 
----
+### 7. Connect from Control Point
 
-## 📖 Documentation
-
-- **[Installation Guide](docs/INSTALLATION.md)** - Detailed setup instructions
-- **[Configuration Guide](docs/CONFIGURATION.md)** - Tuning and optimization
-- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common problems and solutions
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
+Open your UPnP control point (JPlay, BubbleUPnP, etc.) and look for "Diretta Renderer" in available devices.
 
 ---
 
-## 🎛️ Command-Line Options
+## Supported Formats
 
-```bash
-sudo ./DirettaRendererUPnP [OPTIONS]
+| Format Type | Bit Depth | Sample Rates | Container | Notes |
+|-------------|-----------|--------------|-----------|-------|
+| **PCM** | 16/24/32-bit | 44.1kHz - 1536kHz | FLAC, ALAC, WAV, AIFF | Uncompressed or lossless compressed |
+| **DSD** | 1-bit | DSD64 - DSD1024 | DSF, DFF | Native DSD support |
+| **Lossy** | Variable | Up to 192kHz | MP3, AAC, OGG | Transcoded to PCM |
 
-Options:
-  --port <number>      UPnP control port (default: 4005)
-  --buffer <seconds>   Audio buffer in seconds (default: 2.0)
-  --name <string>      Device name (default: "Diretta Renderer")
-  --uuid <string>      Device UUID (default: auto-generated)
-  --no-gapless         Disable gapless playback
+### Protocol Info (UPnP)
 
-Example:
-  sudo ./DirettaRendererUPnP --port 4005 --buffer 2.0 --name "Living Room"
-```
-
----
-
-## 🏗️ Architecture
-
-```
-┌─────────────────────────┐
-│  UPnP Control Point     │  (JPlay, BubbleUPnP, etc.)
-│  (Phone/Tablet/PC)      │
-└───────────┬─────────────┘
-            │ UPnP/DLNA Protocol
-            ▼
-┌─────────────────────────┐
-│  Diretta UPnP Renderer  │
-│  ┌───────────────────┐  │
-│  │  UPnP Device      │  │  Handles UPnP protocol
-│  ├───────────────────┤  │
-│  │  AudioEngine      │  │  Manages playback, FFmpeg decoding
-│  ├───────────────────┤  │
-│  │  DirettaOutput    │  │  Interfaces with Diretta SDK
-│  └───────────────────┘  │
-└───────────┬─────────────┘
-            │ Diretta Protocol (UDP/Ethernet)
-            │ Bit-perfect audio samples
-            ▼
-┌─────────────────────────┐
-│  Diretta DAC            │  (Holo Audio, Musician, etc.)
-│  - Receives packets     │
-│  - Clock synchronization│
-│  - D/A conversion       │
-└───────────┬─────────────┘
-            │
-            ▼
-        🔊 Speakers
-```
-
-### Key Components
-
-1. **UPnPDevice**: Implements UPnP MediaRenderer protocol
-2. **AudioEngine**: 
-   - Manages audio decoders (FFmpeg)
-   - Handles transport state (Play/Stop/Pause/Seek)
-   - Provides gapless playback
-3. **DirettaOutput**: 
-   - Interfaces with Diretta Host SDK
-   - Manages network transmission
-   - Adaptive packet sizing
+The renderer advertises the following formats via UPnP ProtocolInfo:
+- `audio/flac` - FLAC files
+- `audio/x-flac` - Alternative FLAC MIME type
+- `audio/wav` - WAV files
+- `audio/x-wav` - Alternative WAV MIME type
+- `audio/L16` - Raw PCM
+- `audio/mp3` - MP3 files
+- `audio/mpeg` - MPEG audio
+- And many more...
 
 ---
 
-## ⚙️ Technical Details
-
-### Supported Formats
-
-| Format | Sample Rate | Bit Depth | Status |
-|--------|-------------|-----------|--------|
-| PCM (WAV) | Up to 1536kHz | 8-32 bit | ✅ Native |
-| FLAC | Up to 384kHz | 16-24 bit | ✅ Decoded |
-| ALAC | Up to 192kHz | 16-24 bit | ✅ Decoded |
-| DSD64 | 2.8224 MHz | 1 bit | ✅ Native |
-| DSD128 | 5.6448 MHz | 1 bit | ✅ Native |
-| DSD256 | 11.2896 MHz | 1 bit | ✅ Native |
-| DSD512 | 22.5792 MHz | 1 bit | ✅ Native |
-| DSD1024 | 45.1584 MHz | 1 bit | ✅ Native |
+## Performance
 
 ### Network Performance
 
-#### Adaptive Packet Sizing
+Adaptive packet sizing optimizes network usage based on audio format:
 
-The renderer **automatically adapts** packet size based on audio format:
+| Format | Sample Rate | Bit Depth | Packet Size | Bandwidth | Strategy |
+|--------|-------------|-----------|-------------|-----------|----------|
+| CD | 44.1kHz | 16-bit | 1-3KB | ~172 KB/s | Small packets (no fragmentation) |
+| Hi-Res | 96kHz | 24-bit | Up to 16KB | ~690 KB/s | Jumbo frames (max throughput) |
+| Hi-Res | 192kHz | 24-bit | Up to 16KB | ~1.4 MB/s | Jumbo frames |
+| DSD64 | 2.8MHz | 1-bit | Up to 16KB | ~345 KB/s | Jumbo frames |
+| DSD256 | 11.2MHz | 1-bit | Up to 16KB | ~1.4 MB/s | Jumbo frames |
 
-- **16bit/44.1-48kHz**: ~1-3k packets (optimized for fluidity)
-- **24bit/88.2kHz+**: ~16k jumbo frames (maximum performance)
-- **DSD**: ~16k jumbo frames (maximum performance)
+### Buffer Settings
 
-#### Throughput Requirements
-
-| Format | Bitrate | Network Load |
-|--------|---------|--------------|
-| 16bit/44.1kHz | 1.4 Mbps | Low |
-| 24bit/192kHz | 9.2 Mbps | Medium |
-| DSD512 | 22.5 Mbps | High |
-| DSD1024 | 45 Mbps | Very High |
-
-**Note**: Gigabit Ethernet (1000 Mbps) handles all formats comfortably.
+| Buffer Size | Latency | Stability | Use Case |
+|-------------|---------|-----------|----------|
+| 1.0s | Low | Good | Local network, CD-quality |
+| 2.0s | Medium | Better | **Recommended default** |
+| 3.0s | Medium-High | Best | Hi-Res, problematic networks |
+| 4.0s+ | High | Maximum | DSD512+, maximum stability |
 
 ---
 
-## 🎮 Compatible Control Points
+## Compatible Control Points
 
-Tested and working:
+Tested and working with:
 
-| Control Point | Platform | Status | Notes |
+| Control Point | Platform | Rating | Notes |
 |---------------|----------|--------|-------|
-| **JPlay** | iOS/Android | ✅ Excellent | Best experience, full features |
-| **BubbleUPnP** | Android | ✅ Excellent | Full features, gapless works |
-| **mConnect** | iOS | ✅ Good | Works well |
-| **Linn Kazoo** | iOS/Android | ✅ Good | - |
-| **Hi-Fi Cast** | Android | ⚠️ Limited | Basic playback only |
+| **JPlay iOS** | iOS | ⭐⭐⭐⭐⭐ | Excellent, full feature support |
+| **BubbleUPnP** | Android | ⭐⭐⭐⭐⭐ | Excellent, highly configurable |
+| **mConnect** | iOS/Android | ⭐⭐⭐⭐ | Very good, clean interface |
+| **Linn Kazoo** | iOS/Android | ⭐⭐⭐⭐ | Good, designed for Linn systems |
+| **gerbera** | Web | ⭐⭐⭐ | Basic functionality |
+
+### Recommended Settings (JPlay iOS)
+- **Device Quality**: Maximum
+- **Memory Mode**: Off (renderer handles this)
+- **Gapless**: On (if desired)
 
 ---
 
-## 🔧 System Optimization Tips
+## System Optimization
 
-### For Best Audio Quality
-
-1. **Use real-time kernel** (optional but recommended)
-   ```bash
-   sudo dnf install kernel-rt  # Fedora
-   ```
-
-2. **Set CPU to performance mode**
-   ```bash
-   echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
-   ```
-
-3. **Enable jumbo frames**
-   ```bash
-   sudo ip link set enp4s0 mtu 9000
-   ```
-
-4. **Use dedicated network** (if possible)
-   - Separate network for audio
-   - Managed switch with QoS
-
-### For AudioLinux Users
-
-AudioLinux is pre-optimized for audio. Just:
-1. Enable jumbo frames
-2. Install dependencies
-3. Build and run!
-
----
-
-## 🐛 Troubleshooting
-
-### Renderer Not Discovered
-
+### CPU Governor
 ```bash
-# Check firewall
-sudo firewall-cmd --permanent --add-port=1900/udp
-sudo firewall-cmd --permanent --add-port=4005/tcp
-sudo firewall-cmd --permanent --add-port=4006/tcp
-sudo firewall-cmd --reload
+# Performance mode for best audio quality
+echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
 ```
 
-### Audio Dropouts
-
+### Real-Time Priority
 ```bash
-# Increase buffer
-sudo ./DirettaRendererUPnP --buffer 3.0
+# Allow real-time scheduling
+sudo setcap cap_sys_nice+ep ./bin/DirettaRendererUPnP
+```
+
+### Network Tuning
+```bash
+# Increase network buffers
+sudo sysctl -w net.core.rmem_max=16777216
+sudo sysctl -w net.core.wmem_max=16777216
+```
+
+### AudioLinux
+If using AudioLinux distribution:
+- RT kernel is pre-configured
+- Network optimizations applied
+- CPU governor set to performance
+- Just configure jumbo frames and run!
+
+---
+
+## Documentation
+
+- **[Installation Guide](docs/INSTALLATION.md)**: Detailed setup instructions
+- **[Configuration Guide](docs/CONFIGURATION.md)**: All options and tuning
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)**: Common issues and solutions
+- **[Contributing Guidelines](CONTRIBUTING.md)**: How to contribute
+- **[Changelog](CHANGELOG.md)**: Version history
+
+---
+
+## Troubleshooting
+
+### Renderer Not Found
+```bash
+# Check if running
+ps aux | grep DirettaRendererUPnP
 
 # Check network
-ip -s link show enp4s0  # Look for errors
+ip addr show
+
+# Check firewall
+sudo firewall-cmd --list-all
 ```
 
-### More Issues?
+### No Audio Output
+1. **Verify Diretta Target is running** and connected to DAC
+2. **Check Diretta Target can see the renderer** (check Target's interface/logs)
+3. **Test with Memory Play first** to ensure Diretta setup is correct
+4. Check network connectivity between renderer and Diretta Target
+5. Check buffer size: Try increasing to 3-4 seconds
 
-See **[TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** for comprehensive solutions.
+### Audio Dropouts
+```bash
+# Increase buffer
+./bin/DirettaRendererUPnP --buffer 3.0
 
----
+# Check network
+ping <DIRETTA_TARGET_IP>
+iperf3 -c <DIRETTA_TARGET_IP>
+```
 
-## 🤝 Contributing
+### Connection Failed (0x0 Error)
+This means the Diretta Target is refusing the connection:
+1. **Ensure Diretta Target is running** and not in use by another application
+2. **Check Target accepts your audio format** (16-bit, 24-bit, etc.)
+3. **Test with Memory Play** sending to the same Target
+4. Some Targets (like GentooPlayer) may require 24-bit minimum - see [Issue Tracker](https://github.com/cometdom/DirettaRendererUPnP/issues)
 
-Contributions are welcome! See **[CONTRIBUTING.md](CONTRIBUTING.md)** for guidelines.
-
-### Ways to Contribute
-
-- 🐛 Report bugs
-- 💡 Suggest features
-- 📝 Improve documentation
-- 🧪 Test with different hardware
-- 💻 Submit code improvements
-
----
-
-## 🙏 Credits
-
-- **Development**: Dominique (with AI assistance from Claude/Anthropic)
-- **Diretta Protocol & SDK**: [Yu Harada](https://www.diretta.link)
-- **Libraries**: 
-  - [FFmpeg](https://www.ffmpeg.org/) - Audio decoding
-  - [libupnp](https://github.com/pupnp/pupnp) - UPnP implementation
+For more solutions, see the [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
 
 ---
 
-## 📜 License
+## FAQ
 
-This renderer software is licensed under the **MIT License** (see [LICENSE](LICENSE) file).
+### Q: Do I need a DAC with Diretta support?
+**A:** No! You need a **Diretta Target** endpoint (software like Memory Play or GentooPlayer), which then connects to any DAC via USB/I2S/SPDIF.
 
-### Important Notes
+### Q: What's the difference between Diretta Host and Diretta Target?
+**A:** 
+- **Diretta Host** (this renderer): Sends audio over network via Diretta protocol
+- **Diretta Target** (separate software/hardware): Receives Diretta audio and outputs to DAC
 
-⚠️ **Diretta Host SDK**: Required dependency, proprietary, **personal use only**
-- Download from: https://www.diretta.link
-- See SDK license for terms
+### Q: Can I use this without a Diretta Target?
+**A:** No, you need a Diretta Target endpoint. The most common solution is to install **Memory Play** in endpoint/target mode on a computer connected to your DAC.
 
-⚠️ **Usage Restrictions**:
-- ✅ Personal use: ALLOWED
-- ✅ Modification & distribution of renderer: ALLOWED  
-- ❌ Commercial use: NOT ALLOWED (due to SDK license)
-- ❌ Distributing SDK: NOT ALLOWED
+### Q: Does this work with Roon?
+**A:** No, this is a UPnP/DLNA renderer. For Roon, you would need a Roon Bridge, not this renderer.
 
-For commercial licensing, contact Yu Harada.
+### Q: Why do I need jumbo frames?
+**A:** Jumbo frames significantly reduce CPU overhead and improve timing precision for high-resolution audio (96kHz+) and DSD. They're optional but highly recommended.
 
----
-
-## 🌟 Support the Project
-
-If you find this project useful:
-- ⭐ **Star this repository** on GitHub
-- 📢 **Share** with other audiophiles
-- 🐛 **Report bugs** to help improve it
-- 💬 **Join discussions** in GitHub Issues
+### Q: What's better than a regular UPnP renderer?
+**A:** This renderer bypasses the OS audio stack by using the Diretta protocol. The audio goes directly from network to your Diretta Target to DAC, maintaining bit-perfect quality.
 
 ---
 
-## 📞 Support & Community
+## Roadmap
 
-- **GitHub Issues**: Bug reports and feature requests
-- **GitHub Discussions**: General questions and discussions
-- **Diretta Website**: https://www.diretta.link (for SDK/DAC questions)
-
----
-
-## 🗺️ Roadmap
-
-Potential future enhancements (contributions welcome!):
-
+- [ ] Volume control support (RenderingControl service)
+- [ ] Playlist support
 - [ ] Web UI for configuration
-- [ ] Volume control via UPnP RenderingControl
-- [ ] Playlist management
-- [ ] Multiple Diretta target support
+- [ ] Raspberry Pi optimizations
 - [ ] Docker container
-- [ ] Systemd service generator script
-- [ ] Configuration file support
-- [ ] Automatic network optimization
+- [ ] Metadata display improvements
+- [ ] Multi-room synchronization (if Diretta SDK adds support)
 
 ---
 
-## ⚡ Performance
+## Contributing
 
-Real-world performance metrics:
-
-- **Latency**: ~2 seconds (configurable 1-10s)
-- **CPU Usage**: 
-  - 16bit/44.1kHz: <5%
-  - 24bit/192kHz: <10%
-  - DSD512: ~15-25%
-- **Network**: 
-  - Bandwidth: <50 Mbps peak (DSD1024)
-  - Packet loss tolerance: >0% with adequate buffer
-- **Audio Quality**: Bit-perfect, identical to Memory Play
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Code style guidelines
+- How to submit pull requests
+- Bug report templates
+- Feature request process
 
 ---
 
-## 📸 Screenshots
+## Credits
 
-*Coming soon: Screenshots of renderer in action with various control points*
+### Author
+**Dominique** - Initial development and ongoing maintenance
 
----
+### Special Thanks
+- **Yu Harada** - Creator of Diretta protocol and SDK
+- **FFmpeg team** - Audio decoding library
+- **libupnp developers** - UPnP/DLNA implementation
+- **Audiophile community** - Testing and feedback
 
-## ❓ FAQ
-
-**Q: Does this work with my DAC?**  
-A: If your DAC supports Diretta protocol, yes! Check with your DAC manufacturer.
-
-**Q: Can I use this commercially?**  
-A: No, the Diretta SDK is for personal use only. Contact Yu Harada for commercial licensing.
-
-**Q: Does this work on Windows/macOS?**  
-A: No, Linux only. The Diretta SDK is Linux-specific.
-
-**Q: Can I stream from Tidal/Qobuz?**  
-A: Yes, if your control point supports these services (e.g., BubbleUPnP with Tidal).
-
-**Q: What's the difference vs. Memory Play?**  
-A: Same audio quality, but this is a network renderer (remote control, streaming). Memory Play is local-only.
-
-**Q: Do I need a special network card?**  
-A: Not required, but cards supporting 16k MTU (like RTL8125) provide optimal performance.
+### Third-Party Components
+- [Diretta Host SDK](https://www.diretta.link) - Proprietary (personal use only)
+- [FFmpeg](https://ffmpeg.org) - LGPL/GPL
+- [libupnp](https://pupnp.sourceforge.io/) - BSD License
 
 ---
 
-## 🎵 Enjoy Your Music!
+## License
 
-This project was created to bring audiophile-grade streaming to everyone. We hope you enjoy using it as much as we enjoyed building it!
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-**Happy listening!** 🎧
+**IMPORTANT**: The Diretta Host SDK is proprietary software by Yu Harada and is licensed for **personal use only**. Commercial use is prohibited. See LICENSE file for full details.
 
 ---
 
-*Project started: 2025 | Last updated: 2025-12-04
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/cometdom/DirettaRendererUPnP/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/cometdom/DirettaRendererUPnP/discussions)
+- **Diretta Protocol**: [diretta.link](https://www.diretta.link)
+
+---
+
+## Disclaimer
+
+This software is provided "as is" without warranty. While designed for high-quality audio reproduction, results depend on your specific hardware, network configuration, Diretta Target setup, and DAC. Always test thoroughly with your own equipment.
+
+---
+
+**Enjoy bit-perfect, high-resolution audio streaming! 🎵**
+
+*Last updated: January 2025*
