@@ -14,7 +14,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker container
 - Systemd service generator script
 
+
 ---
+## [1.0.2] - 2025-12-06
+
+### Added
+  **restructuring of the Makefile to:**
+  - automatically manage library variants depending on the CPU architecture,
+  - ensure multi‑platform compatibility (x64, ARM64),
+  - prevent errors on unsupported architectures,
+  - simplify maintenance by centralizing the suffix into a reusable variable for all libraries
+ **Diretta target device selection and validation features**
+  - Implemented the findAndSelectTarget function to support automatic or interactive target selection.
+  - Added the verifyTargetAvailable function to check whether valid targets exist on the network.
+  - Implemented the listAvailableTargets function to list all detected Diretta targets.
+  - Added a new m_targetIndex member and related setter functions to the DirettaOutput class.
+  - Ensured that DirettaRenderer verifies target availability before startup, preventing launch without a valid device.
+  - Extended main.cpp with new command‑line arguments:
+          --target to set the target index
+          --list-targets to display available targets
+  - Enhanced the command‑line help messages, adding usage instructions for target selection.
+  - Adjusted the default buffer size warning messages to improve user experience.
+  **Documentation (Installation): Diretta Target Listing & Selection**
+  - Added “List Diretta Targets” and “Select Diretta Target” sections to README.md, guiding users on how to scan the network for  Diretta devices
+  - Expanded INSTALLATION.md with detailed instructions on listing and selecting targets via command line
+  - Introduced generate_service.sh script to automatically create systemd service files, enabling configuration of target index and parameters
+  - Updated system service configuration examples to support customization of target index, port, and buffer size via environment variables
+  - Documented behavior where, if no target is explicitly specified and only one device is detected, the renderer will automatically use that target
+
 ## [1.0.1] - 2025-12-05
 
 ### Fixed
