@@ -4,6 +4,7 @@
  */
 
 #include "DirettaRenderer.h"
+#include "DirettaOutput.h"
 #include <iostream>
 #include <csignal>
 #include <memory>
@@ -20,6 +21,22 @@ void signalHandler(int signal) {
         g_renderer->stop();
     }
     exit(0);
+}
+
+// List available Diretta targets
+void listTargets() {
+    std::cout << "════════════════════════════════════════════════════════\n"
+              << "  🔍 Scanning for Diretta Targets...\n"
+              << "════════════════════════════════════════════════════════\n" << std::endl;
+    
+    DirettaOutput output;
+    output.listAvailableTargets();
+    
+    std::cout << "\n💡 Usage Examples:\n";
+    std::cout << "   To use target #1: " << "sudo ./bin/DirettaRendererUPnP --target 1\n";
+    std::cout << "   To use target #2: " << "sudo ./bin/DirettaRendererUPnP --target 2\n";
+    std::cout << "   Interactive mode: " << "sudo ./bin/DirettaRendererUPnP\n";
+    std::cout << std::endl;
 }
 
 // Parse command line arguments
@@ -53,6 +70,17 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
                 std::cerr << "⚠️  Warning: Buffer < 2 seconds may cause issues with DSD/Hi-Res!" << std::endl;
             }
         }
+        else if ((arg == "--target" || arg == "-t") && i + 1 < argc) {
+            config.targetIndex = std::atoi(argv[++i]) - 1;  // Convert to 0-based index
+            if (config.targetIndex < 0) {
+                std::cerr << "❌ Invalid target index. Must be >= 1" << std::endl;
+                exit(1);
+            }
+        }
+        else if (arg == "--list-targets" || arg == "-l") {
+            listTargets();
+            exit(0);
+        }
         else if (arg == "--help" || arg == "-h") {
             std::cout << "Diretta UPnP Renderer\n\n"
                       << "Usage: " << argv[0] << " [options]\n\n"
@@ -61,8 +89,14 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
                       << "  --port, -p <port>     UPnP port (default: auto)\n"
                       << "  --uuid <uuid>         Device UUID (default: auto-generated)\n"
                       << "  --no-gapless          Disable gapless playback\n"
-                      << "  --buffer, -b <secs>   Buffer size in seconds (default: 4)\n"
+                      << "  --buffer, -b <secs>   Buffer size in seconds (default: 10)\n"
+                      << "  --target, -t <index>  Select Diretta target by index (1, 2, 3...)\n"
+                      << "  --list-targets, -l    List available Diretta targets and exit\n"
                       << "  --help, -h            Show this help\n"
+                      << "\nTarget Selection:\n"
+                      << "  First, scan for targets:  " << argv[0] << " --list-targets\n"
+                      << "  Then, use specific target: " << argv[0] << " --target 1\n"
+                      << "  Or use interactive mode:   " << argv[0] << " (prompts if multiple targets)\n"
                       << std::endl;
             exit(0);
         }

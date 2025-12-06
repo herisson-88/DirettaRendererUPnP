@@ -47,6 +47,7 @@ static std::string generateUUID() {
 
 DirettaRenderer::Config::Config() {
     uuid = generateUUID();
+    targetIndex = -1;  // Default: interactive selection
 }
 
 // ============================================================================
@@ -93,24 +94,55 @@ bool DirettaRenderer::start() {
     std::cout << "[DirettaRenderer] Initializing components..." << std::endl;
     
     try {
-        // Create components
-          UPnPDevice::Config upnpConfig;
-          upnpConfig.friendlyName = m_config.name;
-          upnpConfig.manufacturer = "DIY Audio";
-          upnpConfig.modelName = "Diretta UPnP Renderer";
-          upnpConfig.uuid = m_config.uuid;
-          upnpConfig.port = m_config.port;
-  
-         m_upnp = std::make_unique<UPnPDevice>(upnpConfig);        
+        // ⭐ CRITICAL: Verify Diretta Target availability BEFORE starting UPnP
+        // This prevents the renderer from accepting connections when no DAC is available
+        std::cout << "[DirettaRenderer] " << std::endl;
+        std::cout << "[DirettaRenderer] ══════════════════════════════════════════════════════" << std::endl;
+        std::cout << "[DirettaRenderer] ⚠️  IMPORTANT: Checking Diretta Target availability..." << std::endl;
+        std::cout << "[DirettaRenderer] ══════════════════════════════════════════════════════" << std::endl;
+        std::cout << "[DirettaRenderer] " << std::endl;
         
-        m_audioEngine = std::make_unique<AudioEngine>();
-        
+        // Create DirettaOutput first to verify target
         m_direttaOutput = std::make_unique<DirettaOutput>();
-      
-        // ⭐ Configuration MTU pour performance maximale
+        m_direttaOutput->setTargetIndex(m_config.targetIndex);
+        
+        // ⭐ Verify target is available by attempting discovery
+        if (!m_direttaOutput->verifyTargetAvailable()) {
+            std::cerr << "[DirettaRenderer] " << std::endl;
+            std::cerr << "[DirettaRenderer] ══════════════════════════════════════════════════════" << std::endl;
+            std::cerr << "[DirettaRenderer] ❌ FATAL: No Diretta Target available!" << std::endl;
+            std::cerr << "[DirettaRenderer] ══════════════════════════════════════════════════════" << std::endl;
+            std::cerr << "[DirettaRenderer] " << std::endl;
+            std::cerr << "[DirettaRenderer] The renderer cannot start without a Diretta Target." << std::endl;
+            std::cerr << "[DirettaRenderer] " << std::endl;
+            std::cerr << "[DirettaRenderer] Please:" << std::endl;
+            std::cerr << "[DirettaRenderer]   1. Power on your Diretta Target device" << std::endl;
+            std::cerr << "[DirettaRenderer]   2. Ensure it's connected to the same network" << std::endl;
+            std::cerr << "[DirettaRenderer]   3. Check firewall settings" << std::endl;
+            std::cerr << "[DirettaRenderer]   4. Run: ./bin/DirettaRendererUPnP --list-targets" << std::endl;
+            std::cerr << "[DirettaRenderer] " << std::endl;
+            return false;
+        }
+        
+        std::cout << "[DirettaRenderer] ✓ Diretta Target verified and ready" << std::endl;
+        std::cout << "[DirettaRenderer] " << std::endl;
+        
+        // Configure MTU
         if (m_networkMTU != 1500) {
             m_direttaOutput->setMTU(m_networkMTU);
         }
+        
+        // Create other components
+        UPnPDevice::Config upnpConfig;
+        upnpConfig.friendlyName = m_config.name;
+        upnpConfig.manufacturer = "DIY Audio";
+        upnpConfig.modelName = "Diretta UPnP Renderer";
+        upnpConfig.uuid = m_config.uuid;
+        upnpConfig.port = m_config.port;
+
+        m_upnp = std::make_unique<UPnPDevice>(upnpConfig);        
+        
+        m_audioEngine = std::make_unique<AudioEngine>();
 
         
         

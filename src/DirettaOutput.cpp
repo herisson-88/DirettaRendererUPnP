@@ -92,8 +92,8 @@ bool DirettaOutput::open(const AudioFormat& format, int bufferSeconds) {
     
     // Find Diretta target
     std::cout << "[DirettaOutput] Finding Diretta target..." << std::endl;
-    if (!findTarget()) {
-        std::cerr << "[DirettaOutput] ❌ Failed to find Diretta target" << std::endl;
+    if (!findAndSelectTarget(m_targetIndex)) {  // Use configured target index
+        std::cerr << "[DirettaOutput] ❌ Failed to find or select Diretta target" << std::endl;
         return false;
     }
     
@@ -391,6 +391,231 @@ bool DirettaOutput::findTarget() {
     m_mtu = measuredMTU;  // Utiliser le MTU mesuré
     std::cout << "[DirettaOutput] ✓ MTU: " << m_mtu << " bytes" << std::endl;
 
+    return true;
+}
+
+bool DirettaOutput::findAndSelectTarget(int targetIndex) {
+    m_udp = std::make_unique<ACQUA::UDPV6>();
+    m_raw = std::make_unique<ACQUA::UDPV6>();
+    
+    DIRETTA::Find::Setting findSetting;
+    findSetting.Loopback = false;
+    findSetting.ProductID = 0;
+    
+    DIRETTA::Find find(findSetting);
+    
+    if (!find.open()) {
+        std::cerr << "[DirettaOutput] ❌ Failed to open Find" << std::endl;
+        return false;
+    }
+    
+    DIRETTA::Find::PortResalts targets;
+    if (!find.findOutput(targets)) {
+        std::cerr << "[DirettaOutput] ❌ Failed to find outputs" << std::endl;
+        return false;
+    }
+    
+    if (targets.empty()) {
+        std::cerr << "[DirettaOutput] ❌ No Diretta targets found" << std::endl;
+        std::cerr << "[DirettaOutput] Please check:" << std::endl;
+        std::cerr << "[DirettaOutput]   1. Diretta Target is powered on" << std::endl;
+        std::cerr << "[DirettaOutput]   2. Target is connected to the same network" << std::endl;
+        std::cerr << "[DirettaOutput]   3. Network firewall allows Diretta protocol" << std::endl;
+        return false;
+    }
+    
+    std::cout << "[DirettaOutput] ✓ Found " << targets.size() << " target(s)" << std::endl;
+    std::cout << std::endl;
+    
+    // If only one target, use it automatically
+    if (targets.size() == 1) {
+        m_targetAddress = targets.begin()->first;
+        std::cout << "[DirettaOutput] ✓ Auto-selected only available target" << std::endl;
+    }
+    // Multiple targets: interactive selection
+    else {
+        std::cout << "══════════════════════════════════════════════════════" << std::endl;
+        std::cout << "  📡 Multiple Diretta Targets Detected" << std::endl;
+        std::cout << "══════════════════════════════════════════════════════" << std::endl;
+        std::cout << std::endl;
+        
+        // List all targets with index
+        int index = 1;
+        std::vector<ACQUA::IPAddress> targetList;
+        
+        for (const auto& target : targets) {
+            targetList.push_back(target.first);
+            
+            std::cout << "[" << index << "] Target #" << index << std::endl;
+            std::cout << "    Address: " << target.first.get_str() << std::endl;
+            std::cout << std::endl;
+            index++;
+        }
+        
+        std::cout << "══════════════════════════════════════════════════════" << std::endl;
+        
+        int selection = 0;
+        
+        // If targetIndex provided (from command line), use it
+        if (targetIndex >= 0 && targetIndex < static_cast<int>(targetList.size())) {
+            selection = targetIndex;
+            std::cout << "Using target #" << (selection + 1) << " (from command line)" << std::endl;
+        } else {
+            // Interactive selection
+            std::cout << "\nPlease select a target (1-" << targetList.size() << "): ";
+            std::cout.flush();
+            
+            std::string input;
+            std::getline(std::cin, input);
+            
+            try {
+                selection = std::stoi(input) - 1;  // Convert to 0-based index
+                
+                if (selection < 0 || selection >= static_cast<int>(targetList.size())) {
+                    std::cerr << "[DirettaOutput] ❌ Invalid selection: " << (selection + 1) << std::endl;
+                    std::cerr << "[DirettaOutput] Please select a number between 1 and " << targetList.size() << std::endl;
+                    return false;
+                }
+            } catch (...) {
+                std::cerr << "[DirettaOutput] ❌ Invalid input. Please enter a number." << std::endl;
+                return false;
+            }
+        }
+        
+        m_targetAddress = targetList[selection];
+        std::cout << "\n[DirettaOutput] ✓ Selected target #" << (selection + 1) << ": " 
+                  << m_targetAddress.get_str() << std::endl;
+        std::cout << std::endl;
+    }
+    
+    // Measure MTU for selected target
+    uint32_t measuredMTU = 1500;
+    std::cout << "[DirettaOutput] Measuring network MTU..." << std::endl;
+    
+    if (find.measSendMTU(m_targetAddress, measuredMTU)) {
+        std::cout << "[DirettaOutput] 📊 Physical MTU measured: " << measuredMTU << " bytes";
+        
+        if (measuredMTU >= 9000) {
+            std::cout << " (Jumbo frames enabled! ✓)";
+        } else if (measuredMTU > 1500) {
+            std::cout << " (Extended frames)";
+        } else {
+            std::cout << " (Standard Ethernet)";
+        }
+        std::cout << std::endl;
+    } else {
+        std::cerr << "[DirettaOutput] ⚠️  Failed to measure MTU, using default: " 
+                  << measuredMTU << " bytes" << std::endl;
+    }
+    
+    m_mtu = measuredMTU;
+    std::cout << "[DirettaOutput] ✓ MTU configured: " << m_mtu << " bytes" << std::endl;
+    std::cout << std::endl;
+
+    return true;
+}
+
+void DirettaOutput::listAvailableTargets() {
+    DIRETTA::Find::Setting findSetting;
+    findSetting.Loopback = false;
+    findSetting.ProductID = 0;
+    
+    DIRETTA::Find find(findSetting);
+    
+    std::cout << "Opening Diretta Find..." << std::endl;
+    if (!find.open()) {
+        std::cerr << "Failed to initialize Diretta Find" << std::endl;
+        std::cerr << "Make sure you run this with sudo/root privileges" << std::endl;
+        return;
+    }
+    
+    std::cout << "Scanning network for Diretta targets (waiting 3 seconds)..." << std::endl;
+    DIRETTA::Find::PortResalts targets;
+    if (!find.findOutput(targets)) {
+        std::cerr << "Failed to scan for targets (findOutput returned false)" << std::endl;
+        return;
+    }
+    
+    if (targets.empty()) {
+        std::cout << "No Diretta targets found on the network." << std::endl;
+        return;
+    }
+    
+    std::cout << "\n══════════════════════════════════════════════════════" << std::endl;
+    std::cout << "  Available Diretta Targets (" << targets.size() << " found)" << std::endl;
+    std::cout << "══════════════════════════════════════════════════════" << std::endl;
+    
+    int index = 1;
+    for (const auto& target : targets) {
+        std::cout << "\n[" << index << "] Target #" << index << std::endl;
+        std::cout << "    IP Address: " << target.first.get_str() << std::endl;
+        
+        // Try to measure MTU for this target
+        uint32_t mtu = 1500;
+        if (find.measSendMTU(target.first, mtu)) {
+            std::cout << "    MTU: " << mtu << " bytes";
+            if (mtu >= 9000) {
+                std::cout << " (Jumbo frames)";
+            }
+            std::cout << std::endl;
+        }
+        
+        index++;
+    }
+    
+    std::cout << "\n══════════════════════════════════════════════════════" << std::endl;
+}
+
+bool DirettaOutput::verifyTargetAvailable() {
+    std::cout << "[DirettaOutput] Scanning for Diretta targets..." << std::endl;
+    
+    DIRETTA::Find::Setting findSetting;
+    findSetting.Loopback = false;
+    findSetting.ProductID = 0;
+    
+    DIRETTA::Find find(findSetting);
+    
+    std::cout << "[DirettaOutput] Opening Diretta Find on all network interfaces..." << std::endl;
+    if (!find.open()) {
+        std::cerr << "[DirettaOutput] ❌ Failed to initialize Diretta Find" << std::endl;
+        std::cerr << "[DirettaOutput] This usually means:" << std::endl;
+        std::cerr << "[DirettaOutput]   1. Insufficient permissions (need root/sudo)" << std::endl;
+        std::cerr << "[DirettaOutput]   2. Network interface is down" << std::endl;
+        std::cerr << "[DirettaOutput]   3. Firewall blocking UDP multicast" << std::endl;
+        return false;
+    }
+    
+    std::cout << "[DirettaOutput] Scanning network (this may take a few seconds)..." << std::endl;
+    DIRETTA::Find::PortResalts targets;
+    if (!find.findOutput(targets)) {
+        std::cerr << "[DirettaOutput] ❌ Failed to scan for targets" << std::endl;
+        std::cerr << "[DirettaOutput] findOutput() returned false - this could mean:" << std::endl;
+        std::cerr << "[DirettaOutput]   1. No response from any targets (timeout)" << std::endl;
+        std::cerr << "[DirettaOutput]   2. Targets are on a different subnet" << std::endl;
+        std::cerr << "[DirettaOutput]   3. Network discovery is blocked" << std::endl;
+        return false;
+    }
+    
+    if (targets.empty()) {
+        std::cerr << "[DirettaOutput] ❌ No Diretta targets found on network" << std::endl;
+        return false;
+    }
+    
+    std::cout << "[DirettaOutput] ✓ Found " << targets.size() << " Diretta target(s)" << std::endl;
+    
+    // If specific target index is requested, verify it's in range
+    if (m_targetIndex >= 0) {
+        if (m_targetIndex >= static_cast<int>(targets.size())) {
+            std::cerr << "[DirettaOutput] ❌ Target index " << (m_targetIndex + 1) 
+                      << " is out of range (only " << targets.size() << " target(s) found)" << std::endl;
+            std::cerr << "[DirettaOutput] Please run --list-targets to see available targets" << std::endl;
+            return false;
+        }
+        std::cout << "[DirettaOutput] ✓ Target #" << (m_targetIndex + 1) << " is available" << std::endl;
+    } else if (targets.size() > 1) {
+        std::cout << "[DirettaOutput] 💡 Multiple targets detected. Interactive selection will be used." << std::endl;
+    }
+    
     return true;
 }
 

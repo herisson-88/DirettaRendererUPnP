@@ -19,6 +19,7 @@ public:
         std::string uuid;
         bool gaplessEnabled;
         int bufferSeconds;
+        int targetIndex;  // -1 = interactive selection, >= 0 = specific target
         
         Config();
     };
@@ -70,9 +71,8 @@ private:
     std::mutex m_mutex;
     
     // Gapless
-    // Gapless
-std::string m_currentURI;      // ⭐ AJOUTER
-std::string m_currentMetadata; // ⭐ AJOUTER
-std::string m_nextURI;
-std::string m_nextMetadata;
+    std::string m_currentURI;
+    std::string m_currentMetadata;
+    std::string m_nextURI;
+    std::string m_nextMetadata;
 };

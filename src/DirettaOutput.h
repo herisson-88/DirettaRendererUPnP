@@ -135,6 +135,23 @@ public:
      * 
      * @param mtu MTU value in bytes
      */
+    /**
+     * @brief Set target index for selection
+     * @param index Target index (-1 = interactive, >= 0 = specific target)
+     */
+    void setTargetIndex(int index) { m_targetIndex = index; }
+    
+    /**
+     * @brief Verify that a Diretta target is available on the network
+     * @return true if at least one target is available, false otherwise
+     */
+    bool verifyTargetAvailable();
+    
+    /**
+     * @brief List all available Diretta targets on the network
+     */
+    void listAvailableTargets();
+    
     void setMTU(uint32_t mtu);
     
     /**
@@ -165,9 +182,11 @@ private:
     // State
     std::atomic<bool> m_connected;
     std::atomic<bool> m_playing;
+    int m_targetIndex = -1;  // Target selection index
     
     // Helper functions
     bool findTarget();
+    bool findAndSelectTarget(int targetIndex = -1);  // -1 = interactive selection
     bool configureDiretta(const AudioFormat& format);
     
     // Prevent copying
