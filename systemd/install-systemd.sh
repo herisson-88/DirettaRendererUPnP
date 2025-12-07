@@ -21,18 +21,40 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Detect script location and find binary
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+BINARY_PATH="$PROJECT_ROOT/bin/DirettaRendererUPnP"
+
+echo "📂 Script location: $SCRIPT_DIR"
+echo "📂 Project root:    $PROJECT_ROOT"
+echo "📂 Looking for binary at: $BINARY_PATH"
+echo ""
+
 # Check if binary exists
-if [ ! -f "./bin/DirettaRendererUPnP" ]; then
-    echo "❌ Binary not found! Please run 'make' first"
+if [ ! -f "$BINARY_PATH" ]; then
+    echo "❌ Binary not found at: $BINARY_PATH"
+    echo ""
+    echo "Please ensure you have built the renderer:"
+    echo "  cd $PROJECT_ROOT"
+    echo "  make"
+    echo ""
+    echo "Or run this script from the project root:"
+    echo "  cd $PROJECT_ROOT"
+    echo "  sudo ./systemd/install-systemd.sh"
     exit 1
 fi
+
+echo "✓ Binary found: $BINARY_PATH"
+echo ""
 
 echo "1. Creating installation directory..."
 mkdir -p "$INSTALL_DIR"
 
 echo "2. Copying binary..."
-cp ./bin/DirettaRendererUPnP "$INSTALL_DIR/"
+cp "$BINARY_PATH" "$INSTALL_DIR/"
 chmod +x "$INSTALL_DIR/DirettaRendererUPnP"
+echo "   ✓ Binary copied to $INSTALL_DIR/DirettaRendererUPnP"
 
 echo "3. Creating default configuration file..."
 if [ ! -f "$CONFIG_FILE" ]; then
