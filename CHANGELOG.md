@@ -16,6 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ---
+
+## [1.0.3] - 2025-12-07
+ ### Added
+  **Display more device-friendly information when outputting device list**
+  - Added display of target device name
+  - Display device output name and configuration information
+  - Output product ID in hexadecimal format
+  - Display protocol version number
+  - Indicate whether multi-port support is enabled
+  - Display synchronization status and its detailed parameters
+
+
+
+
 ## [1.0.2] - 2025-12-06
 
 ### Added
@@ -24,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ensure multi‑platform compatibility (x64, ARM64),
   - prevent errors on unsupported architectures,
   - simplify maintenance by centralizing the suffix into a reusable variable for all libraries
- **Diretta target device selection and validation features**
+  **Diretta target device selection and validation features**
   - Implemented the findAndSelectTarget function to support automatic or interactive target selection.
   - Added the verifyTargetAvailable function to check whether valid targets exist on the network.
   - Implemented the listAvailableTargets function to list all detected Diretta targets.
