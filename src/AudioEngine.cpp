@@ -262,24 +262,60 @@ bool AudioDecoder::open(const std::string& url) {
     
     m_rawDSD = false;  // Not DSD, use normal decoding
     
-    // PCM format detection
+ // ⭐ CRITICAL FIX: Detect REAL bit depth from source, not FFmpeg's internal format!
+// FFmpeg uses S32 container for 24-bit data, but we need to know the ORIGINAL bit depth
+
+int realBitDepth = 0;
+
+// Method 1: Try bits_per_raw_sample (most reliable for FLAC/ALAC)
+if (codecpar->bits_per_raw_sample > 0) {
+    realBitDepth = codecpar->bits_per_raw_sample;
+    std::cout << "[AudioDecoder] ✓ Real bit depth from bits_per_raw_sample: " 
+              << realBitDepth << " bits" << std::endl;
+}
+// Method 2: Deduce from codec ID (for PCM formats like WAV)
+else if (codecpar->codec_id == AV_CODEC_ID_PCM_S16LE || 
+         codecpar->codec_id == AV_CODEC_ID_PCM_S16BE) {
+    realBitDepth = 16;
+}
+else if (codecpar->codec_id == AV_CODEC_ID_PCM_S24LE || 
+         codecpar->codec_id == AV_CODEC_ID_PCM_S24BE) {
+    realBitDepth = 24;
+}
+else if (codecpar->codec_id == AV_CODEC_ID_PCM_S32LE || 
+         codecpar->codec_id == AV_CODEC_ID_PCM_S32BE) {
+    realBitDepth = 32;
+}
+// Method 3: Fallback to FFmpeg's internal format (old behavior)
+else {
     switch (codecpar->format) {
         case AV_SAMPLE_FMT_S16:
         case AV_SAMPLE_FMT_S16P:
-            m_trackInfo.bitDepth = 16;
+            realBitDepth = 16;
             break;
         case AV_SAMPLE_FMT_S32:
         case AV_SAMPLE_FMT_S32P:
-            m_trackInfo.bitDepth = 32;
+            realBitDepth = 32;  // May be 24-bit in 32-bit container
             break;
         case AV_SAMPLE_FMT_FLT:
         case AV_SAMPLE_FMT_FLTP:
-            m_trackInfo.bitDepth = 32; // Float treated as 32-bit
+            realBitDepth = 32;  // Float
             break;
         default:
-            m_trackInfo.bitDepth = 24; // Default assumption
+            realBitDepth = 24;  // Safe default
             break;
     }
+    std::cout << "[AudioDecoder] ⚠️  Using format-based bit depth detection: " 
+              << realBitDepth << " bits (may be inaccurate)" << std::endl;
+}
+
+m_trackInfo.bitDepth = realBitDepth;
+
+std::cout << "[AudioDecoder] 🎵 PCM: " << m_trackInfo.codec 
+          << " " << m_trackInfo.sampleRate << "Hz/"
+          << m_trackInfo.bitDepth << "bit/"
+          << m_trackInfo.channels << "ch" << std::endl;
+
     
     std::cout << "[AudioDecoder] 🎵 PCM: " << m_trackInfo.codec 
               << " " << m_trackInfo.sampleRate << "Hz/"
