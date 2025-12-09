@@ -323,14 +323,53 @@ bool DirettaOutput::sendAudio(const uint8_t* data, size_t numSamples) {
                       << " samples → " << dataSize << " bytes" << std::endl;
         }
     } else {
-        // PCM: standard calculation
-        uint32_t bytesPerSample = (m_currentFormat.bitDepth / 8) * m_currentFormat.channels;
-        dataSize = numSamples * bytesPerSample;
+        // ✅ PCM: Calculate based on ACTUAL format (not what we'll send)
+        // For 24-bit: input is S32 (4 bytes), output will be S24 (3 bytes)
+        uint32_t inputBytesPerSample = (m_currentFormat.bitDepth == 24) ? 4 : (m_currentFormat.bitDepth / 8);
+        inputBytesPerSample *= m_currentFormat.channels;
+        
+        // Output size (what we'll actually send to Diretta)
+        uint32_t outputBytesPerSample = (m_currentFormat.bitDepth / 8) * m_currentFormat.channels;
+        dataSize = numSamples * outputBytesPerSample;
     }
     
     DIRETTA::Stream stream;
     stream.resize(dataSize);
-    memcpy(stream.get(), data, dataSize);
+    
+    // ✅ CRITICAL FIX: Convert S32 → S24 if needed
+    if (!m_currentFormat.isDSD && m_currentFormat.bitDepth == 24) {
+        // Input: S32 (4 bytes per sample)
+        // Output: S24 (3 bytes per sample)
+        const int32_t* input32 = reinterpret_cast<const int32_t*>(data);
+        uint8_t* output24 = stream.get();
+        
+        size_t totalSamples = numSamples * m_currentFormat.channels;
+        
+        for (size_t i = 0; i < totalSamples; i++) {
+            int32_t sample32 = input32[i];
+            
+            // Extract 24 significant bits from 32-bit container
+            // S32 format: [LSB] [24-bit audio] [MSB in byte 3]
+            // We want bytes 1, 2, 3 (shift right by 8 bits)
+            int32_t sample24 = sample32 >> 8;
+            
+            // Write as 3 bytes (little-endian)
+            output24[0] = (sample24 >> 0) & 0xFF;   // LSB
+            output24[1] = (sample24 >> 8) & 0xFF;   // Mid
+            output24[2] = (sample24 >> 16) & 0xFF;  // MSB
+            
+            output24 += 3;
+        }
+        
+        static int conversionLog = 0;
+        if (conversionLog++ < 3) {
+            std::cout << "[DirettaOutput] ✅ Converted S32 → S24 (" 
+                      << totalSamples << " samples)" << std::endl;
+        }
+    } else {
+        // For other formats (16-bit, 32-bit, DSD): direct copy
+        memcpy(stream.get(), data, dataSize);
+    }
     
     m_syncBuffer->setStream(stream);
     m_totalSamplesSent += numSamples;
