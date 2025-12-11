@@ -17,14 +17,14 @@ make
 # 2.Go to systemd folder
 cd systemd
 
-# 2. Install as systemd service
+# 3. Install as systemd service
 chmod +x install-systemd.sh
 sudo ./install-systemd.sh
 
-# 3. Start the service
+# 4. Start the service
 sudo systemctl start diretta-renderer
 
-# 4. Check it's running
+# 5. Check it's running
 sudo systemctl status diretta-renderer
 ```
 
