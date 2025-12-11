@@ -402,36 +402,33 @@ bool DirettaOutput::sendAudio(const uint8_t* data, size_t numSamples) {
     DIRETTA::Stream stream;
     stream.resize(dataSize);
     
-    // ✅ CRITICAL FIX: Convert S32 → S24 if needed
-    if (!m_currentFormat.isDSD && m_currentFormat.bitDepth == 24) {
-        // Input: S32 (4 bytes per sample)
-        // Output: S24 (3 bytes per sample)
-        const int32_t* input32 = reinterpret_cast<const int32_t*>(data);
-        uint8_t* output24 = stream.get();
+// ✅ CRITICAL FIX: Convert S32 → S24 if needed
+if (!m_currentFormat.isDSD && m_currentFormat.bitDepth == 24) {
+    // Input: S32 (4 bytes per sample)
+    // Output: S24 (3 bytes per sample)
+    const int32_t* input32 = reinterpret_cast<const int32_t*>(data);
+    uint8_t* output24 = stream.get();
+    
+    size_t totalSamples = numSamples * m_currentFormat.channels;
+    
+    // ⭐ ZERO the output buffer first to avoid residual data
+    std::memset(output24, 0, dataSize);
+    
+    for (size_t i = 0; i < totalSamples; i++) {
+        int32_t sample32 = input32[i];
         
-        size_t totalSamples = numSamples * m_currentFormat.channels;
-        
-        for (size_t i = 0; i < totalSamples; i++) {
-            int32_t sample32 = input32[i];
-            
-            // Extract 24 significant bits from 32-bit container
-            // S32 format: [LSB] [24-bit audio] [MSB in byte 3]
-            // We want bytes 1, 2, 3 (shift right by 8 bits)
-            int32_t sample24 = sample32 >> 8;
-            
-            // Write as 3 bytes (little-endian)
-            output24[0] = (sample24 >> 0) & 0xFF;   // LSB
-            output24[1] = (sample24 >> 8) & 0xFF;   // Mid
-            output24[2] = (sample24 >> 16) & 0xFF;  // MSB
-            
-            output24 += 3;
-        }
-        
-        static int conversionLog = 0;
-        if (conversionLog++ < 3) {
-            std::cout << "[DirettaOutput] ✅ Converted S32 → S24 (" 
-                      << totalSamples << " samples)" << std::endl;
-        }
+        // Extract 24-bit from 32-bit (MSB aligned)
+        // Little-endian byte order for S24LE
+        output24[i*3 + 0] = (sample32 >> 8) & 0xFF;   // LSB
+        output24[i*3 + 1] = (sample32 >> 16) & 0xFF;  // Mid
+        output24[i*3 + 2] = (sample32 >> 24) & 0xFF;  // MSB
+    }
+    
+    static int convCount = 0;
+    if (convCount++ < 3 || convCount % 100 == 0) {
+        std::cout << "[sendAudio] S32→S24: " << numSamples << " samples, " 
+                  << totalSamples << " total, " << dataSize << " bytes" << std::endl;
+    }
     } else {
         // For other formats (16-bit, 32-bit, DSD): direct copy
         memcpy(stream.get(), data, dataSize);
