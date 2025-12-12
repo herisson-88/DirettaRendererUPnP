@@ -527,8 +527,8 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
         
         // ✅ FINAL WORKING CONFIGURATION (discovered through testing)
         // These exact settings are required for proper DSD playback:
-        const bool ENABLE_INTERLEAVING = true;   // REQUIRED for stereo (prevents 2× speed)
-        const bool ENABLE_BIT_REVERSAL = false;  // NOT needed for DSF files
+        const bool ENABLE_INTERLEAVING = true;   // REQUIRED for stereo (prevents 2× speed
+        const bool ENABLE_BIT_REVERSAL = true;  // NOT needed for DSF files
         const bool INTERLEAVE_BY_BYTE = false;   // Use 32-bit word interleaving
         
         // Convert PLANAR to INTERLEAVED if enabled
