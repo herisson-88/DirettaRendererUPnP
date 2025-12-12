@@ -854,17 +854,14 @@ bool DirettaOutput::configureDiretta(const AudioFormat& format) {
         formatID = DIRETTA::FormatID::FMT_DSD1 | DIRETTA::FormatID::FMT_DSD_SIZ_32;
         
         // ✅ CRITICAL FIX: Detect DSF vs DFF format correctly
-        if (format.dsdFormat == AudioFormat::DSDFormat::DSF) {
-            // DSF: LSB first, Little Endian
-            formatID |= DIRETTA::FormatID::FMT_DSD_LSB;
-            formatID |= DIRETTA::FormatID::FMT_DSD_LITTLE;
-            std::cout << "[DirettaOutput]    Format: DSF (LSB + LITTLE)" << std::endl;
-        } else {
-            // DFF: MSB first, Big Endian
-            formatID |= DIRETTA::FormatID::FMT_DSD_MSB;
-            formatID |= DIRETTA::FormatID::FMT_DSD_BIG;
-            std::cout << "[DirettaOutput]    Format: DFF (MSB + BIG)" << std::endl;
-        }
+formatID |= DIRETTA::FormatID::FMT_DSD_LSB;
+formatID |= DIRETTA::FormatID::FMT_DSD_LITTLE;
+
+if (format.dsdFormat == AudioFormat::DSDFormat::DFF) {
+    std::cout << "[DirettaOutput]    Format: DSF (LSB + LITTLE) [converted from DFF]" << std::endl;
+} else {
+    std::cout << "[DirettaOutput]    Format: DSF (LSB + LITTLE)" << std::endl;
+}
         
         std::cout << "[DirettaOutput]    Word size: 32-bit container" << std::endl;
         std::cout << "[DirettaOutput]    DSD Rate: ";
