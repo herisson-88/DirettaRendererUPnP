@@ -850,14 +850,23 @@ bool DirettaOutput::configureDiretta(const AudioFormat& format) {
     if (format.isDSD) {
         std::cout << "[DirettaOutput] 🎵 DSD NATIVE MODE" << std::endl;
         
-        // ✅ WORKING CONFIGURATION: LSB + LITTLE (native DSF format)
-        // Base DSD format - always use FMT_DSD1 and FMT_DSD_SIZ_32
+        // ✅ Base DSD format - always use FMT_DSD1 and FMT_DSD_SIZ_32
         formatID = DIRETTA::FormatID::FMT_DSD1 | DIRETTA::FormatID::FMT_DSD_SIZ_32;
-        formatID |= DIRETTA::FormatID::FMT_DSD_LSB;     // ✅ LSB for DSF files
-        formatID |= DIRETTA::FormatID::FMT_DSD_LITTLE;  // ✅ Little Endian
         
-        std::cout << "[DirettaOutput]    Format: DSF (LSB + LITTLE)" << std::endl;
-        std::cout << "[DirettaOutput]    Word size: 32-bit" << std::endl;
+        // ✅ CRITICAL FIX: Detect DSF vs DFF format correctly
+        if (format.dsdFormat == AudioFormat::DSDFormat::DSF) {
+            // DSF: LSB first, Little Endian
+            formatID |= DIRETTA::FormatID::FMT_DSD_LSB;
+            formatID |= DIRETTA::FormatID::FMT_DSD_LITTLE;
+            std::cout << "[DirettaOutput]    Format: DSF (LSB + LITTLE)" << std::endl;
+        } else {
+            // DFF: MSB first, Big Endian
+            formatID |= DIRETTA::FormatID::FMT_DSD_MSB;
+            formatID |= DIRETTA::FormatID::FMT_DSD_BIG;
+            std::cout << "[DirettaOutput]    Format: DFF (MSB + BIG)" << std::endl;
+        }
+        
+        std::cout << "[DirettaOutput]    Word size: 32-bit container" << std::endl;
         std::cout << "[DirettaOutput]    DSD Rate: ";
         
         // Determine DSD rate (DSD64, DSD128, etc.)
@@ -879,13 +888,62 @@ bool DirettaOutput::configureDiretta(const AudioFormat& format) {
             formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP64;
         }
     } else {
-        // PCM FORMAT (existing code)
+        // PCM FORMAT (existing code - unchanged)
         switch (format.bitDepth) {
             case 16: formatID = DIRETTA::FormatID::FMT_PCM_SIGNED_16; break;
             case 24: formatID = DIRETTA::FormatID::FMT_PCM_SIGNED_24; break;
             case 32: formatID = DIRETTA::FormatID::FMT_PCM_SIGNED_32; break;
             default: formatID = DIRETTA::FormatID::FMT_PCM_SIGNED_32; break;
         }
+        
+        uint32_t baseRate;
+        uint32_t multiplier;
+        
+        if (format.sampleRate % 44100 == 0) {
+            baseRate = 44100;
+            multiplier = format.sampleRate / 44100;
+            formatID |= DIRETTA::FormatID::RAT_44100;
+        } else if (format.sampleRate % 48000 == 0) {
+            baseRate = 48000;
+            multiplier = format.sampleRate / 48000;
+            formatID |= DIRETTA::FormatID::RAT_48000;
+        } else {
+            baseRate = 44100;
+            multiplier = 1;
+            formatID |= DIRETTA::FormatID::RAT_44100;
+        }
+        
+        std::cout << "[DirettaOutput] " << format.sampleRate << "Hz = " 
+                  << baseRate << "Hz × " << multiplier << std::endl;
+        
+        if (multiplier == 1) {
+            formatID |= DIRETTA::FormatID::RAT_MP1;
+            std::cout << "[DirettaOutput] Multiplier: x1 (RAT_MP1)" << std::endl;
+        } else if (multiplier == 2) {
+            formatID |= DIRETTA::FormatID::RAT_MP2;
+            std::cout << "[DirettaOutput] Multiplier: x2 (RAT_MP2)" << std::endl;
+        } else if (multiplier == 4) {
+            formatID |= DIRETTA::FormatID::RAT_MP4;
+            std::cout << "[DirettaOutput] Multiplier: x4 (RAT_MP4 ONLY)" << std::endl;
+        } else if (multiplier == 8) {
+            formatID |= DIRETTA::FormatID::RAT_MP8;
+            std::cout << "[DirettaOutput] Multiplier: x8 (RAT_MP8 ONLY)" << std::endl;
+        } else if (multiplier >= 16) {
+            formatID |= DIRETTA::FormatID::RAT_MP16;
+            std::cout << "[DirettaOutput] Multiplier: x16 (RAT_MP16 ONLY)" << std::endl;
+        }
+    }
+    
+    // Add channels (common to both PCM and DSD)
+    switch (format.channels) {
+        case 1: formatID |= DIRETTA::FormatID::CHA_1; break;
+        case 2: formatID |= DIRETTA::FormatID::CHA_2; break;
+        case 4: formatID |= DIRETTA::FormatID::CHA_4; break;
+        case 6: formatID |= DIRETTA::FormatID::CHA_6; break;
+        case 8: formatID |= DIRETTA::FormatID::CHA_8; break;
+        default: formatID |= DIRETTA::FormatID::CHA_2; break;
+    }
+
         
         uint32_t baseRate;
         uint32_t multiplier;
@@ -1034,10 +1092,23 @@ std::cout << "[DirettaOutput] DEBUG: MTU passed to setSink: " << m_mtu << std::e
 std::cout << "[DirettaOutput] DEBUG: Check packet size in tcpdump..." << std::endl;
 
 std::cout << "[DirettaOutput] configTransferAuto: limit=200us, min=333us, max=10000us" << std::endl;
-// Calculer manuellement au lieu de se fier à getSinkConfigure()
-const int bytesPerSample = (format.bitDepth / 8);
-const int frameSize = bytesPerSample * format.channels;
-const int fs1sec = format.sampleRate;
+
+// ✅ CORRECTION: Calculer frame size correctement pour DSD
+int bytesPerSample;
+int frameSize;
+
+if (format.isDSD) {
+    // DSD with FMT_DSD_SIZ_32: 32-bit containers = 4 bytes per sample
+    bytesPerSample = 4;  // 32-bit word
+    frameSize = bytesPerSample * format.channels;  // 4 × 2 = 8 bytes for stereo
+    std::cout << "[DirettaOutput]      - DSD: Using 32-bit containers" << std::endl;
+} else {
+    // PCM: standard calculation
+    bytesPerSample = (format.bitDepth / 8);
+    frameSize = bytesPerSample * format.channels;
+}
+
+const int fs1sec = format.sampleRate;  // ← GARDER CETTE LIGNE !
 
 std::cout << "[DirettaOutput]    Manual calculation:" << std::endl;
 std::cout << "[DirettaOutput]      - Bytes per sample: " << bytesPerSample << std::endl;
@@ -1048,7 +1119,7 @@ std::cout << "[DirettaOutput]      - Buffer: " << fs1sec << " × " << m_bufferSe
 std::cout << "[DirettaOutput]      ⚠️  CRITICAL: This is " << m_bufferSeconds 
           << " seconds of audio buffer in Diretta!" << std::endl;
 
-m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);    
+m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);   
     std::cout << "[DirettaOutput] 6. Connecting..." << std::endl;
     m_syncBuffer->connect(0, 0);
     // m_syncBuffer->connectWait();
