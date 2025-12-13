@@ -576,8 +576,8 @@ void DirettaRenderer::upnpThreadFunc() {
 }
 
 void DirettaRenderer::audioThreadFunc() {
-    std::cout << "[Audio Thread] Started" << std::endl;
-    std::cout << "[Audio Thread] ⏱️  Precise timing enabled" << std::endl;
+    DEBUG_LOG("[Audio Thread] Started");
+    DEBU_LOG("[Audio Thread] ⏱️  Precise timing enabled")
     
     // ✅ CRITICAL: Packet size must be adapted to format!
     // DSD:  32768 samples (matches Diretta processing quantum, ~11.6ms)
@@ -658,8 +658,8 @@ void DirettaRenderer::audioThreadFunc() {
             // ← AJOUTER : Log quand en attente
             static int waitCount = 0;
             if (waitCount++ == 0 || waitCount % 10 == 0) {
-                std::cout << "[Audio Thread] ⏸️  Waiting (state=" << (int)state 
-                          << ", count=" << waitCount << ")" << std::endl;
+                DEBUG_LOG("[Audio Thread] ⏸️  Waiting (state=" << (int)state 
+                          << ", count=" << waitCount << ")");
             }
             
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
