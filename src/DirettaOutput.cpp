@@ -738,7 +738,7 @@ bool DirettaOutput::verifyTargetAvailable() {
         
         std::cout << " ✓" << std::endl;
         DEBUG_LOG("[DirettaOutput] Scanning network";
-        std::cout.flush();
+        std::cout.flush());
         
         // Visual feedback during scan (SDK blocks here)
         auto scanStart = std::chrono::steady_clock::now();
@@ -792,7 +792,7 @@ bool DirettaOutput::verifyTargetAvailable() {
         // SUCCESS!
         std::cout << " ✓" << std::endl;
         std::cout << "[DirettaOutput] " << std::endl;
-        DEBUG_LOG("[DirettaOutput] ✅ Found " << targets.size() << " Diretta target(s)";
+        DEBUG_LOG("[DirettaOutput] ✅ Found " << targets.size() << " Diretta target(s)");
         if (attempt > 1) {
             std::cout << " (after " << attempt << " attempt(s))";
         }
