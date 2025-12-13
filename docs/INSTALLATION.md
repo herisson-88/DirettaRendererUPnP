@@ -189,24 +189,42 @@ source ~/.bashrc
 ### 1. Clone the Repository
 
 ```bash
-cd ~/audio-projects
+
 git clone https://github.com/cometdom/DirettaRendererUPnP.git
 cd DirettaRendererUPnP
 ```
 
-### 2. Build
-
 ```bash
-# Clean build (recommended for first time)
-make clean
+# Clone repository
+git clone https://github.com/cometdom/DirettaRendererUPnP.git
+cd DirettaRendererUPnP
+
+# Build (Makefile auto-detects SDK location)
 make
 
-# You should see:
-# Compiling main.cpp...
-# Compiling DirettaRenderer.cpp...
-# ...
-# ✓ Build complete: bin/DirettaRendererUPnP
-```
+# Install service
+cd systemd
+chmod +x install-systemd.sh
+sudo ./install-systemd.sh
+
+#Next steps:
+ 1. Edit configuration (optional):
+     sudo nano /opt/diretta-renderer-upnp/diretta-renderer.conf
+ 2. Reload daemon:
+     sudo systemctl daemon-reload
+ 3. Enable the service:
+     sudo systemctl enable diretta-renderer
+ 4. Start the service:
+     sudo systemctl start diretta-renderer
+ 5. Check status:
+     sudo systemctl status diretta-renderer 
+ 6. View logs:
+     sudo journalctl -u diretta-renderer -f
+ 7. Stop the service:
+     sudo systemctl stop diretta-renderer
+ 8. Disable auto-start:
+     sudo systemctl disable diretta-renderer       
+
 
 ### 3. Verify Binary
 

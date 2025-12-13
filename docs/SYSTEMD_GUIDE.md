@@ -14,14 +14,17 @@ This guide explains how to run the Diretta UPnP Renderer as a systemd service, a
 # 1. Build the renderer
 make
 
-# 2. Install as systemd service
+# 2.Go to systemd folder
+cd systemd
+
+# 3. Install as systemd service
 chmod +x install-systemd.sh
 sudo ./install-systemd.sh
 
-# 3. Start the service
+# 4. Start the service
 sudo systemctl start diretta-renderer
 
-# 4. Check it's running
+# 5. Check it's running
 sudo systemctl status diretta-renderer
 ```
 
