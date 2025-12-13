@@ -15,7 +15,7 @@ extern "C" {
 // Logging system - Variable globale définie dans main.cpp
 // ============================================================================
 extern bool g_verbose;
-#define DEBUG_LOG(x) if (g_verbose) { std::cout << x); }
+#define DEBUG_LOG(x) if (g_verbose) { std::cout << x << std::endl; }
 #include <libavutil/opt.h>
 }
 
@@ -125,7 +125,7 @@ bool AudioDecoder::open(const std::string& url) {
         int64_t duration_seconds = m_formatContext->duration / AV_TIME_BASE;
         int64_t duration_ms = (m_formatContext->duration % AV_TIME_BASE) * 1000 / AV_TIME_BASE;
         DEBUG_LOG("[AudioDecoder] Stream duration: " << duration_seconds << "." 
-                  << duration_ms << " seconds" << std::endl;
+                  << duration_ms << " seconds");
     } else {
         DEBUG_LOG("[AudioDecoder] Stream duration: unknown (live stream?)");
     }
