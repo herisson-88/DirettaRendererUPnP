@@ -506,7 +506,7 @@ int UPnPDevice::actionStop(UpnpActionRequest* request) {
 {
     std::lock_guard<std::mutex> lock(m_stateMutex);
     DEBUG_LOG("[UPnPDevice] Changing state: " << m_transportState 
-              << " → STOPPED" << std::endl;
+              << " → STOPPED");
     m_transportState = "STOPPED";
     m_currentPosition = 0;
     
