@@ -29,7 +29,8 @@ Command Line Options
 - Added --help documentation for the new verbose mode
 
 **Version Display**
-- Added version display 
+- Added version display type:
+   
   ./DirettaRenderer --version or ./DirettaRendererUPnP -V
   
 ### Fixed
