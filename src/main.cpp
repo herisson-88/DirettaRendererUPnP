@@ -11,6 +11,10 @@
 #include <thread>
 #include <chrono>
 
+// Version information
+#define RENDERER_VERSION "1.0.6"
+#define RENDERER_BUILD_DATE __DATE__
+#define RENDERER_BUILD_TIME __TIME__
 // Global renderer instance for signal handler
 std::unique_ptr<DirettaRenderer> g_renderer;
 
@@ -22,6 +26,8 @@ void signalHandler(int signal) {
     }
     exit(0);
 }
+ // Variable globale pour le mode verbose
+   bool g_verbose = false;
 
 // List available Diretta targets
 void listTargets() {
@@ -81,6 +87,21 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
             listTargets();
             exit(0);
         }
+        else if (arg == "--version" || arg == "-v") {
+             std::cout << "═══════════════════════════════════════════════════════" << std::endl;
+             std::cout << "  Diretta UPnP Renderer - Version " << RENDERER_VERSION << std::endl;
+             std::cout << "═══════════════════════════════════════════════════════" << std::endl;
+             std::cout << "Build: " << RENDERER_BUILD_DATE << " " << RENDERER_BUILD_TIME << std::endl;
+             std::cout << "Author: Dominique COMET (with Yu Harada - Diretta protocol)" << std::endl;
+             std::cout << "MIT License" << std::endl;
+             std::cout << "═══════════════════════════════════════════════════════" << std::endl;
+            exit(0);
+        }       
+        else if (arg == "--verbose" || arg == "-v") {
+            // ⭐ NOUVEAU: Option verbose
+            g_verbose = true;
+            std::cout << "✓ Verbose mode enabled" << std::endl;
+        }
         else if (arg == "--help" || arg == "-h") {
             std::cout << "Diretta UPnP Renderer\n\n"
                       << "Usage: " << argv[0] << " [options]\n\n"
@@ -92,11 +113,17 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
                       << "  --buffer, -b <secs>   Buffer size in seconds (default: 10)\n"
                       << "  --target, -t <index>  Select Diretta target by index (1, 2, 3...)\n"
                       << "  --list-targets, -l    List available Diretta targets and exit\n"
+                      << "  --verbose, -v         Enable verbose debug output\n"
+                      << "  --version, -V         Show version information\n"
                       << "  --help, -h            Show this help\n"
                       << "\nTarget Selection:\n"
                       << "  First, scan for targets:  " << argv[0] << " --list-targets\n"
                       << "  Then, use specific target: " << argv[0] << " --target 1\n"
                       << "  Or use interactive mode:   " << argv[0] << " (prompts if multiple targets)\n"
+                      << "  Or use interactive mode:   " << argv[0] << " (prompts if multiple targets)\n"
+                      << "\nDebug Mode:\n"  // ⭐ NOUVEAU
+                      << "  Normal mode (clean output): " << argv[0] << " --target 1\n"
+                      << "  Verbose mode (all logs):    " << argv[0] << " --target 1 --verbose\n"                     
                       << std::endl;
             exit(0);
         }

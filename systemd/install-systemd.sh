@@ -77,6 +77,15 @@ PORT=4005
 # Buffer size in seconds (1.0 - 5.0)
 # Recommended: 2.0 for most, 3.0-4.0 for DSD512+
 BUFFER=2.0
+
+# Add --no gapless if you don't want gapless playback.
+# Left empty "" if you want gapless playback
+GAPLESS="--no gapless"
+
+# Add --verbose if you want debug logs display.
+# Left empty "" if you want to mask logs.
+VERBOSE="--verbose"
+
 EOF
     echo "   ✓ Configuration file created: $CONFIG_FILE"
 else
@@ -96,13 +105,18 @@ Type=simple
 User=root
 WorkingDirectory=/opt/diretta-renderer-upnp
 EnvironmentFile=-/opt/diretta-renderer-upnp/diretta-renderer.conf
-ExecStart=/opt/diretta-renderer-upnp/DirettaRendererUPnP --target ${TARGET} --port ${PORT} --buffer ${BUFFER}
+ExecStart=/opt/diretta-renderer-upnp/DirettaRendererUPnP --target ${TARGET} --port ${PORT} --buffer ${BUFFER} $GAPLESS $VERBOSE
 Restart=on-failure
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=diretta-renderer
 AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+
+Performance optimizations (optional)
+Nice=-10
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
 
 [Install]
 WantedBy=multi-user.target

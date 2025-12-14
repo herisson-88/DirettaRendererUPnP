@@ -22,6 +22,13 @@
 #include <cstring>     // For strcpy
 #include <mutex>       // For stop/play synchronization
 
+// ============================================================================
+// Logging system - Variable globale définie dans main.cpp
+// ============================================================================
+extern bool g_verbose;
+#define DEBUG_LOG(x) if (g_verbose) { std::cout << x << std::endl; }
+
+
 // Generate stable UUID based on hostname
 // This ensures the same UUID across restarts, so UPnP control points
 // recognize the renderer as the same device
@@ -58,12 +65,12 @@ DirettaRenderer::DirettaRenderer(const Config& config)
     : m_config(config)
     , m_running(false)
 {
-    std::cout << "[DirettaRenderer] Created" << std::endl;
+    DEBUG_LOG("[DirettaRenderer] Created");
 }
 
 DirettaRenderer::~DirettaRenderer() {
     stop();
-    std::cout << "[DirettaRenderer] Destroyed" << std::endl;
+    DEBUG_LOG("[DirettaRenderer] Destroyed");
 }
 
 // Helper function to parse UPnP time strings (HH:MM:SS or HH:MM:SS.mmm)
@@ -91,16 +98,16 @@ bool DirettaRenderer::start() {
         return false;
     }
     
-    std::cout << "[DirettaRenderer] Initializing components..." << std::endl;
+    DEBUG_LOG("[DirettaRenderer] Initializing components...");
     
     try {
         // ⭐ CRITICAL: Verify Diretta Target availability BEFORE starting UPnP
         // This prevents the renderer from accepting connections when no DAC is available
-        std::cout << "[DirettaRenderer] " << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ");
         std::cout << "[DirettaRenderer] ══════════════════════════════════════════════════════" << std::endl;
         std::cout << "[DirettaRenderer] ⚠️  IMPORTANT: Checking Diretta Target availability..." << std::endl;
         std::cout << "[DirettaRenderer] ══════════════════════════════════════════════════════" << std::endl;
-        std::cout << "[DirettaRenderer] " << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ");
         
         // Create DirettaOutput first to verify target
         m_direttaOutput = std::make_unique<DirettaOutput>();
@@ -125,7 +132,7 @@ bool DirettaRenderer::start() {
         }
         
         std::cout << "[DirettaRenderer] ✓ Diretta Target verified and ready" << std::endl;
-        std::cout << "[DirettaRenderer] " << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ");
         
         // Configure MTU
         if (m_networkMTU != 1500) {
@@ -155,12 +162,12 @@ bool DirettaRenderer::start() {
         // CRITICAL: Re-enable this after finding the root cause!
         /*
         if (m_audioEngine->getState() != AudioEngine::State::PLAYING) {
-            std::cout << "[Callback] ⛔ Not PLAYING, stopping audio flow" << std::endl;
+            DEBUG_LOG("[Callback] ⛔ Not PLAYING, stopping audio flow");
             return false;  // Arrêter immédiatement
         }
         */
         
-        std::cout << "[Callback] Sending " << samples << " samples" << std::endl;
+        DEBUG_LOG("[Callback] Sending " << samples << " samples");
         
         // Get track info to check for DSD
         const TrackInfo& trackInfo = m_audioEngine->getCurrentTrackInfo();
@@ -168,8 +175,8 @@ bool DirettaRenderer::start() {
         if (!m_direttaOutput->isConnected()) {
             // ⭐ LOG: Premier buffer reçu, initialisation Diretta
             auto initStart = std::chrono::steady_clock::now();
-            std::cout << "[Callback] 🔌 First audio buffer received, initializing Diretta..." << std::endl;
-            std::cout << "[Callback]    Format: " << sampleRate << "Hz/" << bitDepth << "bit/" << channels << "ch" << std::endl;
+            DEBUG_LOG("[Callback] 🔌 First audio buffer received, initializing Diretta...");
+            DEBUG_LOG("[Callback]    Format: " << sampleRate << "Hz/" << bitDepth << "bit/" << channels << "ch");
             
             // Open Diretta connection
             AudioFormat format(sampleRate, bitDepth, channels);
@@ -188,20 +195,22 @@ bool DirettaRenderer::start() {
                 std::string codec = trackInfo.codec;
                 if (codec.find("lsb") != std::string::npos) {
                     format.dsdFormat = AudioFormat::DSDFormat::DSF;
-                    std::cout << "[DirettaRenderer] 🎵 DSD format: DSF (LSB)" << std::endl;
+                    DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DSF (LSB)");
                 } else {
                     format.dsdFormat = AudioFormat::DSDFormat::DFF;
-                    std::cout << "[DirettaRenderer] 🎵 DSD format: DFF (MSB)" << std::endl;
+                    DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DFF (MSB)");
                 }
             }
             
-            std::cout << "[DirettaRenderer] 🔌 Opening Diretta connection: ";
-            if (format.isDSD) {
-                std::cout << "DSD" << trackInfo.dsdRate << " (" << sampleRate << " Hz)";
-            } else {
-                std::cout << sampleRate << "Hz/" << bitDepth << "bit";
+            if (g_verbose) {
+                std::cout << "[DirettaRenderer] 🔌 Opening Diretta connection: ";
+                if (format.isDSD) {
+                    std::cout << "DSD" << trackInfo.dsdRate << " (" << sampleRate << " Hz)";
+                } else {
+                    std::cout << sampleRate << "Hz/" << bitDepth << "bit";
+                }
+                std::cout << "/" << channels << "ch" << std::endl;
             }
-            std::cout << "/" << channels << "ch" << std::endl;
             
             if (!m_direttaOutput->open(format, m_config.bufferSeconds)) {
                 std::cerr << "[DirettaRenderer] ❌ Failed to open Diretta output" << std::endl;
@@ -210,7 +219,7 @@ bool DirettaRenderer::start() {
             
             auto connectTime = std::chrono::steady_clock::now();
             auto connectDuration = std::chrono::duration_cast<std::chrono::milliseconds>(connectTime - initStart);
-            std::cout << "[DirettaRenderer] ✓ Connection established in " << connectDuration.count() << "ms" << std::endl;
+            DEBUG_LOG("[DirettaRenderer] ✓ Connection established in " << connectDuration.count() << "ms");
             
             if (!m_direttaOutput->play()) {
                 std::cerr << "[DirettaRenderer] ❌ Failed to start Diretta playback" << std::endl;
@@ -221,7 +230,7 @@ bool DirettaRenderer::start() {
             // The Diretta connection is established, but the DAC needs time to lock
             // onto the new format and be ready to receive audio samples.
             // Without this delay, the first buffers may be lost → silent playback
-            std::cout << "[DirettaRenderer] ⏳ Waiting for DAC stabilization (200ms)..." << std::endl;
+            DEBUG_LOG("[DirettaRenderer] ⏳ Waiting for DAC stabilization (200ms)...");
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             
             auto totalTime = std::chrono::steady_clock::now();
@@ -242,7 +251,7 @@ bool DirettaRenderer::start() {
         }
         
         if (formatChanged) {
-            std::cout << "[DirettaRenderer] 🔄 Format change detected" << std::endl;
+            DEBUG_LOG("[DirettaRenderer] 🔄 Format change detected");
             
             AudioFormat newFormat(sampleRate, bitDepth, channels);
             
@@ -272,19 +281,21 @@ bool DirettaRenderer::start() {
 );        
         m_audioEngine->setTrackChangeCallback(
             [this](int trackNumber, const TrackInfo& info, const std::string& uri, const std::string& metadata) {
-                std::cout << "[DirettaRenderer] 🎵 Track " << trackNumber 
-                          << ": " << info.codec << " ";
-                
-                if (info.isDSD) {
-                    std::cout << "DSD" << info.dsdRate << " (" << info.sampleRate << "Hz)";
-                } else {
-                    std::cout << info.sampleRate << "Hz/" << info.bitDepth << "bit";
+                if (g_verbose) {
+                    std::cout << "[DirettaRenderer] 🎵 Track " << trackNumber 
+                              << ": " << info.codec << " ";
+                    
+                    if (info.isDSD) {
+                        std::cout << "DSD" << info.dsdRate << " (" << info.sampleRate << "Hz)";
+                    } else {
+                        std::cout << info.sampleRate << "Hz/" << info.bitDepth << "bit";
+                    }
+                    
+                    std::cout << "/" << info.channels << "ch" << std::endl;
                 }
                 
-                std::cout << "/" << info.channels << "ch" << std::endl;
-                
                 // CRITICAL: Update UPnP with new URI and metadata
-                std::cout << "[DirettaRenderer] 🔔 Notifying UPnP of track change" << std::endl;
+                DEBUG_LOG("[DirettaRenderer] 🔔 Notifying UPnP of track change");
                 m_upnp->setCurrentURI(uri);
                 m_upnp->setCurrentMetadata(metadata);
                 m_upnp->notifyTrackChange(uri, metadata);
@@ -293,7 +304,7 @@ bool DirettaRenderer::start() {
         );
 
          m_audioEngine->setTrackEndCallback([this]() {
-            std::cout << "[DirettaRenderer] ✓ Track ended, notifying UPnP controller" << std::endl;
+            DEBUG_LOG("[DirettaRenderer] ✓ Track ended, notifying UPnP controller");
             m_upnp->notifyStateChange("STOPPED");
         });                  
 
@@ -307,7 +318,8 @@ bool DirettaRenderer::start() {
 UPnPDevice::Callbacks callbacks;
 
 callbacks.onSetURI = [this](const std::string& uri, const std::string& metadata) {
-    std::cout << "[DirettaRenderer] SetURI: " << uri << std::endl;
+    std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
+    DEBUG_LOG("[DirettaRenderer] SetURI: " << uri);
     
     // ⭐ Sauvegarder l'URI courante
     this->m_currentURI = uri;
@@ -318,16 +330,18 @@ callbacks.onSetURI = [this](const std::string& uri, const std::string& metadata)
 
 // CRITICAL: SetNextAVTransportURI pour le gapless
 callbacks.onSetNextURI = [this](const std::string& uri, const std::string& metadata) {
-    std::cout << "[DirettaRenderer] ✓ SetNextAVTransportURI received for gapless" << std::endl;
+    std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
+    DEBUG_LOG("[DirettaRenderer] ✓ SetNextAVTransportURI received for gapless");
     m_audioEngine->setNextURI(uri, metadata);
 };
 
 callbacks.onPlay = [&lastStopTime, &stopTimeMutex, this]() {
     std::cout << "[DirettaRenderer] ✓ Play command received" << std::endl;
     
+    std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
     // ⭐ NOUVEAU : Gérer Resume si en pause
 if (m_direttaOutput && m_direttaOutput->isPaused()) {
-    std::cout << "[DirettaRenderer] 🔄 Resuming from pause..." << std::endl;
+    DEBUG_LOG("[DirettaRenderer] 🔄 Resuming from pause...");
     try {
         // ⭐ Reprendre DirettaOutput d'abord
         m_direttaOutput->resume();
@@ -338,7 +352,7 @@ if (m_direttaOutput && m_direttaOutput->isPaused()) {
         }
         
         m_upnp->notifyStateChange("PLAYING");
-        std::cout << "[DirettaRenderer] ✓ Resumed from pause" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ✓ Resumed from pause");
     } catch (const std::exception& e) {
         std::cerr << "❌ Exception resuming: " << e.what() << std::endl;
     }
@@ -353,8 +367,8 @@ if (m_direttaOutput && m_direttaOutput->isPaused()) {
         auto timeSinceStop = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastStopTime);
         
         if (timeSinceStop.count() < 100) {
-            std::cout << "[DirettaRenderer] ⚠️  Stop was " << timeSinceStop.count() 
-                      << "ms ago, adding safety delay" << std::endl;
+            DEBUG_LOG("[DirettaRenderer] ⚠️  Stop was " << timeSinceStop.count() 
+                      << "ms ago, adding safety delay");
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     }
@@ -364,6 +378,7 @@ if (m_direttaOutput && m_direttaOutput->isPaused()) {
 };
 
 callbacks.onPause = [this]() {
+    std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
     std::cout << "════════════════════════════════════════" << std::endl;
     std::cout << "[DirettaRenderer] ⏸️  PAUSE REQUESTED" << std::endl;
     std::cout << "════════════════════════════════════════" << std::endl;
@@ -371,25 +386,26 @@ callbacks.onPause = [this]() {
     try {
         // ⭐ IMPORTANT : Mettre AudioEngine en pause AVANT DirettaOutput
         if (m_audioEngine) {
-            std::cout << "[DirettaRenderer] Pausing AudioEngine..." << std::endl;
+            DEBUG_LOG("[DirettaRenderer] Pausing AudioEngine...");
             m_audioEngine->pause();  // ⭐ AJOUTER CETTE LIGNE
-            std::cout << "[DirettaRenderer] ✓ AudioEngine paused" << std::endl;
+            DEBUG_LOG("[DirettaRenderer] ✓ AudioEngine paused");
         }
         
         if (m_direttaOutput && m_direttaOutput->isPlaying()) {
-            std::cout << "[DirettaRenderer] Pausing DirettaOutput..." << std::endl;
+            DEBUG_LOG("[DirettaRenderer] Pausing DirettaOutput...");
             m_direttaOutput->pause();
-            std::cout << "[DirettaRenderer] ✓ DirettaOutput paused" << std::endl;
+            DEBUG_LOG("[DirettaRenderer] ✓ DirettaOutput paused");
         }
         
         m_upnp->notifyStateChange("PAUSED_PLAYBACK");
-        std::cout << "[DirettaRenderer] ✓ Pause complete" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ✓ Pause complete");
         
     } catch (const std::exception& e) {
         std::cerr << "❌ Exception in Pause callback: " << e.what() << std::endl;
     }
 };
 callbacks.onStop = [&lastStopTime, &stopTimeMutex, this]() {
+    std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
     std::cout << "════════════════════════════════════════" << std::endl;
     std::cout << "[DirettaRenderer] ⛔ STOP REQUESTED" << std::endl;
     std::cout << "════════════════════════════════════════" << std::endl;
@@ -401,29 +417,29 @@ callbacks.onStop = [&lastStopTime, &stopTimeMutex, this]() {
     }
     
     try {
-        std::cout << "[DirettaRenderer] Calling AudioEngine::stop()..." << std::endl;
+        DEBUG_LOG("[DirettaRenderer] Calling AudioEngine::stop()...");
         m_audioEngine->stop();
-        std::cout << "[DirettaRenderer] ✓ AudioEngine stopped" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ✓ AudioEngine stopped");
         
        // ⭐ RESET position: Recharger l'URI pour revenir au début
              if (!this->m_currentURI.empty()) {
-        std::cout << "[DirettaRenderer] Resetting position to beginning..." << std::endl;
+        DEBUG_LOG("[DirettaRenderer] Resetting position to beginning...");
         m_audioEngine->setCurrentURI(this->m_currentURI, this->m_currentMetadata, true);  // ⭐ AJOUTER true
-        std::cout << "[DirettaRenderer] ✓ Position reset to 0" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ✓ Position reset to 0");
     }			        
-        std::cout << "[DirettaRenderer] Calling DirettaOutput::stop(immediate=true)..." << std::endl;
+        DEBUG_LOG("[DirettaRenderer] Calling DirettaOutput::stop(immediate=true)...");
         m_direttaOutput->stop(true);
-        std::cout << "[DirettaRenderer] ✓ DirettaOutput stopped" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ✓ DirettaOutput stopped");
         
-        std::cout << "[DirettaRenderer] Calling DirettaOutput::close()..." << std::endl;
+        DEBUG_LOG("[DirettaRenderer] Calling DirettaOutput::close()...");
         m_direttaOutput->close();
-        std::cout << "[DirettaRenderer] ✓ DirettaOutput closed" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ✓ DirettaOutput closed");
         
-        std::cout << "[DirettaRenderer] Notifying UPnP state change..." << std::endl;
+        DEBUG_LOG("[DirettaRenderer] Notifying UPnP state change...");
         m_upnp->notifyStateChange("STOPPED");
-        std::cout << "[DirettaRenderer] ✓ UPnP notified" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ✓ UPnP notified");
         
-        std::cout << "[DirettaRenderer] ✓ Stop sequence completed BEFORE responding to JPLAY" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ✓ Stop sequence completed BEFORE responding to JPLAY");
         
     } catch (const std::exception& e) {
         std::cerr << "❌❌❌ EXCEPTION in Stop callback: " << e.what() << std::endl;
@@ -433,6 +449,7 @@ callbacks.onStop = [&lastStopTime, &stopTimeMutex, this]() {
 };
 
 callbacks.onSeek = [this](const std::string& target) {  // ⭐ Enlever unit
+    std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
     std::cout << "════════════════════════════════════════" << std::endl;
     std::cout << "[DirettaRenderer] 🔍 SEEK REQUESTED" << std::endl;
     std::cout << "   Target: " << target << std::endl;
@@ -483,8 +500,8 @@ m_upnp->setCallbacks(callbacks);
             return false;
         }
         
-        std::cout << "[DirettaRenderer] UPnP Server: " << m_upnp->getDeviceURL() << std::endl;
-        std::cout << "[DirettaRenderer] Device URL: " << m_upnp->getDeviceURL() << "/description.xml" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] UPnP Server: " << m_upnp->getDeviceURL());
+        DEBUG_LOG("[DirettaRenderer] Device URL: " << m_upnp->getDeviceURL() << "/description.xml");
         
         // Start threads
         m_running = true;
@@ -493,7 +510,7 @@ m_upnp->setCallbacks(callbacks);
         m_audioThread = std::thread(&DirettaRenderer::audioThreadFunc, this);
         m_positionThread = std::thread(&DirettaRenderer::positionThreadFunc, this);
         
-        std::cout << "[DirettaRenderer] ✓ All components started" << std::endl;
+        DEBUG_LOG("[DirettaRenderer] ✓ All components started");
         
         return true;
         
@@ -509,7 +526,7 @@ void DirettaRenderer::stop() {
         return;
     }
     
-    std::cout << "[DirettaRenderer] Stopping..." << std::endl;
+    DEBUG_LOG("[DirettaRenderer] Stopping...");
     
     m_running = false;
     
@@ -541,7 +558,7 @@ void DirettaRenderer::stop() {
         m_positionThread.join();
     }
     
-    std::cout << "[DirettaRenderer] ✓ Stopped" << std::endl;
+    DEBUG_LOG("[DirettaRenderer] ✓ Stopped");
 }
 
 
@@ -559,8 +576,8 @@ void DirettaRenderer::upnpThreadFunc() {
 }
 
 void DirettaRenderer::audioThreadFunc() {
-    std::cout << "[Audio Thread] Started" << std::endl;
-    std::cout << "[Audio Thread] ⏱️  Precise timing enabled" << std::endl;
+    DEBUG_LOG("[Audio Thread] Started");
+    DEBUG_LOG("[Audio Thread] ⏱️  Precise timing enabled")
     
     // ✅ CRITICAL: Packet size must be adapted to format!
     // DSD:  32768 samples (matches Diretta processing quantum, ~11.6ms)
@@ -641,8 +658,8 @@ void DirettaRenderer::audioThreadFunc() {
             // ← AJOUTER : Log quand en attente
             static int waitCount = 0;
             if (waitCount++ == 0 || waitCount % 10 == 0) {
-                std::cout << "[Audio Thread] ⏸️  Waiting (state=" << (int)state 
-                          << ", count=" << waitCount << ")" << std::endl;
+                DEBUG_LOG("[Audio Thread] ⏸️  Waiting (state=" << (int)state 
+                          << ", count=" << waitCount << ")");
             }
             
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -660,7 +677,7 @@ void DirettaRenderer::audioThreadFunc() {
 }
 
 void DirettaRenderer::positionThreadFunc() {
-    std::cout << "[Position Thread] Started - updating position for eventing" << std::endl;
+    DEBUG_LOG("[Position Thread] Started - updating position for eventing");
     
     while (m_running) {
         if (!m_audioEngine || !m_upnp) {
@@ -693,7 +710,7 @@ void DirettaRenderer::positionThreadFunc() {
             // Log périodique (toutes les 10 secondes pour ne pas polluer)
             static int lastLoggedPosition = -10;
             if (position - lastLoggedPosition >= 10) {
-                std::cout << "[Position Thread] 📍 Position: " << position << "s / " << duration << "s" << std::endl;
+                DEBUG_LOG("[Position Thread] 📍 Position: " << position << "s / " << duration << "s");
                 lastLoggedPosition = position;
             }
         }

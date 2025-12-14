@@ -8,6 +8,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <functional>
+#include <thread>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -313,7 +314,18 @@ private:
     bool openCurrentTrack();
     bool preloadNextTrack();
     void transitionToNextTrack();
-    
+
+    // Thread-safe pending next track mechanism
+    mutable std::mutex m_pendingMutex;
+    std::atomic<bool> m_pendingNextTrack{false};
+    std::string m_pendingNextURI;
+    std::string m_pendingNextMetadata;
+
+    // Preload thread management (replaces detached thread)
+    std::thread m_preloadThread;
+    std::atomic<bool> m_preloadRunning{false};
+    void waitForPreloadThread();
+
     // Prevent copying
     AudioEngine(const AudioEngine&) = delete;
     AudioEngine& operator=(const AudioEngine&) = delete;
