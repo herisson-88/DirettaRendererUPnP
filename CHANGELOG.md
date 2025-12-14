@@ -27,6 +27,7 @@ Command Line Options
 
 - Added --verbose / -v flag to enable detailed debug output
 - Added --help documentation for the new verbose mode
+
 **Version Display**
 - Added version display 
   ./DirettaRenderer --version or ./DirettaRendererUPnP -V
