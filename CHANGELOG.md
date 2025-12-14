@@ -37,7 +37,7 @@ Command Line Options
 - Removed clicks or pink noise bursts at the end of the album or during the transition between tracks in a playlist
  * Buffers weren't correctly cleared at the en of an album or during a format change.
 - Disable gapless playback on format changes (Many thanks to herisson88)
-When the next track has a different format (sample rate, bit depth,
+  * When the next track has a different format (sample rate, bit depth,
 channels, or DSD vs PCM), disable gapless transition and force a
 clean stop/start sequence to prevent audio artifacts.
 - Optimize FFmpeg settings for faster streaming startup (Many thanks to herisson88)
