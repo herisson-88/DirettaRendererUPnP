@@ -18,7 +18,7 @@ public:
         int port;
         std::string uuid;
         bool gaplessEnabled;
-        int bufferSeconds;
+        float bufferSeconds;  // Changed from int to float (v1.0.9)
         int targetIndex;  // -1 = interactive selection, >= 0 = specific target
         
         Config();

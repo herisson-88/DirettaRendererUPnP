@@ -53,7 +53,7 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
     config.name = "Diretta Renderer";
     config.port = 0;  // 0 = auto
     config.gaplessEnabled = true;
-    config.bufferSeconds =10;  // ⭐ 4 secondes minimum (essentiel pour DSD!)
+    config.bufferSeconds = 2.0f;  // Default 2 seconds (v1.0.9)
     
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
@@ -72,8 +72,8 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
         }
         else if ((arg == "--buffer" || arg == "-b") && i + 1 < argc) {
             config.bufferSeconds = std::atof(argv[++i]);  // ⭐ atof pour supporter décimales
-            if (config.bufferSeconds < 10) {
-                std::cerr << "⚠️  Warning: Buffer < 2 seconds may cause issues with DSD/Hi-Res!" << std::endl;
+            if (config.bufferSeconds < 1.0f) {
+                std::cerr << "⚠️  Warning: Buffer < 1 second may cause issues with DSD/Hi-Res!" << std::endl;
             }
         }
         else if ((arg == "--target" || arg == "-t") && i + 1 < argc) {

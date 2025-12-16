@@ -148,6 +148,43 @@ bool AudioDecoder::open(const std::string& url) {
     AVStream* audioStream = m_formatContext->streams[m_audioStreamIndex];
     AVCodecParameters* codecpar = audioStream->codecpar;
     
+    // ═══════════════════════════════════════════════════════════
+    // DIAGNOSTIC: Detect Audirvana pre-decoded streams
+    // ═══════════════════════════════════════════════════════════
+    bool isAudirvana = false;
+    if (m_formatContext && m_formatContext->url) {
+        std::string urlStr(m_formatContext->url);
+        isAudirvana = (urlStr.find("audirvana") != std::string::npos);
+    }
+
+    if (isAudirvana) {
+        std::cout << "\n════════════════════════════════════════════════════════" << std::endl;
+        std::cout << "🎯 Audirvana detected - applying special handling" << std::endl;
+        std::cout << "════════════════════════════════════════════════════════" << std::endl;
+        
+        const AVCodec* diagnostic_codec = avcodec_find_decoder(codecpar->codec_id);
+        
+        std::cout << "📊 Stream analysis:" << std::endl;
+        std::cout << "   Codec: " << (diagnostic_codec ? diagnostic_codec->name : "unknown") << std::endl;
+        std::cout << "   Sample rate: " << codecpar->sample_rate << " Hz" << std::endl;
+        std::cout << "   Channels: " << codecpar->ch_layout.nb_channels << std::endl;
+        std::cout << "   Bit depth: " << codecpar->bits_per_coded_sample << " bits" << std::endl;
+        
+        bool isPCM = (codecpar->codec_id >= AV_CODEC_ID_FIRST_AUDIO && 
+                      codecpar->codec_id <= AV_CODEC_ID_PCM_F64LE &&
+                      codecpar->codec_id != AV_CODEC_ID_DSD_LSBF &&
+                      codecpar->codec_id != AV_CODEC_ID_DSD_MSBF &&
+                      codecpar->codec_id != AV_CODEC_ID_DSD_MSBF_PLANAR &&
+                      codecpar->codec_id != AV_CODEC_ID_DSD_LSBF_PLANAR);
+        
+        if (isPCM) {
+            std::cout << "   → Already-decoded PCM detected" << std::endl;
+            std::cout << "   → Will use passthrough mode (no re-decoding)" << std::endl;
+        }
+        
+        std::cout << "════════════════════════════════════════════════════════\n" << std::endl;
+    }
+    
     // Find decoder
     const AVCodec* codec = avcodec_find_decoder(codecpar->codec_id);
     if (!codec) {
@@ -213,54 +250,72 @@ bool AudioDecoder::open(const std::string& url) {
         codecpar->codec_id == AV_CODEC_ID_DSD_MSBF_PLANAR ||
         codecpar->codec_id == AV_CODEC_ID_DSD_LSBF_PLANAR) {
         
-        std::cout << "[AudioDecoder] ════════════════════════════════════════" << std::endl;
-        std::cout << "[AudioDecoder] 🎵 DSD NATIVE MODE ACTIVATED!" << std::endl;
-        std::cout << "[AudioDecoder] ════════════════════════════════════════" << std::endl;
-        
-        m_trackInfo.isDSD = true;
-        m_trackInfo.bitDepth = 1; // DSD is 1-bit
-        
-        // CRITICAL: FFmpeg reports packet rate, not DSD bit rate!
-        // For DSD: bit_rate = packet_rate × 8 (8 bits per byte)
-        // DSD64 = 2822400 Hz, but FFmpeg reports 352800 Hz (packet rate)
-        uint32_t packetRate = codecpar->sample_rate;  // 352800 for DSD64
-        uint32_t dsdBitRate = packetRate * 8;          // 2822400 for DSD64
-        
-        m_trackInfo.sampleRate = dsdBitRate;  // ⭐ Use TRUE DSD bit rate!
-        
-        // Determine DSD rate (DSD64, DSD128, etc.)
-        // DSD64 = 2822400 Hz = 44100 * 64
-        int dsdMultiplier = dsdBitRate / 44100;
-        m_trackInfo.dsdRate = dsdMultiplier;
-        
-        DEBUG_LOG("[AudioDecoder] 🎵 DSD" << dsdMultiplier << " detected!");
-        DEBUG_LOG("[AudioDecoder]    FFmpeg packet rate: " << packetRate << " Hz");
-        DEBUG_LOG("[AudioDecoder]    True DSD bit rate: " << dsdBitRate << " Hz");
-        DEBUG_LOG("[AudioDecoder] ⚠️  NO DECODING - Reading raw DSD packets!");
-        
-        // ⭐ CRITICAL: Activate RAW DSD mode
-        m_rawDSD = true;
-        m_packet = av_packet_alloc();
-        
-        // ⭐ DO NOT open codec for DSD!
-        // We'll read raw packets with av_read_frame()
-        DEBUG_LOG("[AudioDecoder] ✓ DSD Native mode ready");
-        
-        // Calculate duration
-        if (audioStream->duration != AV_NOPTS_VALUE) {
-            m_trackInfo.duration = av_rescale_q(audioStream->duration, 
-                                                audioStream->time_base,
-                                                {1, (int)m_trackInfo.sampleRate});
+        // ⚠️  Check if this is Audirvana (which pre-decodes/wraps DSD strangely)
+        if (isAudirvana) {
+            // ════════════════════════════════════════════════════════
+            // AUDIRVANA DSD: Use FFmpeg decoding (NOT raw mode)
+            // ════════════════════════════════════════════════════════
+            std::cout << "[AudioDecoder] ⚠️  Audirvana DSD: Using FFmpeg decoding" << std::endl;
+            std::cout << "[AudioDecoder]     (Audirvana sends DSD with strange wrapper)" << std::endl;
+            
+            m_rawDSD = false;  // Let FFmpeg decode
+            m_trackInfo.isDSD = false;  // Treat as PCM for Diretta
+            
+            // Will fall through to standard PCM decoding below
+            // FFmpeg will convert the "fltp" format to PCM
+            
         } else {
-            m_trackInfo.duration = 0;
-        }
-        
-        m_eof = false;
-        
-        std::cout << "[AudioDecoder] ✓ Opened successfully (DSD NATIVE)" << std::endl;
-        
-        return true;  // ⭐ Exit early - no codec opening needed!
-    }
+            // ════════════════════════════════════════════════════════
+            // OTHER SOURCES: Use DSD native mode
+            // ════════════════════════════════════════════════════════
+            std::cout << "[AudioDecoder] ════════════════════════════════════════" << std::endl;
+            std::cout << "[AudioDecoder] 🎵 DSD NATIVE MODE ACTIVATED!" << std::endl;
+            std::cout << "[AudioDecoder] ════════════════════════════════════════" << std::endl;
+            
+            m_trackInfo.isDSD = true;
+            m_trackInfo.bitDepth = 1; // DSD is 1-bit
+            
+            // CRITICAL: FFmpeg reports packet rate, not DSD bit rate!
+            // For DSD: bit_rate = packet_rate × 8 (8 bits per byte)
+            // DSD64 = 2822400 Hz, but FFmpeg reports 352800 Hz (packet rate)
+            uint32_t packetRate = codecpar->sample_rate;  // 352800 for DSD64
+            uint32_t dsdBitRate = packetRate * 8;          // 2822400 for DSD64
+            
+            m_trackInfo.sampleRate = dsdBitRate;  // ⭐ Use TRUE DSD bit rate!
+            
+            // Determine DSD rate (DSD64, DSD128, etc.)
+            // DSD64 = 2822400 Hz = 44100 * 64
+            int dsdMultiplier = dsdBitRate / 44100;
+            m_trackInfo.dsdRate = dsdMultiplier;
+            
+            DEBUG_LOG("[AudioDecoder] 🎵 DSD" << dsdMultiplier << " detected!");
+            DEBUG_LOG("[AudioDecoder]    FFmpeg packet rate: " << packetRate << " Hz");
+            DEBUG_LOG("[AudioDecoder]    True DSD bit rate: " << dsdBitRate << " Hz");
+            DEBUG_LOG("[AudioDecoder] ⚠️  NO DECODING - Reading raw DSD packets!");
+            
+            // ⭐ CRITICAL: Activate RAW DSD mode
+            m_rawDSD = true;
+            m_packet = av_packet_alloc();
+            
+            // ⭐ DO NOT open codec for DSD!
+            // We'll read raw packets with av_read_frame()
+            DEBUG_LOG("[AudioDecoder] ✓ DSD Native mode ready");
+            
+            // Calculate duration
+            if (audioStream->duration != AV_NOPTS_VALUE) {
+                m_trackInfo.duration = av_rescale_q(audioStream->duration, 
+                                                    audioStream->time_base,
+                                                    {1, (int)m_trackInfo.sampleRate});
+            } else {
+            }
+            
+            m_eof = false;
+            
+            std::cout << "[AudioDecoder] ✓ Opened successfully (DSD NATIVE)" << std::endl;
+            
+            return true;  // ⭐ Exit early - no codec opening needed!
+        }  // End of else (non-Audirvana DSD native mode)
+    }  // End of DSD detection
     
     // ══════════════════════════════════════════════════════════════
     // PCM MODE - Open codec and prepare for decoding
@@ -416,6 +471,7 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
         }
         
         size_t bytesPerSample = 1;  // DSD: 1 byte per 8 samples per channel, but we'll work in bytes
+        (void)bytesPerSample;  // Silence unused variable warning
         size_t totalBytesNeeded = (numSamples * m_trackInfo.channels) / 8;
         size_t totalBytesRead = 0;
         
@@ -532,6 +588,7 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
         const bool ENABLE_INTERLEAVING = true;   // REQUIRED for stereo (prevents 2× speed
         const bool ENABLE_BIT_REVERSAL = false;  // NOT needed for DSF files
         const bool INTERLEAVE_BY_BYTE = false;   // Use 32-bit word interleaving
+        (void)ENABLE_BIT_REVERSAL;  // Silence unused variable warning
         
         // Convert PLANAR to INTERLEAVED if enabled
         if (ENABLE_INTERLEAVING && m_trackInfo.channels == 2) {
@@ -603,7 +660,14 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
     // ✅ CRITICAL: Convert DFF for Diretta (Bit reversal ONLY, no byte swap)
     // According to SDK: FMT_DSD_SIZ_32 uses Little Endian for BOTH DSF and DFF
     // Only the BIT order differs (LSB vs MSB)
-    if (m_trackInfo.codec.find("msbf") != std::string::npos) {
+    // ⚠️  EXCEPTION: Audirvana serves DSF with .dff URL, skip bit reversal
+    bool isAudirvana = false;
+    if (m_formatContext && m_formatContext->url) {
+        std::string url(m_formatContext->url);
+        isAudirvana = (url.find("audirvana") != std::string::npos);
+    }
+
+    if (m_trackInfo.codec.find("msbf") != std::string::npos && !isAudirvana) {
         uint8_t* data = buffer.data();
         
         // Lookup table for bit reversal
@@ -636,30 +700,15 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
             std::cout << "[AudioDecoder] 🔄 DFF: Bit reversal ONLY (MSB→LSB, keep LE)" << std::endl;
             logged = true;
         }
+      }else if (isAudirvana) {
+    static bool logged = false;
+    if (!logged) {
+        std::cout << "[AudioDecoder] ⚠️  Audirvana detected: Skipping bit reversal" << std::endl;
+        std::cout << "[AudioDecoder]     (DSF data with .dff URL - already LSB)" << std::endl;
+        logged = true;
+      }    
     }
         return (totalBytesRead * 8) / m_trackInfo.channels;
-    }
-    
-        // Conversion DFF → DSF (votre code existant)
-    if (m_trackInfo.codec.find("msbf") != std::string::npos) {
-        // ... byte swap + bit reversal ...
-        
-        std::cout << "[AudioDecoder] 🔄 DFF → DSF: Byte swap + Bit reversal applied" << std::endl;
-        
-        // ✅ DEBUG: Dump AFTER conversion
-        if (g_verbose) {
-        static bool dumpedAfter = false;
-        if (!dumpedAfter) {
-            std::cout << "\n[DEBUG] AFTER conversion - First 64 bytes:" << std::endl;
-            const uint8_t* data = buffer.data();
-            for (int i = 0; i < 64; i++) {
-                printf("%02X ", data[i]);
-                if ((i + 1) % 16 == 0) printf("\n");
-            }
-            std::cout << std::endl;
-            dumpedAfter = true;
-    }
-        }
     }
 
     // ══════════════════════════════════════════════════════════════

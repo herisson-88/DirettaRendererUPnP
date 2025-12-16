@@ -339,28 +339,41 @@ callbacks.onPlay = [&lastStopTime, &stopTimeMutex, this]() {
     std::cout << "[DirettaRenderer] ✓ Play command received" << std::endl;
     
     std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
-    // ⭐ NOUVEAU : Gérer Resume si en pause
-if (m_direttaOutput && m_direttaOutput->isPaused()) {
-    DEBUG_LOG("[DirettaRenderer] 🔄 Resuming from pause...");
-    try {
-        // ⭐ Reprendre DirettaOutput d'abord
-        m_direttaOutput->resume();
-        
-        // ⭐ Puis AudioEngine
-        if (m_audioEngine) {
-            m_audioEngine->play();  // ⭐ AJOUTER CETTE LIGNE
+    
+    // ⭐ CRITICAL: Check if connected FIRST, before checking pause state
+    // After STOP, DirettaOutput is closed (not connected), so isPaused() is meaningless
+    if (m_direttaOutput && m_direttaOutput->isConnected() && m_direttaOutput->isPaused()) {
+        // TRUE RESUME: DirettaOutput is connected AND paused
+        DEBUG_LOG("[DirettaRenderer] 🔄 Resuming from pause...");
+        try {
+            // Resume DirettaOutput first
+            m_direttaOutput->resume();
+            
+            // Then AudioEngine
+            if (m_audioEngine) {
+                m_audioEngine->play();
+            }
+            
+            m_upnp->notifyStateChange("PLAYING");
+            DEBUG_LOG("[DirettaRenderer] ✓ Resumed from pause");
+        } catch (const std::exception& e) {
+            std::cerr << "❌ Exception resuming: " << e.what() << std::endl;
         }
-        
-        m_upnp->notifyStateChange("PLAYING");
-        DEBUG_LOG("[DirettaRenderer] ✓ Resumed from pause");
-    } catch (const std::exception& e) {
-        std::cerr << "❌ Exception resuming: " << e.what() << std::endl;
+        return;
     }
-    return;
-}    
+    
+    // ⭐ Not connected or not paused → Need to open/reopen track
+    if (!m_direttaOutput->isConnected() && !m_currentURI.empty()) {
+        DEBUG_LOG("[DirettaRenderer] ⚠️  DirettaOutput not connected after STOP");
+        DEBUG_LOG("[DirettaRenderer] Reopening track: " << m_currentURI);
+        
+        // Reopen the track in AudioEngine
+        m_audioEngine->setCurrentURI(m_currentURI, m_currentMetadata, true);
+        DEBUG_LOG("[DirettaRenderer] ✓ Track reopened");
+    }
+    
     // ⚠️  SAFETY: Conditional delay to avoid race condition with Stop
     // Only add delay if Stop was called very recently (< 100ms ago)
-    // This prevents gapless issues while still protecting against Stop+Play races
     {
         std::lock_guard<std::mutex> lock(stopTimeMutex);
         auto now = std::chrono::steady_clock::now();
