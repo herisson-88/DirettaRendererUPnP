@@ -153,58 +153,139 @@ bool DirettaRenderer::start() {
 
         
         
-        // Setup callbacks from AudioEngine to DirettaOutput
-        m_audioEngine->setAudioCallback(
+m_audioEngine->setAudioCallback(
     [this](const AudioBuffer& buffer, size_t samples, 
            uint32_t sampleRate, uint32_t bitDepth, uint32_t channels) -> bool {
-        
-        // ⚠️  DEBUG: Temporarily disabled state check to debug DSD playback
-        // CRITICAL: Re-enable this after finding the root cause!
-        /*
-        if (m_audioEngine->getState() != AudioEngine::State::PLAYING) {
-            DEBUG_LOG("[Callback] ⛔ Not PLAYING, stopping audio flow");
-            return false;  // Arrêter immédiatement
-        }
-        */
         
         DEBUG_LOG("[Callback] Sending " << samples << " samples");
         
         // Get track info to check for DSD
         const TrackInfo& trackInfo = m_audioEngine->getCurrentTrackInfo();
         
-        if (!m_direttaOutput->isConnected()) {
-            // ⭐ LOG: Premier buffer reçu, initialisation Diretta
-            auto initStart = std::chrono::steady_clock::now();
-            DEBUG_LOG("[Callback] 🔌 First audio buffer received, initializing Diretta...");
-            DEBUG_LOG("[Callback]    Format: " << sampleRate << "Hz/" << bitDepth << "bit/" << channels << "ch");
-            
-            // Open Diretta connection
-            AudioFormat format(sampleRate, bitDepth, channels);
-            
-            // ⭐ Propagate compression info for buffer optimization
-            format.isCompressed = trackInfo.isCompressed;
-            
-            // ⭐ Configure DSD if needed
-            if (trackInfo.isDSD) {
-                format.isDSD = true;
-                format.bitDepth = 1;  // DSD = 1 bit
-                format.sampleRate = sampleRate;
-                
-                // Determine DSD format from codec
-                // LSB = DSF, MSB = DFF
-                std::string codec = trackInfo.codec;
-                if (codec.find("lsb") != std::string::npos) {
-                    format.dsdFormat = AudioFormat::DSDFormat::DSF;
-                    DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DSF (LSB)");
-                } else {
-                    format.dsdFormat = AudioFormat::DSDFormat::DFF;
-                    DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DFF (MSB)");
-                }
+        // ═══════════════════════════════════════════════════════════════
+        // ⭐⭐⭐ CRITICAL FIX: Persistent format tracking ⭐⭐⭐
+        // ═══════════════════════════════════════════════════════════════
+        
+        // Static variable to remember LAST format even after close()
+        // This is the KEY to detecting format changes after JPLAY's AUTO-STOP
+        static AudioFormat lastFormat(0, 0, 0);
+        static bool hasLastFormat = false;
+        
+        // Build current format from callback parameters
+        AudioFormat currentFormat(sampleRate, bitDepth, channels);
+        currentFormat.isDSD = trackInfo.isDSD;
+        currentFormat.isCompressed = trackInfo.isCompressed;
+        
+        if (trackInfo.isDSD) {
+            currentFormat.bitDepth = 1;  // DSD = 1 bit
+            std::string codec = trackInfo.codec;
+            if (codec.find("lsb") != std::string::npos) {
+                currentFormat.dsdFormat = AudioFormat::DSDFormat::DSF;
+                DEBUG_LOG("[Callback] DSD format: DSF (LSB)");
+            } else {
+                currentFormat.dsdFormat = AudioFormat::DSDFormat::DFF;
+                DEBUG_LOG("[Callback] DSD format: DFF (MSB)");
             }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ⭐ Format change detection (works EVEN after close())
+        // ═══════════════════════════════════════════════════════════════
+        
+        bool formatChanged = false;
+        
+        if (m_direttaOutput->isConnected()) {
+            // Case 1: Already connected - check against current connection
+            const AudioFormat& connectedFormat = m_direttaOutput->getFormat();
+            
+            if (connectedFormat != currentFormat) {
+                formatChanged = true;
+                
+                std::cout << "════════════════════════════════════════" << std::endl;
+                std::cout << "[Callback] ⚠️  FORMAT CHANGE DETECTED (connected)!" << std::endl;
+                std::cout << "[Callback] Old: " << connectedFormat.sampleRate << "Hz/" 
+                          << connectedFormat.bitDepth << "bit/" << connectedFormat.channels << "ch"
+                          << (connectedFormat.isDSD ? " DSD" : " PCM") << std::endl;
+                std::cout << "[Callback] New: " << currentFormat.sampleRate << "Hz/" 
+                          << currentFormat.bitDepth << "bit/" << currentFormat.channels << "ch"
+                          << (currentFormat.isDSD ? " DSD" : " PCM") << std::endl;
+                std::cout << "════════════════════════════════════════" << std::endl;
+                
+                // ⭐⭐⭐ USE changeFormat() FOR PROPER TRANSITION ⭐⭐⭐
+                std::cout << "[Callback] 🔄 Executing format change sequence..." << std::endl;
+                
+                // STEP 1: Stop playback (graceful drain)
+                std::cout << "[Callback]    1. Stopping and draining buffers..." << std::endl;
+                m_direttaOutput->stop(false);  // ✅ false = graceful drain
+                
+                // STEP 2: Change format
+                std::cout << "[Callback]    2. Changing format..." << std::endl;
+                if (!m_direttaOutput->changeFormat(currentFormat)) {
+                    std::cerr << "[Callback] ❌ Format change failed!" << std::endl;
+                    m_direttaOutput->close();
+                    return false;
+                }
+                
+                // STEP 3: Restart playback
+                std::cout << "[Callback]    3. Restarting playback..." << std::endl;
+                if (!m_direttaOutput->play()) {
+                    std::cerr << "[Callback] ❌ Failed to restart!" << std::endl;
+                    return false;
+                }
+                
+                // STEP 4: Wait for DAC lock
+                std::cout << "[Callback]    4. Waiting for DAC lock (300ms)..." << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(300));
+                
+                std::cout << "[Callback] ✅ Format change completed successfully" << std::endl;
+                std::cout << "════════════════════════════════════════" << std::endl;
+            }
+            
+        } else if (hasLastFormat) {
+            // Case 2: NOT connected but we have a previous format
+            // This is the CRITICAL case for JPLAY's AUTO-STOP behavior!
+            
+            if (lastFormat != currentFormat) {
+                formatChanged = true;
+                
+                std::cout << "════════════════════════════════════════" << std::endl;
+                std::cout << "[Callback] ⚠️  FORMAT CHANGE DETECTED (after close)!" << std::endl;
+                std::cout << "[Callback] Previous: " << lastFormat.sampleRate << "Hz/" 
+                          << lastFormat.bitDepth << "bit/" << lastFormat.channels << "ch"
+                          << (lastFormat.isDSD ? " DSD" : " PCM") << std::endl;
+                std::cout << "[Callback] New: " << currentFormat.sampleRate << "Hz/" 
+                          << currentFormat.bitDepth << "bit/" << currentFormat.channels << "ch"
+                          << (currentFormat.isDSD ? " DSD" : " PCM") << std::endl;
+                std::cout << "[Callback] 💡 Will open with new format after AUTO-STOP..." << std::endl;
+                std::cout << "════════════════════════════════════════" << std::endl;
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ⭐ Open connection if needed
+        // ═══════════════════════════════════════════════════════════════
+        
+        if (!m_direttaOutput->isConnected()) {
+            auto initStart = std::chrono::steady_clock::now();
+            
+            if (formatChanged) {
+                std::cout << "[Callback] 🔌 Opening Diretta with NEW format after change..." << std::endl;
+                
+                // ⭐⭐⭐ CRITICAL FIX: Wait for Target to reinitialize ⭐⭐⭐
+                // After close(), the Target Diretta needs time to reset its DAC
+                // Without this pause, the Target stays locked on the old format!
+                std::cout << "[Callback] ⏳ Waiting for Target reinitialization (500ms)..." << std::endl;
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                std::cout << "[Callback] ✓ Target should be ready for new format" << std::endl;
+            } else {
+                DEBUG_LOG("[Callback] 🔌 First audio buffer received, initializing Diretta...");
+            }
+            
+            DEBUG_LOG("[Callback]    Format: " << sampleRate << "Hz/" << bitDepth << "bit/" << channels << "ch");
             
             if (g_verbose) {
                 std::cout << "[DirettaRenderer] 🔌 Opening Diretta connection: ";
-                if (format.isDSD) {
+                if (currentFormat.isDSD) {
                     std::cout << "DSD" << trackInfo.dsdRate << " (" << sampleRate << " Hz)";
                 } else {
                     std::cout << sampleRate << "Hz/" << bitDepth << "bit";
@@ -212,7 +293,7 @@ bool DirettaRenderer::start() {
                 std::cout << "/" << channels << "ch" << std::endl;
             }
             
-            if (!m_direttaOutput->open(format, m_config.bufferSeconds)) {
+            if (!m_direttaOutput->open(currentFormat, m_config.bufferSeconds)) {
                 std::cerr << "[DirettaRenderer] ❌ Failed to open Diretta output" << std::endl;
                 return false;
             }
@@ -226,60 +307,42 @@ bool DirettaRenderer::start() {
                 return false;
             }
             
-            // ⭐⭐⭐ CRITICAL FIX: Wait for DAC stabilization to prevent silent playback ⭐⭐⭐
-            // The Diretta connection is established, but the DAC needs time to lock
-            // onto the new format and be ready to receive audio samples.
-            // Without this delay, the first buffers may be lost → silent playback
+            // ⭐ CRITICAL: Wait for DAC stabilization
             DEBUG_LOG("[DirettaRenderer] ⏳ Waiting for DAC stabilization (200ms)...");
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
             
             auto totalTime = std::chrono::steady_clock::now();
             auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(totalTime - initStart);
-            std::cout << "[DirettaRenderer] ✅ Ready to stream (total init: " << totalDuration.count() << "ms)" << std::endl;
-        }
-        
-        // Check format change
-        AudioFormat currentFormat = m_direttaOutput->getFormat();
-        bool formatChanged = false;
-        
-        if (trackInfo.isDSD != currentFormat.isDSD) {
-            formatChanged = true;
-        } else if (currentFormat.sampleRate != sampleRate ||
-                   currentFormat.bitDepth != bitDepth ||
-                   currentFormat.channels != channels) {
-            formatChanged = true;
-        }
-        
-        if (formatChanged) {
-            DEBUG_LOG("[DirettaRenderer] 🔄 Format change detected");
+            std::cout << "[DirettaRenderer] ✓ Ready to play (total init: " << totalDuration.count() << "ms)" << std::endl;
             
-            AudioFormat newFormat(sampleRate, bitDepth, channels);
-            
-            // ⭐ Configure DSD if needed
-            if (trackInfo.isDSD) {
-                newFormat.isDSD = true;
-                newFormat.bitDepth = 1;
-                newFormat.sampleRate = sampleRate;
-                
-                std::string codec = trackInfo.codec;
-                if (codec.find("lsb") != std::string::npos) {
-                    newFormat.dsdFormat = AudioFormat::DSDFormat::DSF;
-                } else {
-                    newFormat.dsdFormat = AudioFormat::DSDFormat::DFF;
-                }
-            }
-            
-            if (!m_direttaOutput->changeFormat(newFormat)) {
-                std::cerr << "[DirettaRenderer] ❌ Failed to change format" << std::endl;
-                return false;
+            if (formatChanged) {
+                std::cout << "[Callback] ✅ Format change via reopen completed!" << std::endl;
+                std::cout << "[Callback] 💡 DAC should now be locked to " << sampleRate << "Hz" << std::endl;
+                std::cout << "════════════════════════════════════════" << std::endl;
             }
         }
         
-        // Send audio to Diretta
-        return m_direttaOutput->sendAudio(buffer.data(), samples);
+        // ═══════════════════════════════════════════════════════════════
+        // ⭐ Update last format for next comparison
+        // ═══════════════════════════════════════════════════════════════
+        
+        lastFormat = currentFormat;
+        hasLastFormat = true;
+        
+        // ═══════════════════════════════════════════════════════════════
+        // ⭐ Send audio data
+        // ═══════════════════════════════════════════════════════════════
+        
+        if (!m_direttaOutput->sendAudio(buffer.data(), samples)) {
+            std::cerr << "[Callback] ❌ Failed to send audio" << std::endl;
+            return false;
+        }
+        
+        return true;  // Continue playback
     }
-);        
-        m_audioEngine->setTrackChangeCallback(
+);
+
+		m_audioEngine->setTrackChangeCallback(
             [this](int trackNumber, const TrackInfo& info, const std::string& uri, const std::string& metadata) {
                 if (g_verbose) {
                     std::cout << "[DirettaRenderer] 🎵 Track " << trackNumber 
@@ -320,6 +383,42 @@ UPnPDevice::Callbacks callbacks;
 callbacks.onSetURI = [this](const std::string& uri, const std::string& metadata) {
     std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
     DEBUG_LOG("[DirettaRenderer] SetURI: " << uri);
+    
+    // ⭐ CRITICAL FIX (v1.0.14): Auto-STOP if playing
+    // JPLAY iOS doesn't send explicit STOP when zapping tracks/albums
+    // Without this, renderer gets stuck in TRANSITIONING state
+    auto currentState = m_audioEngine->getState();
+    
+    if (currentState == AudioEngine::State::PLAYING || 
+        currentState == AudioEngine::State::PAUSED ||
+        currentState == AudioEngine::State::TRANSITIONING) {
+        
+        std::cout << "════════════════════════════════════════" << std::endl;
+        std::cout << "[DirettaRenderer] ⚠️  SetURI while " 
+                  << (currentState == AudioEngine::State::PLAYING ? "PLAYING" :
+                      currentState == AudioEngine::State::PAUSED ? "PAUSED" : "TRANSITIONING")
+                  << std::endl;
+        std::cout << "[DirettaRenderer] 🛑 Auto-STOP before URI change (JPLAY compatibility)" << std::endl;
+        std::cout << "════════════════════════════════════════" << std::endl;
+        
+        // Stop AudioEngine
+        m_audioEngine->stop();
+        
+        // Stop and close DirettaOutput
+        if (m_direttaOutput) {
+            if (m_direttaOutput->isPlaying()) {
+                m_direttaOutput->stop(true);
+            }
+            if (m_direttaOutput->isConnected()) {
+                m_direttaOutput->close();
+            }
+        }
+        
+        // Notify state change
+        m_upnp->notifyStateChange("STOPPED");
+        
+        DEBUG_LOG("[DirettaRenderer] ✓ Auto-STOP completed");
+    }
     
     // ⭐ Sauvegarder l'URI courante
     this->m_currentURI = uri;
@@ -662,11 +761,33 @@ void DirettaRenderer::audioThreadFunc() {
             nextProcessTime += lastInterval;
             
             if (!success) {
-                // ← AJOUTER : Log quand process échoue
-                std::cout << "[Audio Thread] ⚠️  process() returned false" << std::endl;
+                // Compteur pour réduire le spam de logs
+                static int failCount = 0;
+                static int totalFails = 0;
+                
+                failCount++;
+                totalFails++;
+                
+                // Logger seulement tous les 100 échecs (ou le premier)
+                if (failCount == 1 || failCount % 100 == 0) {
+                    std::cout << "[Audio Thread] ⚠️  process() returned false"
+                              << " (" << totalFails << " total, " 
+                              << failCount << " consecutive)" << std::endl;
+                }
+                
+                // ⭐ CRITICAL FIX: Ajouter une pause pour éviter le spam CPU
+                // Sans cette pause, la boucle repart immédiatement et spam
+                // des milliers de fois par seconde !
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                
+                // Reset le temps de prochain process
                 nextProcessTime = std::chrono::steady_clock::now();
+            } else {
+                // Reset le compteur d'échecs consécutifs quand ça réussit
+                static int failCount = 0;
+                failCount = 0;
             }
-            
+                   
         } else {
             // ← AJOUTER : Log quand en attente
             static int waitCount = 0;

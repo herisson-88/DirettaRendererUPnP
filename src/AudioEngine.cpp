@@ -1334,6 +1334,39 @@ bool AudioEngine::process(size_t samplesNeeded) {
             return true;  // Continue playback with new track
         } 
         
+        // ⭐ NEW (v1.0.16): Check if next track exists but decoder was cleared (format change)
+        if (!m_nextURI.empty()) {
+            std::cout << "[AudioEngine] 🔄 Next track with format change detected" << std::endl;
+            std::cout << "[AudioEngine] Transitioning with stop/start sequence..." << std::endl;
+            
+            // Save next URI before stopping
+            std::string nextURI = m_nextURI;
+            std::string nextMetadata = m_nextMetadata;
+            
+            // Signal track end to allow clean transition
+            if (m_trackEndCallback) {
+                m_trackEndCallback();
+            }
+            
+            // Apply next URI as current
+            m_currentURI = nextURI;
+            m_currentMetadata = nextMetadata;
+            m_nextURI.clear();
+            m_nextMetadata.clear();
+            
+            // Reset for new track
+            m_isDraining = false;
+            m_samplesPlayed = 0;
+            m_trackNumber++;
+            
+            // Stop current playback (will close DirettaOutput)
+            std::cout << "[AudioEngine] Stopping for format change..." << std::endl;
+            m_currentDecoder.reset();
+            
+            // Reopen with new track (will be done in next process() call via openCurrentTrack())
+            return true;  // Continue playback state
+        }
+        
         // No next track - drain buffer and stop
         std::cout << "[AudioEngine] 🔇 No next track, draining buffer..." << std::endl;
         
@@ -1431,7 +1464,7 @@ bool AudioEngine::preloadNextTrack() {
     );
 
     if (formatWillChange) {
-        DEBUG_LOG("[AudioEngine] FORMAT CHANGE DETECTED - Gapless disabled");
+        DEBUG_LOG("[AudioEngine] ⚠️  FORMAT CHANGE DETECTED - Gapless disabled");
         DEBUG_LOG("[AudioEngine] Current: "
                   << m_currentTrackInfo.sampleRate << "Hz/"
                   << m_currentTrackInfo.bitDepth << "bit/"
@@ -1442,11 +1475,17 @@ bool AudioEngine::preloadNextTrack() {
                   << nextInfo.bitDepth << "bit/"
                   << nextInfo.channels << "ch"
                   << (nextInfo.isDSD ? " (DSD)" : ""));
+        DEBUG_LOG("[AudioEngine] 🔄 Will use stop/start sequence instead of gapless");
 
         // Don't keep nextDecoder - force stop/start sequence
         m_nextDecoder.reset();
-        m_nextURI.clear();
-        m_nextMetadata.clear();
+        
+        // ⭐ CRITICAL FIX (v1.0.16): Keep m_nextURI!
+        // Do NOT clear m_nextURI - it will be used for non-gapless transition
+        // The EOF handler will see format change and trigger proper reopen
+        // m_nextURI.clear();     // ❌ REMOVED - was causing next track to be lost
+        // m_nextMetadata.clear(); // ❌ REMOVED
+        
         return false;
     }
 

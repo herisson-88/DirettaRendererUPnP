@@ -16,6 +16,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ---
+## [1.0.7]
+### 🎵 Audirvana Compatibility Fix
+
+**Problem:**
+- Audirvana pre-decodes audio and wraps it in a strange format
+- Standard DSD native mode failed with Audirvana
+- DSD playback resulted in incorrect format or no audio
+
+**Solution:**
+- Detect Audirvana streams via URL pattern (`/audirvana/`)
+- For Audirvana DSD: Use FFmpeg decoding instead of raw mode
+- For other sources: Continue using DSD native mode
+
+**Result:**
+- ✅ Audirvana DSD (DoP) works as follow→ Decoded to PCM Hi-Res (352.8k/705.6k DirettaHostSDK doesn't support DoP)
+- ✅ BubbleUPnP/JPLAY DSD works → Native DSD bitstream to DAC
+- ✅ No regression on PCM formats
+
+### 🔧 Float Buffer Support (Sub-second Precision)
+
+**Problem:**
+- Buffer stored as `int`, causing truncation for values < 1 second
+- Example: 0.8s buffer → cast to int → 0 seconds!
+- Result: Buffer underruns, audio artifacts (pink noise)
+
+**Example of Bug:**
+```cpp
+// BEFORE (v1.0.8):
+int m_bufferSeconds;
+effectiveBuffer = std::min(0.8f, bufferSeconds);  // Returns 0.8f
+m_bufferSeconds = effectiveBuffer;  // Cast to int = 0 ❌
+
+// AFTER (v1.0.9):
+float m_bufferSeconds;
+effectiveBuffer = std::min(0.8f, bufferSeconds);  // Returns 0.8f
+m_bufferSeconds = effectiveBuffer;  // Keeps 0.8f ✅
+```
+
+**Tested:**
+- ✅ DSD with 0.8s buffer works correctly
+- ✅ PCM with 1.2s buffer works correctly
+- ✅ No regression on integer buffer values
+
+**Files Modified:**
+- `DirettaOutput.h` - Changed member type
+- `DirettaOutput.cpp` - Updated calculations
+- `DirettaRenderer.h` - Updated config
+- `main.cpp` - Updated default value
+
+**Feature:**
+- Intelligent buffer sizing based on audio format complexity
+- Sub-second precision using float instead of int
+
+**Buffer Strategy:**
+
+| Format Type | Buffer Size | Rationale |
+|-------------|-------------|-----------|
+| DSD (DSF/DFF) | 0.8s | Raw bitstream, instant read |
+| PCM Standard (≤48kHz/16-bit) | 1.0s | Low data rate, minimal latency |
+| PCM Hi-Res (≥88.2kHz/24-bit) | 1.2-1.5s | High data rate, DAC stabilization |
+| Compressed (FLAC/ALAC) | 2.0s | Decode overhead required |
+
+**Benefits:**
+- No more 10-second or more startup delays but a delay betwwen 3 to 8 seconds still occurs
+- Optimal latency for each format type
+- Maintains stability for Hi-Res and compressed formats
+
+**Files Modified:**
+- `DirettaOutput.h` - Changed buffer type to float
+- `DirettaOutput.cpp` - Adaptive buffer logic
+- `DirettaRenderer.h` - Updated config structure
+- `main.cpp` - Default buffer reduced from 10s to 2s
+
+### 🔴 CRITICAL FIX: Stop/Play Cycle (Audirvana Exclusive Mode)
+
+**Problem:**
+- After STOP command (especially with Audirvana exclusive mode unlock), DirettaOutput is closed
+- Next PLAY command incorrectly attempted to resume from a closed connection
+- `isPaused()` flag remained true even after connection was closed
+- Result: Crash, freeze, or undefined behavior requiring double PLAY
+
+**Tested:**
+- ✅ PAUSE → PLAY works correctly (true resume)
+- ✅ STOP → PLAY works on first attempt
+- ✅ Multiple STOP/PLAY cycles are stable
+- ✅ Audirvana exclusive mode fully functional
+
+**Files Modified:**
+- `DirettaRenderer.cpp` - onPlay callback logic
+
 ## [1.0.6]
 ### Add
 **Verbose Logging Mode**
