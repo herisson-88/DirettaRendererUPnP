@@ -194,7 +194,6 @@ m_audioEngine->setAudioCallback(
         // ⭐ Format change detection (works EVEN after close())
         // ═══════════════════════════════════════════════════════════════
         
-        bool formatChanged = false;
         
         if (m_direttaOutput->isConnected()) {
             // Case 1: Already connected - check against current connection
