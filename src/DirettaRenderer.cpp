@@ -170,12 +170,14 @@ m_audioEngine->setAudioCallback(
         // This is the KEY to detecting format changes after JPLAY's AUTO-STOP
         static AudioFormat lastFormat(0, 0, 0);
         static bool hasLastFormat = false;
-        
+        bool needReopen = false;
+        bool formatChanged = false;
+
         // Build current format from callback parameters
         AudioFormat currentFormat(sampleRate, bitDepth, channels);
         currentFormat.isDSD = trackInfo.isDSD;
         currentFormat.isCompressed = trackInfo.isCompressed;
-        
+
         if (trackInfo.isDSD) {
             currentFormat.bitDepth = 1;  // DSD = 1 bit
             std::string codec = trackInfo.codec;
@@ -258,6 +260,8 @@ m_audioEngine->setAudioCallback(
                           << (currentFormat.isDSD ? " DSD" : " PCM") << std::endl;
                 std::cout << "[Callback] 💡 Will open with new format after AUTO-STOP..." << std::endl;
                 std::cout << "════════════════════════════════════════" << std::endl;
+
+                needReopen = true;
             }
         }
         
