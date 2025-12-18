@@ -16,6 +16,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ---
+## [1.0.7]
+
+### Add
+ - DSD512 and DSD1024 support added thanks to norman-arch
+### 🎵 Audirvana Compatibility Fix (In progress not perfect)
+
+**Problem:**
+- Audirvana pre-decodes audio and wraps it in a strange format
+- Standard DSD native mode failed with Audirvana
+- DSD playback resulted in incorrect format or no audio
+
+**Solution:**
+- Detect Audirvana streams via URL pattern (`/audirvana/`)
+- For Audirvana DSD: Use FFmpeg decoding instead of raw mode
+- For other sources: Continue using DSD native mode
+
+**Result:**
+- ✅ Audirvana DSD (DoP) works as follow→ Decoded to PCM Hi-Res (352.8k/705.6k DirettaHostSDK doesn't support DoP)
+- ✅ BubbleUPnP/JPLAY DSD works → Native DSD bitstream to DAC
+- ✅ No regression on PCM formats
+
+### 🔧 Float Buffer Support (Sub-second Precision)
+
+**Problem:**
+- Buffer stored as `int`, causing truncation for values < 1 second
+- Example: 0.8s buffer → cast to int → 0 seconds!
+- Result: Buffer underruns, audio artifacts (pink noise)
+
+**Tested:**
+- ✅ DSD with 0.8s buffer works correctly
+- ✅ PCM with 1.2s buffer works correctly
+- ✅ No regression on integer buffer values
+
+**Files Modified:**
+- `DirettaOutput.h` - Changed member type
+- `DirettaOutput.cpp` - Updated calculations
+- `DirettaRenderer.h` - Updated config
+- `main.cpp` - Updated default value
+
+**Feature:**
+- Intelligent buffer sizing based on audio format complexity
+- Sub-second precision using float instead of int
+
+**Buffer Strategy:**
+
+| Format Type | Buffer Size | Rationale |
+|-------------|-------------|-----------|
+| DSD (DSF/DFF) | 0.8s | Raw bitstream, instant read |
+| PCM Standard (≤48kHz/16-bit) | 1.0s | Low data rate, minimal latency |
+| PCM Hi-Res (≥88.2kHz/24-bit) | 1.2-1.5s | High data rate, DAC stabilization |
+| Compressed (FLAC/ALAC) | 2.0s | Decode overhead required |
+
+**Benefits:**
+- No more 10-second or more startup delays but a delay betwwen 3 to 8 seconds still occurs
+- Optimal latency for each format type
+- Maintains stability for Hi-Res and compressed formats
+
+**Files Modified:**
+- `DirettaOutput.h` - Changed buffer type to float
+- `DirettaOutput.cpp` - Adaptive buffer logic
+- `DirettaRenderer.h` - Updated config structure
+- `main.cpp` - Default buffer reduced from 10s to 2s
+
+### 🔴 CRITICAL FIX: Stop/Play Cycle (Audirvana Exclusive Mode)
+
+**Problem:**
+- After STOP command (especially with Audirvana exclusive mode unlock), DirettaOutput is closed
+- Next PLAY command incorrectly attempted to resume from a closed connection
+- `isPaused()` flag remained true even after connection was closed
+- Result: Crash, freeze, or undefined behavior requiring double PLAY
+
+**Tested:**
+- ✅ PAUSE → PLAY works correctly (true resume)
+- ✅ STOP → PLAY works on first attempt
+- ✅ Multiple STOP/PLAY cycles are stable
+- ✅ Audirvana exclusive mode fully functional
+
+**Files Modified:**
+- `DirettaRenderer.cpp` - onPlay callback logic
+
+### Fixed
+- **Dynamic sample rate switching**: 
+
+Fixed DAC not changing sample rate when transitioning between tracks with different formats (e.g., 96kHz → 44.1kHz)
+  - Root cause: After `close()`, the callback would immediately `open()` with the new format without giving the Diretta Target time to reinitialize
+  - Solution: Added persistent format tracking using static variables to detect format changes even after `close()`, and implemented a 500ms pause before reopening to allow the Target's clock generator and PLL to properly reset
+  - The Diretta Target now correctly reconfigures the DAC for each format change
+  - Format changes are properly logged with detailed transition information
+
+### Changed
+- **Improved audio thread logging**: 
+
+Reduced log spam when `process()` returns false
+  - Now logs only every 100 consecutive failures instead of every occurrence
+  - Prevents multi-gigabyte log files during idle states
+  - Added consecutive failure counter for better debugging visibility
+- **Improved Roon + Squeeze2UPnP compatibility** Thanks to herisson-88
+### Technical Details
+
+- Format change detection now works in two scenarios:
+  1. When `isConnected() == true`: Compares current format with `getFormat()`
+  2. When `isConnected() == false`: Compares with last known format stored in static variable (critical for JPLAY's AUTO-STOP behavior)
+- Total format change duration: ~1 second (500ms Target reset + 290ms SyncBuffer setup + 200ms DAC stabilization)
+- Validated transitions: PCM ↔ PCM (different sample rates), PCM ↔ DSD
+
+### Notes
+
+- Format changes between tracks are expected to have a brief pause (~1s) for proper DAC reconfiguration
+- Gapless playback for tracks with the same format remains unaffected and works seamlessly
+- This fix enables proper bit-perfect playback across entire multi-format playlists
+
 ## [1.0.6]
 ### Add
 **Verbose Logging Mode**

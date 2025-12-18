@@ -46,7 +46,7 @@ void DirettaOutput::setMTU(uint32_t mtu) {
 
 
 
-bool DirettaOutput::open(const AudioFormat& format, int bufferSeconds) {
+bool DirettaOutput::open(const AudioFormat& format, float bufferSeconds) {
     DEBUG_LOG("[DirettaOutput] Opening: " 
               << format.sampleRate << "Hz/" 
               << format.bitDepth << "bit/" 
@@ -70,19 +70,52 @@ bool DirettaOutput::open(const AudioFormat& format, int bufferSeconds) {
     
     if (format.isDSD) {
         // DSD: Raw bitstream, zero decode overhead
-        effectiveBuffer = std::min(static_cast<float>(bufferSeconds), 0.8f);
+        effectiveBuffer = std::min(bufferSeconds, 0.8f);
         DEBUG_LOG("[DirettaOutput] 🎵 DSD: raw bitstream path");
         
     } else if (!format.isCompressed) {
-        // WAV/AIFF: Uncompressed PCM, minimal overhead (just format conversion)
-        effectiveBuffer = std::min(static_cast<float>(bufferSeconds), 0.8f);
-        DEBUG_LOG("[DirettaOutput] ✓ Uncompressed PCM (WAV/AIFF): low-latency path");
-        DEBUG_LOG("[DirettaOutput]   Buffer: " << effectiveBuffer 
-                  << "s (similar to DSD!)");
+        // WAV/AIFF: Uncompressed PCM - intelligent buffer sizing
+        
+        // ⚠️  LOOPBACK DETECTION (v1.0.10)
+        // Check if this is local playback (same-machine streaming)
+        // In loopback mode, data arrives in bursts without network buffering
+        bool isLoopback = false;
+        // Heuristic: If MTU is default (not jumbo), likely loopback wasn't configured
+        // Real network would use jumbo frames (16128)
+        // This is a simple heuristic - not perfect but works in most cases
+        if (m_mtu <= 1500) {
+            isLoopback = true;
+        }
+        
+        if (format.bitDepth >= 24 && format.sampleRate >= 88200) {
+            // Hi-Res audio handling
+            if (isLoopback && format.sampleRate <= 96000) {
+                // Loopback + Hi-Res ≤96kHz: needs larger buffer
+                // Reason: Data arrives in bursts, need extra buffer to prevent underruns
+                effectiveBuffer = std::max(std::min(bufferSeconds, 2.5f), 1.5f);
+                DEBUG_LOG("[DirettaOutput] ⚠️  Loopback Hi-Res detected (" << format.bitDepth 
+                          << "bit/" << format.sampleRate << "Hz)");
+                DEBUG_LOG("[DirettaOutput]   Using 2-2.5s buffer (burst protection)");
+                DEBUG_LOG("[DirettaOutput]   💡 TIP: For lower latency, use remote player");
+                DEBUG_LOG("[DirettaOutput]        or enable oversampling in your player");
+            } else {
+                // Network or high sample rate: normal buffer
+                effectiveBuffer = std::max(std::min(bufferSeconds, 1.5f), 1.2f);
+                DEBUG_LOG("[DirettaOutput] ✓ Hi-Res PCM (" << format.bitDepth 
+                          << "bit/" << format.sampleRate << "Hz): enhanced buffer");
+                DEBUG_LOG("[DirettaOutput]   Buffer: " << effectiveBuffer 
+                          << "s (DAC stabilization)");
+            }
+        } else {
+            // Standard PCM: low latency
+            effectiveBuffer = std::min(bufferSeconds, 1.0f);
+            DEBUG_LOG("[DirettaOutput] ✓ Uncompressed PCM: low-latency path");
+            DEBUG_LOG("[DirettaOutput]   Buffer: " << effectiveBuffer << "s");
+        }
         
     } else {
         // FLAC/ALAC/etc: Compressed, needs decoding buffer
-        effectiveBuffer = std::max(static_cast<float>(bufferSeconds), 0.8f);
+        effectiveBuffer = std::max(bufferSeconds, 0.8f);
         DEBUG_LOG("[DirettaOutput] ℹ️  Compressed PCM (FLAC/ALAC): decoding required");
         
         if (bufferSeconds < 2) {
@@ -911,6 +944,14 @@ if (format.dsdFormat == AudioFormat::DSDFormat::DFF) {
             std::cout << "DSD256 (11289600 Hz)" << std::endl;
             formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP256;
             DEBUG_LOG("[DirettaOutput]    ✅ DSD256 configured");
+                 } else if (format.sampleRate == 22579200) {
+            std::cout << "DSD512 (22579200 Hz)" << std::endl;
+            formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP512;
+            DEBUG_LOG("[DirettaOutput]    ✅ DSD512 configured");
+        } else if (format.sampleRate == 45158400) {
+            std::cout << "DSD1024 (45158400 Hz)" << std::endl;
+            formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP1024;
+            DEBUG_LOG("[DirettaOutput]    ✅ DSD1024 configured");   
         } else {
             std::cerr << "[DirettaOutput]    ⚠️  Unknown DSD rate: " << format.sampleRate << std::endl;
             formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP64;

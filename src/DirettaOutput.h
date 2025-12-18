@@ -70,7 +70,7 @@ public:
      * @param bufferSeconds Buffer size in seconds
      * @return true if successful, false otherwise
      */
-    bool open(const AudioFormat& format, int bufferSeconds = 2);
+    bool open(const AudioFormat& format, float bufferSeconds = 2.0f);
     
     /**
      * @brief Close connection
@@ -177,7 +177,7 @@ private:
     // Diretta
     std::unique_ptr<DIRETTA::SyncBuffer> m_syncBuffer;
     AudioFormat m_currentFormat;
-    int m_bufferSeconds;
+    float m_bufferSeconds;  // Changed from int to float (v1.0.9)
     
     // State
     std::atomic<bool> m_connected;
