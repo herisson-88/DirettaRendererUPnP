@@ -157,12 +157,8 @@ m_audioEngine->setAudioCallback(
     [this](const AudioBuffer& buffer, size_t samples,
            uint32_t sampleRate, uint32_t bitDepth, uint32_t channels) -> bool {
 
-        // SYNC: Check state with mutex to prevent race with close()
         {
             std::lock_guard<std::mutex> lk(m_callbackMutex);
-            if (m_audioEngine->getState() != AudioEngine::State::PLAYING) {
-                return false;
-            }
             m_callbackRunning = true;
         }
 
