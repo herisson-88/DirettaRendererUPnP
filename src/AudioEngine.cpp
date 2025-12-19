@@ -456,7 +456,6 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
     // DSD NATIVE MODE - Read raw packets without decoding
     // ══════════════════════════════════════════════════════════════
     if (m_rawDSD) {
-        static int m_readCallCount = 0;
         m_readCallCount++;
     if (m_readCallCount % 100 == 0) {
         DEBUG_LOG("[readSamples] Call " << m_readCallCount);
