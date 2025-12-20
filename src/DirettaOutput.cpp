@@ -392,8 +392,8 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
         }
         
         // ⭐ STEP 4: WAIT FOR HARDWARE STABILIZATION
-        std::cout << "[DirettaOutput] 4. Waiting for hardware stabilization (200ms)..." << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::cout << "[DirettaOutput] 4. Waiting for hardware stabilization (300ms)..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
         
         // ⭐ STEP 5: DESTROY SYNCBUFFER (force recreation in configureDiretta)
         // After pre_disconnect(), SyncBuffer cannot be reused for a different format
@@ -414,8 +414,8 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
         m_syncBuffer->play();
         
         // Wait for DAC to lock onto new format
-        std::cout << "[DirettaOutput]    Waiting for DAC lock (200ms)..." << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        std::cout << "[DirettaOutput]    Waiting for DAC lock (300ms)..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
     }
     
     m_currentFormat = newFormat;
