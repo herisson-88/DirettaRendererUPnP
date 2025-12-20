@@ -1139,6 +1139,18 @@ DEBUG_LOG("[DirettaOutput]      ⚠️  CRITICAL: This is " << m_bufferSeconds
 
 m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);
     DEBUG_LOG("[DirettaOutput] 6. Connecting...");
+    // ⭐ PRE-FILL buffer with silence before connect to avoid pop
+    size_t silenceFrames = fs1sec;  // 1000ms of silence
+    size_t silenceBytes = silenceFrames * frameSize;
+    DIRETTA::Stream silenceStream;
+    silenceStream.resize(silenceBytes);
+    if (format.isDSD) {
+        memset(silenceStream.get(), 0x69, silenceBytes);
+    } else {
+        memset(silenceStream.get(), 0, silenceBytes);
+    }
+    m_syncBuffer->setStream(silenceStream);
+    DEBUG_LOG("[DirettaOutput] ⭐ Pre-filled buffer with 1000ms silence");
     m_syncBuffer->connect(0, 0);
     // m_syncBuffer->connectWait();
 
