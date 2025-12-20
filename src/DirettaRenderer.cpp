@@ -366,6 +366,22 @@ m_audioEngine->setAudioCallback(
                 std::cerr << "[DirettaRenderer] ❌ Failed to start Diretta playback" << std::endl;
                 return false;
             }
+
+			// ⭐ PRE-FILL: Send silence to avoid pop from empty buffer
+            const TrackInfo& info = m_audioEngine->getCurrentTrackInfo();
+            size_t bytesPerSample = (bitDepth / 8) * channels;
+            size_t silenceSize = samples * bytesPerSample;
+            std::vector<uint8_t> silence(silenceSize);
+            
+            if (info.isDSD) {
+                // DSD silence = 0x69 pattern (alternating bits)
+                std::fill(silence.begin(), silence.end(), 0x69);
+            } else {
+                // PCM silence = zeros
+                std::fill(silence.begin(), silence.end(), 0);
+            }
+            
+            m_direttaOutput->sendAudio(silence.data(), samples);
             
             // ⭐ CRITICAL: Wait for DAC stabilization
             DEBUG_LOG("[DirettaRenderer] ⏳ Waiting for DAC stabilization (200ms)...");
