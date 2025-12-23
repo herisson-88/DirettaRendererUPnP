@@ -55,6 +55,7 @@ static std::string generateUUID() {
 DirettaRenderer::Config::Config() {
     uuid = generateUUID();
     targetIndex = -1;  // Default: interactive selection
+    networkInterface = "";  // (vide = auto-detect)
 }
 
 // ============================================================================

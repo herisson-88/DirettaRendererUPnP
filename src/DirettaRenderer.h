@@ -27,7 +27,8 @@ public:
     int cycleTime;       // CycleTime
     int cycleMinTime;    // CycleMinTime
     int infoCycle;       // InfoCycle
-    int mtuOverride;     // MTU override (0 = auto)       
+    int mtuOverride;     // MTU override (0 = auto)
+    std::string networkInterface;  // Empty = auto-detect       
         Config();
     };
     

@@ -12,7 +12,7 @@
 #include <chrono>
 
 // Version information
-#define RENDERER_VERSION "1.0.6"
+#define RENDERER_VERSION "1.0.9"  // ← MISE À JOUR VERSION
 #define RENDERER_BUILD_DATE __DATE__
 #define RENDERER_BUILD_TIME __TIME__
 // Global renderer instance for signal handler
@@ -28,6 +28,9 @@ void signalHandler(int signal) {
 }
  // Variable globale pour le mode verbose
    bool g_verbose = false;
+
+// ⭐ NOUVEAU: Variable globale pour l'interface réseau (multi-homed support)
+std::string g_networkInterface = "";
 
 // List available Diretta targets
 void listTargets() {
@@ -61,6 +64,9 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
     config.cycleMinTime = 333;    // Default: 333µs
     config.infoCycle = 5000;      // Default: 5ms
     config.mtuOverride = 0;       // 0 = auto-detect
+    
+    // ⭐ NEW: Network interface (empty = auto-detect)
+    config.networkInterface = "";
     
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
@@ -111,11 +117,21 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
                 std::cerr << "⚠️  Warning: MTU < 1500 may cause issues" << std::endl;
             }
         }
+        // ⭐ NOUVEAU: Options pour interface réseau
+        else if (arg == "--interface" && i + 1 < argc) {
+            config.networkInterface = argv[++i];
+            std::cout << "✓ Will bind to interface: " << config.networkInterface << std::endl;
+        }
+        else if (arg == "--bind-ip" && i + 1 < argc) {
+            config.networkInterface = argv[++i];
+            std::cout << "✓ Will bind to IP: " << config.networkInterface << std::endl;
+        }
+        // Fin des nouvelles options
         else if (arg == "--list-targets" || arg == "-l") {
             listTargets();
             exit(0);
         }
-        else if (arg == "--version" || arg == "-v") {
+        else if (arg == "--version" || arg == "-V") {  // ← FIX: -V au lieu de -v
              std::cout << "═══════════════════════════════════════════════════════" << std::endl;
              std::cout << "  Diretta UPnP Renderer - Version " << RENDERER_VERSION << std::endl;
              std::cout << "═══════════════════════════════════════════════════════" << std::endl;
@@ -126,7 +142,7 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
             exit(0);
         }       
         else if (arg == "--verbose" || arg == "-v") {
-            // ⭐ NOUVEAU: Option verbose
+            // ⭐ Option verbose
             g_verbose = true;
             std::cout << "✓ Verbose mode enabled" << std::endl;
         }
@@ -138,13 +154,23 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
                       << "  --port, -p <port>     UPnP port (default: auto)\n"
                       << "  --uuid <uuid>         Device UUID (default: auto-generated)\n"
                       << "  --no-gapless          Disable gapless playback\n"
-                      << "  --buffer, -b <secs>   Buffer size in seconds (default: 10)\n"
+                      << "  --buffer, -b <secs>   Buffer size in seconds (default: 2.0)\n"
                       << "  --target, -t <index>  Select Diretta target by index (1, 2, 3...)\n"
                       << "  --list-targets, -l    List available Diretta targets and exit\n"
                       << "  --verbose, -v         Enable verbose debug output\n"
                       << "  --version, -V         Show version information\n"
                       << "  --help, -h            Show this help\n"
-                       << "\n"
+                      << "\n"
+                      << "Network Interface Options (for multi-homed systems):\n"  // ⭐ NOUVEAU
+                      << "  --interface <name>    Network interface to bind (e.g., eth0, eno1)\n"
+                      << "  --bind-ip <ip>        IP address to bind (e.g., 192.168.1.10)\n"
+                      << "\n"
+                      << "  For systems with multiple network interfaces (3-tier architecture):\n"
+                      << "    Control network: 192.168.1.x on eth0\n"
+                      << "    Diretta network: 192.168.2.x on eth1\n"
+                      << "\n"
+                      << "    " << argv[0] << " --interface eth0 --target 1\n"
+                      << "\n"
                       << "Advanced Diretta SDK Options:\n"
                       << "  --thread-mode <value>   Thread mode bitmask (default: 1)\n"
                       << "                          1=Critical, 2=NoShortSleep, 4=NoSleep4Core,\n"
@@ -157,14 +183,19 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
                       << "  --info-cycle <µs>       Information packet cycle time (default: 5000)\n"
                       << "  --mtu <bytes>           Override MTU (default: auto-detect)\n"
                       << "\n"                     
-                      << "\nTarget Selection:\n"
+                      << "Target Selection:\n"
                       << "  First, scan for targets:  " << argv[0] << " --list-targets\n"
                       << "  Then, use specific target: " << argv[0] << " --target 1\n"
                       << "  Or use interactive mode:   " << argv[0] << " (prompts if multiple targets)\n"
-                      << "  Or use interactive mode:   " << argv[0] << " (prompts if multiple targets)\n"
-                      << "\nDebug Mode:\n"  // ⭐ NOUVEAU
+                      << "\n"
+                      << "Debug Mode:\n"
                       << "  Normal mode (clean output): " << argv[0] << " --target 1\n"
-                      << "  Verbose mode (all logs):    " << argv[0] << " --target 1 --verbose\n"                     
+                      << "  Verbose mode (all logs):    " << argv[0] << " --target 1 --verbose\n"
+                      << "\n"
+                      << "Multi-homed Examples:\n"  // ⭐ NOUVEAU
+                      << "  List network interfaces:     ip link show\n"
+                      << "  Bind to specific interface:  " << argv[0] << " --interface eth0\n"
+                      << "  Bind to specific IP:         " << argv[0] << " --bind-ip 192.168.1.10\n"
                       << std::endl;
             exit(0);
         }
@@ -184,7 +215,7 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, signalHandler);
     
     std::cout << "═══════════════════════════════════════════════════════\n"
-              << "  🎵 Diretta UPnP Renderer - Complete Edition\n"
+              << "  🎵 Diretta UPnP Renderer v" << RENDERER_VERSION << "\n"
               << "═══════════════════════════════════════════════════════\n"
               << std::endl;
     
@@ -197,8 +228,17 @@ int main(int argc, char* argv[]) {
     std::cout << "  Port:        " << (config.port == 0 ? "auto" : std::to_string(config.port)) << std::endl;
     std::cout << "  Gapless:     " << (config.gaplessEnabled ? "enabled" : "disabled") << std::endl;
     std::cout << "  Buffer:      " << config.bufferSeconds << " seconds" << std::endl;
+    
+    // ⭐ NOUVEAU: Afficher interface réseau
+    if (!config.networkInterface.empty()) {
+        std::cout << "  Network:     " << config.networkInterface << " (specific interface)" << std::endl;
+    } else {
+        std::cout << "  Network:     auto-detect (first available)" << std::endl;
+    }
+    
     std::cout << "  UUID:        " << config.uuid << std::endl;
-     // ⭐ NEW: Display advanced settings only if modified from defaults
+    
+    // ⭐ Display advanced settings only if modified from defaults
     if (config.threadMode != 1 || config.cycleTime != 10000 || 
         config.cycleMinTime != 333 || config.infoCycle != 5000 || 
         config.mtuOverride != 0) {
