@@ -463,6 +463,54 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
 float DirettaOutput::getBufferLevel() const {
     return 0.5f;
 }
+bool DirettaOutput::sendAudio(const uint8_t* data, size_t numSamples) {
+    if (!m_connected || !m_playing) {
+        return false;
+    }
+    
+    if (!m_syncBuffer) {
+        return false;
+    }
+    
+    // Calculate data size based on format
+    size_t dataSize;
+    
+    if (m_currentFormat.isDSD) {
+        // DSD: numSamples in bits, convert to bytes
+        dataSize = (numSamples * m_currentFormat.channels) / 8;
+    } else {
+        // PCM: numSamples in frames
+        uint32_t bytesPerSample = (m_currentFormat.bitDepth / 8) * m_currentFormat.channels;
+        dataSize = numSamples * bytesPerSample;
+    }
+    
+    // Create stream and copy data
+    DIRETTA::Stream stream;
+    stream.resize(dataSize);
+    
+    // For 24-bit: convert S32 → S24 if needed
+    if (!m_currentFormat.isDSD && m_currentFormat.bitDepth == 24) {
+        const int32_t* input32 = reinterpret_cast<const int32_t*>(data);
+        uint8_t* output24 = stream.get();
+        
+        size_t totalSamples = numSamples * m_currentFormat.channels;
+        
+        for (size_t i = 0; i < totalSamples; i++) {
+            int32_t sample32 = input32[i];
+            output24[i*3 + 0] = (sample32 >> 8) & 0xFF;   // LSB
+            output24[i*3 + 1] = (sample32 >> 16) & 0xFF;  // Mid
+            output24[i*3 + 2] = (sample32 >> 24) & 0xFF;  // MSB
+        }
+    } else {
+        // Direct copy for other formats
+        memcpy(stream.get(), data, dataSize);
+    }
+    
+    m_syncBuffer->setStream(stream);
+    m_totalSamplesSent += numSamples;
+        
+    return true;
+}
 
 bool DirettaOutput::findTarget() {
     m_udp = std::make_unique<ACQUA::UDPV6>();
