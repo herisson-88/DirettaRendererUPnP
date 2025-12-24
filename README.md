@@ -8,6 +8,10 @@
 
 ---
 
+![Version](https://img.shields.io/badge/version-1.0.9-blue.svg)
+![Multi-Interface](https://img.shields.io/badge/multi--interface-supported-green.svg) ← NEW
+
+---
 ## ⚠️ IMPORTANT - PERSONAL USE ONLY
 
 This renderer uses the **Diretta Host SDK**, which is proprietary software by Yu Harada available for **personal use only**. Commercial use is strictly prohibited. See [LICENSE](LICENSE) for details.
@@ -25,6 +29,9 @@ This renderer uses the **Diretta Host SDK**, which is proprietary software by Yu
 - [Performance](#performance)
 - [Compatible Control Points](#compatible-control-points)
 - [System Optimization](#system-optimization)
+- [Command Line Options](#command-line-options)
+- [Advanced Settings](#advanced-settings)
+- [Multi-Homed Systems](#multi-homed-systems--network-interface-selection) ← NOUVEAU
 - [Documentation](#documentation)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
@@ -287,6 +294,9 @@ git pull
 make clean
 make  or make NOLOG=1 if you want production version (better SQ has been reported)
 
+# Before installing service (if updating to version 1.0.9 - settings will be lost)
+ sudo rm /opt/diretta-renderer-upnp/diretta-renderer.conf
+
 # Install service
 cd systemd
 chmod +x install-systemd.sh
@@ -462,7 +472,7 @@ Tested and working with:
 - **Gapless**: On (if desired)
 
 ## AUDIRVANA
-- **Universal gapless enabled**: is you notice pink noise after few seconds of playback
+- **Universal gapless enabled**: if you notice pink noise after few seconds of playback
 - **DSD**: DSD isn’t functioning properly, as the DAC plays PCM instead (e.g., DSD64 → PCM 352.4 kHz). So you can set NO DSD.
 
 ---
@@ -549,6 +559,338 @@ For more solutions, see the [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
 
 ---
 
+## Command-Line Options
+
+### Basic Options
+
+```bash
+--name, -n <name>       Renderer name (default: Diretta Renderer)
+--port, -p <port>       UPnP port (default: auto)
+--buffer, -b <seconds>  Buffer size in seconds (default: 2.0)
+--target, -t <index>    Select Diretta target by index (1, 2, 3...)
+--no-gapless            Disable gapless playback
+--verbose               Enable verbose debug output
+```
+
+### Advanced Diretta SDK Options
+
+Fine-tune the Diretta protocol behavior for optimal performance:
+
+#### Thread Mode (`--thread-mode <value>`)
+
+Controls real-time thread behavior using a bitmask. Add values together for multiple flags.
+
+**Available flags:**
+| Value | Flag | Description |
+|-------|------|-------------|
+| 1 | Critical | REALTIME priority (default) |
+| 2 | NoShortSleep | Disable short sleep intervals |
+| 4 | NoSleep4Core | Disable sleep for 4-core systems |
+| 8 | SocketNoBlock | Non-blocking socket operations |
+| 16 | OccupiedCPU | Maximize CPU utilization |
+| 32/64/128 | FEEDBACK | Moving average feedback control |
+| 256 | NOFASTFEEDBACK | Disable fast feedback |
+| 512 | IDLEONE | Idle one thread |
+| 1024 | IDLEALL | Idle all threads |
+| 2048 | NOSLEEPFORCE | Force no sleep |
+| 4096 | LIMITRESEND | Limit resend operations |
+| 8192 | NOJUMBOFRAME | Disable jumbo frames |
+| 16384 | NOFIREWALL | Bypass firewall optimizations |
+| 32768 | NORAWSOCKET | Disable raw sockets |
+
+**Examples:**
+```bash
+# Default (Critical only)
+--thread-mode 1
+
+# Critical + OccupiedCPU (high performance)
+--thread-mode 17
+
+# Critical + FEEDBACK32
+--thread-mode 33
+```
+
+#### Transfer Timing
+
+Fine-tune packet transfer timing:
+
+```bash
+--cycle-time <µs>       Transfer packet cycle max time (default: 10000)
+                        Range: 333-10000 microseconds
+
+--cycle-min-time <µs>   Transfer packet cycle min time (default: 333)
+                        Only used in random mode
+
+--info-cycle <µs>       Information packet cycle time (default: 5000)
+```
+
+**Example:**
+```bash
+# Faster packet cycling for low-latency
+--cycle-time 5000 --info-cycle 2500
+```
+
+#### MTU Override
+
+```bash
+--mtu <bytes>           Force specific MTU (default: auto-detect)
+                        Common values: 1500 (standard), 9000 (jumbo), 16128 (max)
+```
+
+## Configuration File
+
+Edit `/opt/diretta-renderer-upnp/diretta-renderer.conf` for persistent settings:
+
+```bash
+# Basic settings
+TARGET=1
+PORT=4005
+BUFFER=2.0
+GAPLESS=""
+VERBOSE=""
+
+# Advanced Diretta SDK settings (uncomment to override defaults)
+#THREAD_MODE=17
+#CYCLE_TIME=10000
+#CYCLE_MIN_TIME=333
+#INFO_CYCLE=5000
+#MTU_OVERRIDE=16128
+```
+
+After editing, reload the service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart diretta-renderer
+```
+
+## Performance Tuning Examples
+
+### High-Resolution Audio (DSD512, PCM768)
+```bash
+--buffer 3.0 --thread-mode 17 --cycle-time 8000
+```
+
+### Low-Latency Setup
+```bash
+--buffer 1.5 --thread-mode 33 --cycle-time 5000 --info-cycle 2500
+```
+
+### Maximum Stability (slower systems)
+```bash
+--buffer 4.0 --thread-mode 1 --cycle-time 10000
+```
+
+### Jumbo Frames Optimization
+```bash
+--mtu 16128 --thread-mode 17 --buffer 2.0
+```
+## Multi-Homed Systems & Network Interface Selection
+
+For systems with multiple network interfaces (multi-homed configurations), you can specify which interface to use for UPnP discovery and communication.
+
+### Why This Matters
+
+In configurations with multiple networks (e.g., 3-tier architecture), the renderer needs to advertise itself on the correct network where your UPnP control points are located.
+
+**Common scenarios:**
+- Separate control network and audio network
+- VPN connections alongside local network
+- Multiple Ethernet adapters
+- Bridged network configurations
+
+### Command Line Options
+
+```bash
+--interface <name>     Bind to specific network interface (e.g., eth0, eno1, enp6s0)
+--bind-ip <address>    Bind to specific IP address (e.g., 192.168.1.10)
+```
+
+**Note:** If not specified, the renderer will automatically use the first available network interface.
+
+### Usage Examples
+
+#### List your network interfaces:
+```bash
+ip link show
+ip addr show
+```
+
+#### Single network (default behavior):
+```bash
+sudo ./bin/DirettaRendererUPnP --target 1
+```
+The renderer automatically uses the first available interface.
+
+#### Specify interface by name (recommended):
+```bash
+sudo ./bin/DirettaRendererUPnP --target 1 --interface eth0
+```
+
+#### Specify by IP address:
+```bash
+sudo ./bin/DirettaRendererUPnP --target 1 --bind-ip 192.168.1.10
+```
+
+### 3-Tier Architecture Example
+
+This configuration separates control points from the Diretta audio network:
+
+**Network topology:**
+```
+Control Points (JPlay, Roon, etc.)
+         ↓
+    192.168.1.x (eth0)
+         ↓
+    Linux Host (eth0 + eth1)
+         ↓
+    192.168.2.x (eth1)
+         ↓
+    Diretta DAC
+```
+
+**Configuration:**
+
+The renderer must bind to `eth0` (control network) while targeting the DAC on `eth1` (audio network):
+
+```bash
+sudo ./bin/DirettaRendererUPnP --interface eth0 --target 1
+```
+
+The `--target` parameter will automatically connect to the Diretta DAC discovered on the audio network (192.168.2.x).
+
+### Systemd Configuration
+
+Edit `/opt/diretta-renderer-upnp/diretta-renderer.conf`:
+
+```bash
+# For 3-tier architecture
+NETWORK_INTERFACE="eth0"      # Interface with control points
+TARGET=1                       # Diretta DAC (will be found on eth1)
+
+# Or specify by IP
+NETWORK_INTERFACE="192.168.1.10"
+```
+
+Then restart:
+```bash
+sudo systemctl restart diretta-renderer
+```
+
+### Troubleshooting
+
+**Problem:** Renderer not discovered by control points
+
+**Solution:** 
+1. Check which interface your control points are on:
+   ```bash
+   ip addr show
+   ```
+
+2. Bind the renderer to that interface:
+   ```bash
+   sudo ./bin/DirettaRendererUPnP --interface <control-network-interface> --target 1
+   ```
+
+**Problem:** "UpnpInit2 failed" error
+
+**Possible causes:**
+- Invalid interface name (check with `ip link show`)
+- IP address not assigned to any interface
+- Insufficient permissions (run with `sudo`)
+
+**Verify:**
+```bash
+# List all interfaces
+ip link show
+
+# Check IP addresses
+ip addr show <interface-name>
+
+# Test with specific interface
+sudo ./bin/DirettaRendererUPnP --interface eth0 --list-targets
+```
+### Network Interface Binding
+
+The renderer can bind to a specific network interface for UPnP operations. This is essential for multi-homed systems where you have:
+- Multiple network adapters
+- Separate networks for control and audio
+- VPN connections
+
+**Default behavior:** Auto-detect first available interface  
+**Recommended for multi-homed:** Specify the interface connected to your control points
+
+See [Multi-Homed Systems](#multi-homed-systems--network-interface-selection) for detailed examples.
+
+---
+
+## Section changelog à mettre à jour
+
+### Version 1.0.9 (2024-12-24)
+
+**New Features:**
+- 🌐 **Multi-interface support**: Added `--interface` and `--bind-ip` options for multi-homed systems
+  - Essential for 3-tier architecture configurations (separate control and audio networks)
+  - Fixes SSDP discovery issues on systems with multiple network interfaces
+  - Automatic interface detection remains default behavior
+
+**Improvements:**
+- Better error messages when UPnP initialization fails with specific interface
+- Added interface information in startup logs
+- Systemd configuration now supports `NETWORK_INTERFACE` parameter
+
+**Use cases:**
+- Control points on 192.168.1.x, Diretta DAC on 192.168.2.x
+- VPN connections alongside local network
+- Multiple Ethernet adapters
+
+**Example:**
+```bash
+# 3-tier: Control on eth0, DAC on eth1
+sudo ./bin/DirettaRendererUPnP --interface eth0 --target 1
+```
+
+## Troubleshooting
+
+### Pink noise with Audirvana Studio + Qobuz streaming (24-bit)
+
+**Symptom:** Pink noise appears after 6-7 seconds when streaming from Qobuz in 24-bit mode.
+
+**Workaround:**
+1. In Audirvana Studio, limit output to 16-bit or 20-bit
+2. Local 24-bit files work perfectly
+3. Other players (JPLAY iOS, mConnect, Roon) work correctly with 24-bit
+
+**Note:** This is a known compatibility issue between Audirvana's HTTP streaming pattern and the Diretta SDK. A fix is being investigated with the SDK developer.
+
+### Dropouts or buffer underruns
+
+Try increasing buffer size:
+```bash
+--buffer 3.0
+```
+
+Or adjust thread mode for better CPU utilization:
+```bash
+--thread-mode 17
+```
+
+### Network performance issues
+
+Ensure jumbo frames are enabled on your network, then:
+```bash
+--mtu 9000
+```
+
+Check current MTU with:
+```bash
+ip link show | grep mtu
+```
+
+## Credits
+
+Advanced configuration options are based on the Diretta SDK by Yu Harada.
+
+---
 ## FAQ
 
 ### Q: Do I need a DAC with Diretta support?

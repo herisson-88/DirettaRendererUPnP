@@ -8,32 +8,22 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/diretta-renderer-upnp
-
-# Load configuration from file
 EnvironmentFile=-/opt/diretta-renderer-upnp/diretta-renderer.conf
 
-# Start the renderer with configuration variables
-ExecStart=/opt/diretta-renderer-upnp/DirettaRendererUPnP \
-    --target ${TARGET} \
-    --port ${PORT} \
-    --buffer ${BUFFER}
+# Use wrapper script to handle complex command building
+ExecStart=/opt/diretta-renderer-upnp/start-renderer.sh
 
-# Restart on failure
 Restart=on-failure
 RestartSec=5
-
-# Logging
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=diretta-renderer
-
-# Security and capabilities
 AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
 
-# Performance optimizations (optional)
-# Nice=-10
-# IOSchedulingClass=realtime
-# IOSchedulingPriority=0
+# Performance optimizations
+Nice=-10
+IOSchedulingClass=realtime
+IOSchedulingPriority=0
 
 [Install]
 WantedBy=multi-user.target

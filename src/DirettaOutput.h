@@ -114,8 +114,7 @@ public:
      * @param numSamples Number of samples (frames)
      * @return true if successful, false otherwise
      */
-    bool sendAudio(const uint8_t* data, size_t numSamples);
-    
+    bool sendAudio(const uint8_t* data, size_t numSamples); 
     /**
      * @brief Get buffer level (for monitoring)
      * @return Buffer fill level (0.0 to 1.0)
@@ -164,7 +163,11 @@ public:
     bool isPaused() const { return m_isPaused; }  // ⭐ NOUVEAU
     bool isPlaying() const { return m_playing; } 
     bool seek(int64_t samplePosition);  // ⭐ NOUVEAU
-
+    // ⭐ NEW: Advanced Diretta SDK configuration
+    void setThredMode(int mode) { m_thredMode = mode; }
+    void setCycleTime(int time) { m_cycleTime = time; }
+    void setCycleMinTime(int time) { m_cycleMinTime = time; }
+    void setInfoCycle(int time) { m_infoCycle = time; }
     
 private:
     // Network
@@ -196,7 +199,11 @@ private:
     int64_t m_totalSamplesSent = 0;  // ⭐ Tracking pour pause/seek
     bool m_isPaused = false;               // ⭐ NOUVEAU
     int64_t m_pausedPosition = 0;          // ⭐ NOUVEAU
-    
+     // ⭐ NEW: Advanced SDK parameters (stored values)
+    int m_thredMode = 1;
+    int m_cycleTime = 10000;
+    int m_cycleMinTime = 333;
+    int m_infoCycle = 5000;   
 
 };
 

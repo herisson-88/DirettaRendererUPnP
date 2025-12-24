@@ -55,6 +55,7 @@ static std::string generateUUID() {
 DirettaRenderer::Config::Config() {
     uuid = generateUUID();
     targetIndex = -1;  // Default: interactive selection
+    networkInterface = "";  // (vide = auto-detect)
 }
 
 // ============================================================================
@@ -633,7 +634,6 @@ callbacks.onSeek = [this](const std::string& target) {  // ⭐ Enlever unit
         double seconds = parseTimeString(target);
         
         std::cout << "[DirettaRenderer] Parsed time: " << seconds << "s" << std::endl;
-        
         // Seek dans AudioEngine
         if (m_audioEngine) {
             std::cout << "[DirettaRenderer] Seeking AudioEngine..." << std::endl;
@@ -649,6 +649,7 @@ callbacks.onSeek = [this](const std::string& target) {  // ⭐ Enlever unit
         std::cerr << "❌ Exception in Seek callback: " << e.what() << std::endl;
     }
 	};
+        
 
 m_upnp->setCallbacks(callbacks);       
       

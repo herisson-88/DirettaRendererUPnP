@@ -22,7 +22,13 @@ public:
         bool gaplessEnabled;
         float bufferSeconds;  // Changed from int to float (v1.0.9)
         int targetIndex;  // -1 = interactive selection, >= 0 = specific target
-        
+     // ⭐ NEW: Advanced Diretta SDK settings
+    int threadMode;      // THRED_MODE in SDK
+    int cycleTime;       // CycleTime
+    int cycleMinTime;    // CycleMinTime
+    int infoCycle;       // InfoCycle
+    int mtuOverride;     // MTU override (0 = auto)
+    std::string networkInterface;  // Empty = auto-detect       
         Config();
     };
     
