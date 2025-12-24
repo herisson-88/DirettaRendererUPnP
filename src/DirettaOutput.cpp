@@ -1181,50 +1181,52 @@ bool DirettaOutput::seek(int64_t samplePosition) {
                   << m_totalSamplesSent << " → " << samplePosition << ")" << std::endl;
     }
     
-    // Si en lecture, arrêter temporairement
-    if (wasPlaying && m_syncBuffer) {
-        std::cout << "[DirettaOutput] Stopping for seek..." << std::endl;
+    // ⭐ TOUJOURS arrêter avant seek (forward ou backward)
+    if (m_syncBuffer) {
+        std::cout << "[DirettaOutput] Stopping playback for seek..." << std::endl;
         m_syncBuffer->stop();
         
-        // ⭐ NOUVEAU : Pour seek arrière, VIDER LE BUFFER
+        // ⭐ Attendre un peu que le buffer se stabilise
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        // ⭐ Pour seek arrière : envoyer du silence pour vider le buffer
         if (isBackwardSeek) {
-            std::cout << "[DirettaOutput] Draining buffer for backward seek..." << std::endl;
+            std::cout << "[DirettaOutput] Flushing buffer with silence for backward seek..." << std::endl;
             
-            // Attendre que le buffer se vide (court timeout)
-            int timeout_ms = 500;
-            int waited_ms = 0;
+            // Créer un petit buffer de silence
+            size_t silenceSamples = 1024;
+            size_t bytesPerSample = (m_currentFormat.bitDepth / 8) * m_currentFormat.channels;
+            size_t silenceBytes = silenceSamples * bytesPerSample;
             
-            while (!m_syncBuffer->buffer_empty() && waited_ms < timeout_ms) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                waited_ms += 50;
+            std::vector<uint8_t> silence(silenceBytes, 0);
+            
+            // Envoyer 2-3 buffers de silence pour "pousser" les vieilles données
+            for (int i = 0; i < 3; i++) {
+                DIRETTA::Stream stream;
+                stream.resize(silenceBytes);
+                memcpy(stream.get(), silence.data(), silenceBytes);
+                m_syncBuffer->setStream(stream);
             }
             
-            if (!m_syncBuffer->buffer_empty()) {
-                std::cout << "[DirettaOutput] ⚠️  Buffer not empty after timeout, forcing flush..." << std::endl;
-                // Force disconnect/reconnect pour vider complètement
-                m_syncBuffer->pre_disconnect(true);
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
+            // Attendre que le silence soit envoyé
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
     }
     
-    // Seek à la position
+    // ⭐ Seek à la position
     std::cout << "[DirettaOutput] Calling SyncBuffer::seek(" << samplePosition << ")..." << std::endl;
     m_syncBuffer->seek(samplePosition);
     
-    // Mettre à jour notre compteur
+    // ⭐ Mettre à jour notre compteur
     m_totalSamplesSent = samplePosition;
     
-    // Si on était en lecture, reprendre
+    // ⭐ Si on était en lecture, reprendre
     if (wasPlaying && m_syncBuffer) {
-        std::cout << "[DirettaOutput] Resuming after seek..." << std::endl;
+        std::cout << "[DirettaOutput] Resuming playback after seek..." << std::endl;
         m_syncBuffer->play();
         
-        // ⭐ NOUVEAU : Attendre stabilisation après seek arrière
-        if (isBackwardSeek) {
-            std::cout << "[DirettaOutput] Waiting for DAC stabilization..." << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        }
+        // ⭐ Attendre stabilisation
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
     }
    
     std::cout << "[DirettaOutput] ✓ Seeked to sample " << samplePosition 
