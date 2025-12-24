@@ -350,25 +350,60 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
         // ⭐ STEP 1: STOP SENDING NEW DATA (caller must stop feeding audio)
         std::cout << "[DirettaOutput] 1. Stop sending new audio data..." << std::endl;
         
-        // ⭐ STEP 2: WAIT FOR ALL QUEUED BUFFERS TO BE PLAYED
+        // ⭐ NEW: STEP 1.5: FORCE FLUSH RESIDUAL SAMPLES WITH SILENCE PADDING
+        size_t initialBuffered = m_syncBuffer->getLastBufferCount();
+        std::cout << "[DirettaOutput] 1.5. Flushing residual samples..." << std::endl;
+        std::cout << "[DirettaOutput]      Initial buffered: " << initialBuffered << " samples" << std::endl;
+        
+        if (initialBuffered > 0 && initialBuffered < 64) {
+            // If we have a small residual (< 64 samples), force flush with silence padding
+            // This "pushes" the incomplete frame through the Diretta SDK pipeline
+            std::cout << "[DirettaOutput]      ⚡ Detected small residual (" << initialBuffered 
+                      << " samples), forcing flush with silence padding" << std::endl;
+            
+            // Calculate padding size (1-2 complete frames)
+            size_t paddingSamples = 128;  // 128 samples of silence
+            size_t bytesPerSample = (m_currentFormat.bitDepth / 8) * m_currentFormat.channels;
+            size_t paddingBytes = paddingSamples * bytesPerSample;
+            
+            // Create silence buffer
+            std::vector<uint8_t> silenceBuffer(paddingBytes, 0);
+            
+            // Send silence to flush the pipeline
+            DIRETTA::Stream stream;
+            stream.resize(paddingBytes);
+            memcpy(stream.get(), silenceBuffer.data(), paddingBytes);
+            m_syncBuffer->setStream(stream);
+            
+            std::cout << "[DirettaOutput]      ✓ Sent " << paddingSamples << " samples of silence to flush" << std::endl;
+            
+            // Give it time to process
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        
+        // ⭐ STEP 2: WAIT FOR ALL QUEUED BUFFERS TO BE PLAYED (with reduced timeout)
         std::cout << "[DirettaOutput] 2. Draining queued buffers..." << std::endl;
-        int drain_timeout_ms = 10000;  // 10 seconds max for drain
+        int drain_timeout_ms = 3000;  // ⭐ REDUCED: 3s instead of 10s
         int drain_waited_ms = 0;
         
-        // Get initial buffer count
-        size_t initialBuffered = m_syncBuffer->getLastBufferCount();
-        std::cout << "[DirettaOutput]    Initial buffered samples: " << initialBuffered << std::endl;
+        // Get buffer count after flush
+        size_t bufferedAfterFlush = m_syncBuffer->getLastBufferCount();
+        std::cout << "[DirettaOutput]    Buffered after flush: " << bufferedAfterFlush << " samples" << std::endl;
         
-        // Wait until buffer is empty
+        // ⭐ MODIFIED: Accept small residual (≤ 4 samples) as "empty enough"
+        const size_t ACCEPTABLE_RESIDUAL = 4;
+        
+        // Wait until buffer is empty (or residual ≤ 4)
         while (drain_waited_ms < drain_timeout_ms) {
-            if (m_syncBuffer->buffer_empty()) {
-                std::cout << "[DirettaOutput]    ✓ All buffers drained!" << std::endl;
+            size_t buffered = m_syncBuffer->getLastBufferCount();
+            
+            if (buffered <= ACCEPTABLE_RESIDUAL) {
+                std::cout << "[DirettaOutput]    ✓ Buffer drained! (residual: " << buffered << " samples)" << std::endl;
                 break;
             }
             
             // Log progress every 200ms
             if (drain_waited_ms % 200 == 0) {
-                size_t buffered = m_syncBuffer->getLastBufferCount();
                 DEBUG_LOG("[DirettaOutput]    Waiting... (" << buffered << " samples remaining)");
             }
             
@@ -376,9 +411,10 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
             drain_waited_ms += 50;
         }
         
-        if (drain_waited_ms >= drain_timeout_ms) {
-            size_t remainingBuffered = m_syncBuffer->getLastBufferCount();
-            std::cerr << "[DirettaOutput]    ⚠️  DRAIN TIMEOUT! " << remainingBuffered 
+        size_t finalBuffered = m_syncBuffer->getLastBufferCount();
+        
+        if (drain_waited_ms >= drain_timeout_ms && finalBuffered > ACCEPTABLE_RESIDUAL) {
+            std::cerr << "[DirettaOutput]    ⚠️  DRAIN TIMEOUT! " << finalBuffered 
                       << " samples still buffered after " << drain_timeout_ms << "ms" << std::endl;
             std::cerr << "[DirettaOutput]    Forcing immediate disconnect..." << std::endl;
             // Force immediate disconnect to avoid pink noise
@@ -391,9 +427,9 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
             m_syncBuffer->pre_disconnect(false);
         }
         
-        // ⭐ STEP 4: WAIT FOR HARDWARE STABILIZATION
-        std::cout << "[DirettaOutput] 4. Waiting for hardware stabilization (200ms)..." << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        // ⭐ STEP 4: WAIT FOR HARDWARE STABILIZATION (slightly longer for safety)
+        std::cout << "[DirettaOutput] 4. Waiting for hardware stabilization (300ms)..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));  // ⭐ INCREASED: 300ms instead of 200ms
         
         // ⭐ STEP 5: DESTROY SYNCBUFFER (force recreation in configureDiretta)
         // After pre_disconnect(), SyncBuffer cannot be reused for a different format
@@ -413,9 +449,9 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
         std::cout << "[DirettaOutput] 7. Restarting playback..." << std::endl;
         m_syncBuffer->play();
         
-        // Wait for DAC to lock onto new format
-        std::cout << "[DirettaOutput]    Waiting for DAC lock (200ms)..." << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        // Wait for DAC to lock onto new format (longer for safety)
+        std::cout << "[DirettaOutput]    Waiting for DAC lock (300ms)..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));  // ⭐ INCREASED: 300ms instead of 200ms
     }
     
     m_currentFormat = newFormat;
@@ -425,88 +461,7 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
     
     return true;
 }
-bool DirettaOutput::sendAudio(const uint8_t* data, size_t numSamples) {
-    if (!m_connected || !m_playing) {
-        return false;
-    }
-    
-    if (!m_syncBuffer) {
-        return false;
-    }
-    
-    // CRITICAL: Different calculation for DSD vs PCM
-    size_t dataSize;
-    
-    if (m_currentFormat.isDSD) {
-        // For DSD: numSamples is already in audio frames (not bits)
-        // DSD64 stereo: 1 audio frame = 2 channels × 1 bit = 2 bits = 0.25 bytes
-        // But AudioEngine gives us samples in terms of bits per channel
-        // So: numSamples = bits per channel, dataSize = total bytes
-        //
-        // Example: 32768 samples = 32768 bits per channel
-        //          For stereo: 32768 bits × 2 channels = 65536 bits = 8192 bytes
-        dataSize = (numSamples * m_currentFormat.channels) / 8;
-        
-        static int debugCount = 0;
-        if (debugCount++ < 3) {
-            DEBUG_LOG("[DirettaOutput::sendAudio] DSD: " << numSamples 
-                      << " samples → " << dataSize << " bytes");
-        }
-    } else {
-        // ✅ PCM: Calculate based on ACTUAL format (not what we'll send)
-        // For 24-bit: input is S32 (4 bytes), output will be S24 (3 bytes)
-        uint32_t inputBytesPerSample = (m_currentFormat.bitDepth == 24) ? 4 : (m_currentFormat.bitDepth / 8);
-        inputBytesPerSample *= m_currentFormat.channels;
-        
-        // Output size (what we'll actually send to Diretta)
-        uint32_t outputBytesPerSample = (m_currentFormat.bitDepth / 8) * m_currentFormat.channels;
-        dataSize = numSamples * outputBytesPerSample;
-    }
-    
-    DIRETTA::Stream stream;
-    stream.resize(dataSize);
-    
-// ✅ CRITICAL FIX: Convert S32 → S24 if needed
-if (!m_currentFormat.isDSD && m_currentFormat.bitDepth == 24) {
-    // Input: S32 (4 bytes per sample)
-    // Output: S24 (3 bytes per sample)
-    const int32_t* input32 = reinterpret_cast<const int32_t*>(data);
-    uint8_t* output24 = stream.get();
-    
-    size_t totalSamples = numSamples * m_currentFormat.channels;
-    
-    for (size_t i = 0; i < totalSamples; i++) {
-        int32_t sample32 = input32[i];
-        
-        // Extract 24-bit from 32-bit (MSB aligned)
-        // Little-endian byte order for S24LE
-        output24[i*3 + 0] = (sample32 >> 8) & 0xFF;   // LSB
-        output24[i*3 + 1] = (sample32 >> 16) & 0xFF;  // Mid
-        output24[i*3 + 2] = (sample32 >> 24) & 0xFF;  // MSB
-    }
-    
-    static int convCount = 0;
-    if (convCount++ < 3 || convCount % 100 == 0) {
-        DEBUG_LOG("[sendAudio] S32→S24: " << numSamples << " samples, " 
-                  << totalSamples << " total, " << dataSize << " bytes");
-    }
-    } else {
-        // For other formats (16-bit, 32-bit, DSD): direct copy
-        memcpy(stream.get(), data, dataSize);
-    }
-    m_syncBuffer->setStream(stream);
-    m_totalSamplesSent += numSamples;
 
-    static int callCount = 0;
-    if (++callCount % 500 == 0) {
-        double seconds = static_cast<double>(m_totalSamplesSent) / m_currentFormat.sampleRate;
-        DEBUG_LOG("[DirettaOutput] Position: " << seconds << "s (" 
-                  << m_totalSamplesSent << " samples)");
-    }
-
-        
-    return true;
-}
 
 float DirettaOutput::getBufferLevel() const {
     return 0.5f;
