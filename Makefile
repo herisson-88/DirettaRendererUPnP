@@ -69,18 +69,25 @@ ifeq ($(BASE_ARCH),x64)
     endif
 
 else ifeq ($(BASE_ARCH),aarch64)
-    # aarch64: Check kernel version
-    KERNEL_VER   := $(shell uname -r | cut -d. -f1-2)
-    KERNEL_MAJOR := $(shell echo $(KERNEL_VER) | cut -d. -f1)
-    KERNEL_MINOR := $(shell echo $(KERNEL_VER) | cut -d. -f2)
+    # aarch64: Detect based on page size and device model
+    # RPi5 uses 16KB pages (k16 variant), RPi3/4 use 4KB pages (standard variant)
+    PAGE_SIZE := $(shell getconf PAGESIZE 2>/dev/null || echo 4096)
     
-    # Use k16 variant if kernel >= 4.16
-    ifeq ($(shell [ $(KERNEL_MAJOR) -gt 4 ] || [ $(KERNEL_MAJOR) -eq 4 -a $(KERNEL_MINOR) -ge 16 ] && echo 1),1)
+    # Also check device-tree model for explicit RPi5 detection
+    IS_RPI5 := $(shell [ -r /proc/device-tree/model ] && grep -q "Raspberry Pi 5" /proc/device-tree/model 2>/dev/null && echo 1 || echo 0)
+    
+    # Use k16 variant ONLY if:
+    # - Explicitly detected as Raspberry Pi 5, OR
+    # - Page size is 16384 (16KB)
+    ifeq ($(IS_RPI5),1)
         DEFAULT_VARIANT = aarch64-linux-15k16
-        CPU_DESC = Kernel $(KERNEL_VER) (using k16 variant)
+        CPU_DESC = Raspberry Pi 5 detected (16KB pages, k16 variant)
+    else ifeq ($(PAGE_SIZE),16384)
+        DEFAULT_VARIANT = aarch64-linux-15k16
+        CPU_DESC = 16KB page size detected (k16 variant)
     else
         DEFAULT_VARIANT = aarch64-linux-15
-        CPU_DESC = Kernel $(KERNEL_VER) (using standard variant)
+        CPU_DESC = $(PAGE_SIZE)-byte pages (standard variant)
     endif
 
 else ifeq ($(BASE_ARCH),riscv64)

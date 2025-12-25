@@ -5,6 +5,168 @@ All notable changes to DirettaRendererUPnP will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+# Changelog - Version 1.1.1
+
+## [1.1.1] - 2024-12-25
+
+### Fixed
+
+#### **CRITICAL: Deadlock causing no audio output on slower systems (RPi4, etc.)**
+- **Issue**: Renderer would freeze after "Waiting for DAC stabilization" message, no audio output
+- **Affected systems**: Primarily Raspberry Pi 4 and other ARM-based systems, occasional issues on slower x86 systems
+- **Root cause**: Mutex (`m_mutex`) held during `waitForCallbackComplete()` in `onSetURI` callback
+  - Added in v1.0.8 for JPlay iOS compatibility (Auto-STOP feature)
+  - On slow CPUs (RPi4), the audio callback thread would attempt to acquire the same mutex
+  - Result: Deadlock - each thread waiting for the other
+- **Solution**: Release `m_mutex` before calling `waitForCallbackComplete()`
+  - Lock mutex → Read state → Unlock
+  - Perform Auto-STOP without mutex held
+  - Re-lock mutex → Update URI → Unlock
+- **Impact**: Fixes freeze on all systems, maintains JPlay iOS compatibility
+- **Technical details**:
+  ```cpp
+  // BEFORE (v1.1.0 - DEADLOCK):
+  std::lock_guard<std::mutex> lock(m_mutex);  // Held entire time
+  auto currentState = m_audioEngine->getState();
+  // ... Auto-STOP ...
+  waitForCallbackComplete();  // DEADLOCK: waiting while mutex locked
+  
+  // AFTER (v1.1.1 - FIXED):
+  {
+      std::lock_guard<std::mutex> lock(m_mutex);
+      currentState = m_audioEngine->getState();
+  }  // Mutex released here
+  // ... Auto-STOP ...
+  waitForCallbackComplete();  // SAFE: no mutex held
+  ```
+
+#### **Multi-interface support not working**
+- **Issue**: `--interface` option parsed but ignored, UPnP always bound to default interface
+- **Symptom**: 
+  ```
+  ✓ Will bind to interface: enp1s0u1u1  ← Recognized
+  🌐 Using default interface for UPnP (auto-detect)  ← Ignored!
+  ✓ UPnP initialized on 172.20.0.1:4005  ← Wrong interface
+  ```
+- **Root cause**: `networkInterface` parameter not passed from `DirettaRenderer::Config` to `UPnPDevice::Config`
+- **Solution**: Added missing parameter propagation in `DirettaRenderer.cpp`:
+  ```cpp
+  upnpConfig.networkInterface = m_config.networkInterface;
+  ```
+- **Impact**: Multi-interface support now works correctly for 3-tier architectures
+
+#### **Raspberry Pi variant detection (Makefile)**
+- **Issue**: RPi3/4 incorrectly detected as k16 variant (16KB pages), causing link errors
+- **Symptom**:
+  ```
+  Architecture:  ARM64 (aarch64) - Kernel 6.12 (using k16 variant)  ← WRONG for RPi4
+  Variant:       aarch64-linux-15k16  ← RPi4 doesn't support k16
+  ```
+- **Root cause**: Detection based on kernel version (>= 4.16) instead of actual page size
+  - RPi3/4: 4KB pages, need `aarch64-linux-15`
+  - RPi5: 16KB pages, need `aarch64-linux-15k16`
+  - Kernel 6.12 on RPi4 triggered wrong detection
+- **Solution**: Use `getconf PAGESIZE` and `/proc/device-tree/model` for accurate detection
+  ```makefile
+  PAGE_SIZE := $(shell getconf PAGESIZE)
+  IS_RPI5 := $(shell grep -q "Raspberry Pi 5" /proc/device-tree/model)
+  
+  # Use k16 only if explicitly RPi5 or 16KB pages detected
+  ```
+- **Impact**: Correct library selection on all Raspberry Pi models
+
+### Changed
+- Improved mutex handling in UPnP callbacks for better thread safety
+- Enhanced Makefile architecture detection logic for ARM systems
+
+### Technical Notes
+
+#### Deadlock Debug Information
+The deadlock manifested differently based on system performance:
+- **Fast x86 systems**: Rare or no issues (callback completes before conflict)
+- **Slow ARM systems (RPi4)**: Consistent freeze (timing window for deadlock much larger)
+- **Trigger**: User changing tracks/albums while audio playing
+- **Timing window**: 400ms sleep in callback provided ample opportunity for deadlock on slow systems
+
+#### Multi-Interface Fix
+Affects users with:
+- 3-tier architecture (control points on one network, DAC on another)
+- VPN + local network configurations
+- Multiple Ethernet adapters
+- Any scenario requiring explicit interface binding
+
+Without this fix, the `--interface` parameter was completely ignored, making 3-tier setups impossible.
+
+#### Raspberry Pi Detection
+Previous kernel-based detection failed because:
+- Kernel version indicates OS capability, not hardware configuration
+- RPi4 can run kernel 6.12+ but hardware still uses 4KB pages
+- RPi5 introduced 16KB pages and requires different SDK library variant
+- Using wrong variant causes immediate segfault on startup
+
+### Compatibility
+- ✅ Backward compatible with v1.1.0 configurations
+- ✅ No changes to command-line options
+- ✅ No changes to systemd configuration files
+- ✅ All v1.1.0 features preserved (multi-interface, format change fix)
+
+### Tested Configurations
+- ✅ Raspberry Pi 3 (aarch64-linux-15)
+- ✅ Raspberry Pi 4 (aarch64-linux-15)
+- ✅ Raspberry Pi 5 (aarch64-linux-15k16)
+- ✅ x86_64 systems (all variants: v2, v3, v4, zen4)
+- ✅ GentooPlayer distribution
+- ✅ AudioLinux distribution
+- ✅ 3-tier network architectures
+- ✅ JPlay iOS (Auto-STOP functionality)
+
+### Migration from v1.1.0
+
+No special migration steps required. Simply:
+
+```bash
+cd DirettarendererUPnP
+# Pull latest code
+git pull
+
+# Rebuild
+make clean
+make
+
+sudo systemctl stop diretta-renderer
+
+# Reinstall (if using systemd)
+cd Systemd
+chmod +x install-systemd.sh
+sudo ./install-systemd.sh
+
+# Restart service
+sudo systemctl restart diretta-renderer
+```
+
+### Known Issues
+None
+
+### Credits
+- Deadlock issue reported and tested by RPi4 users (Alfred and Nico)
+- Multi-interface issue reported by dsnyder (3-tier architecture pioneer) and kiran kumar reddy kasa
+- Raspberry Pi detection issue reported by Filippo GentooPlayer developer
+- Special thanks to Yu Harada for Diretta SDK support
+
+---
+
+## Summary of Critical Fixes in v1.1.1
+
+| Issue | Severity | Affected Systems | Status |
+|-------|----------|------------------|--------|
+| Deadlock (no audio) | **CRITICAL** | RPi4, slower systems | ✅ **FIXED** |
+| Multi-interface ignored | **HIGH** | 3-tier setups | ✅ **FIXED** |
+| Wrong RPi variant | **CRITICAL** | RPi3/4 | ✅ **FIXED** |
+
+**All critical issues resolved. v1.1.1 is recommended for all users, especially those on Raspberry Pi systems.**
+
+
 ## [1.1.0] - 2025-12-24
 
 ### Added
