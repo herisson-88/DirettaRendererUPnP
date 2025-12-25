@@ -140,6 +140,11 @@ bool DirettaRenderer::start() {
             m_direttaOutput->setMTU(m_networkMTU);
         }
         
+        // ⭐ v1.2.0: Configure Gapless Pro mode
+        m_direttaOutput->setGaplessMode(m_config.gaplessEnabled);
+        DEBUG_LOG("[DirettaRenderer] ✓ Gapless mode: " 
+                  << (m_config.gaplessEnabled ? "ENABLED" : "DISABLED"));
+        
         // Create other components
         UPnPDevice::Config upnpConfig;
         upnpConfig.friendlyName = m_config.name;
@@ -430,6 +435,37 @@ m_audioEngine->setAudioCallback(
             DEBUG_LOG("[DirettaRenderer] ✓ Track ended, notifying UPnP controller");
             m_upnp->notifyStateChange("STOPPED");
         });                  
+
+        // ═══════════════════════════════════════════════════════════════
+        // ⭐ v1.2.0: Gapless Pro - Next track callback
+        // ═══════════════════════════════════════════════════════════════
+        
+        m_audioEngine->setNextTrackCallback(
+            [this](const uint8_t* data, size_t samples, const AudioFormat& format) {
+                DEBUG_LOG("[DirettaRenderer] 🎵 Next track callback triggered");
+                DEBUG_LOG("[DirettaRenderer]    Samples: " << samples 
+                          << ", Format: " << format.sampleRate << "Hz/" 
+                          << format.bitDepth << "bit/" << format.channels << "ch");
+                
+                if (m_direttaOutput && m_direttaOutput->isGaplessMode()) {
+                    bool prepared = m_direttaOutput->prepareNextTrack(data, samples, format);
+                    
+                    if (prepared) {
+                        DEBUG_LOG("[DirettaRenderer] ✅ Next track prepared for gapless");
+                    } else {
+                        DEBUG_LOG("[DirettaRenderer] ⚠️  Failed to prepare next track");
+                    }
+                } else {
+                    if (!m_direttaOutput) {
+                        DEBUG_LOG("[DirettaRenderer] ⚠️  DirettaOutput not available");
+                    } else {
+                        DEBUG_LOG("[DirettaRenderer] ℹ️  Gapless mode disabled");
+                    }
+                }
+            }
+        );
+        
+        // ═══════════════════════════════════════════════════════════════
 
         
         // Setup callbacks from UPnP to AudioEngine

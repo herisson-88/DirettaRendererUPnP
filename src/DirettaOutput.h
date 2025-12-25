@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include <atomic>
+#include <mutex>
 
 /**
  * @brief Audio format specification
@@ -115,6 +116,7 @@ public:
      * @return true if successful, false otherwise
      */
     bool sendAudio(const uint8_t* data, size_t numSamples); 
+    
     /**
      * @brief Get buffer level (for monitoring)
      * @return Buffer fill level (0.0 to 1.0)
@@ -134,6 +136,14 @@ public:
      * 
      * @param mtu MTU value in bytes
      */
+    void setMTU(uint32_t mtu);
+    
+    /**
+     * @brief Get current MTU setting
+     * @return MTU value in bytes
+     */
+    uint32_t getMTU() const { return m_mtu; }
+    
     /**
      * @brief Set target index for selection
      * @param index Target index (-1 = interactive, >= 0 = specific target)
@@ -151,19 +161,64 @@ public:
      */
     void listAvailableTargets();
     
-    void setMTU(uint32_t mtu);
+    // ═══════════════════════════════════════════════════════════════
+    // Playback control
+    // ═══════════════════════════════════════════════════════════════
+    
+    void pause();
+    void resume();
+    bool isPaused() const { return m_isPaused; }
+    bool isPlaying() const { return m_playing; } 
+    bool seek(int64_t samplePosition);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ⭐ v1.2.0: Gapless Pro - Native SDK gapless support
+    // ═══════════════════════════════════════════════════════════════
     
     /**
-     * @brief Get current MTU setting
-     * @return MTU value in bytes
+     * @brief Prepare next track for gapless playback
+     * 
+     * Uses native Diretta SDK gapless methods (writeStreamStart + addStream)
+     * for truly seamless track transitions.
+     * 
+     * @param data Audio buffer of next track
+     * @param numSamples Number of samples (frames)
+     * @param format Audio format of next track
+     * @return true if preparation successful, false otherwise
      */
-    uint32_t getMTU() const { return m_mtu; }
-    void pause();                           // ⭐ NOUVEAU
-    void resume();                          // ⭐ NOUVEAU
-    bool isPaused() const { return m_isPaused; }  // ⭐ NOUVEAU
-    bool isPlaying() const { return m_playing; } 
-    bool seek(int64_t samplePosition);  // ⭐ NOUVEAU
-    // ⭐ NEW: Advanced Diretta SDK configuration
+    bool prepareNextTrack(const uint8_t* data, 
+                          size_t numSamples,
+                          const AudioFormat& format);
+    
+    /**
+     * @brief Check if next track is ready for gapless transition
+     * @return true if next track prepared and ready
+     */
+    bool isNextTrackReady() const;
+    
+    /**
+     * @brief Cancel prepared next track
+     * 
+     * Call this if user skips or changes playlist before next track plays
+     */
+    void cancelNextTrack();
+    
+    /**
+     * @brief Enable or disable gapless mode
+     * @param enabled true to enable gapless, false to disable
+     */
+    void setGaplessMode(bool enabled);
+    
+    /**
+     * @brief Check if gapless mode is enabled
+     * @return true if gapless enabled
+     */
+    bool isGaplessMode() const { return m_gaplessEnabled; }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // Advanced SDK configuration
+    // ═══════════════════════════════════════════════════════════════
+    
     void setThredMode(int mode) { m_thredMode = mode; }
     void setCycleTime(int time) { m_cycleTime = time; }
     void setCycleMinTime(int time) { m_cycleMinTime = time; }
@@ -175,36 +230,46 @@ private:
     std::unique_ptr<ACQUA::UDPV6> m_raw;
     ACQUA::IPAddress m_targetAddress;
     uint32_t m_mtu;
-    bool m_mtuManuallySet;  // ⭐ Track if MTU was manually configured
+    bool m_mtuManuallySet;
     
     // Diretta
     std::unique_ptr<DIRETTA::SyncBuffer> m_syncBuffer;
     AudioFormat m_currentFormat;
-    float m_bufferSeconds;  // Changed from int to float (v1.0.9)
+    float m_bufferSeconds;
     
     // State
     std::atomic<bool> m_connected;
     std::atomic<bool> m_playing;
-    int m_targetIndex = -1;  // Target selection index
+    std::atomic<bool> m_isPaused;
+    int m_targetIndex;
+    int64_t m_totalSamplesSent;
+    int64_t m_pausedPosition;
+    
+    // ⭐ v1.2.0: Gapless Pro state
+    bool m_gaplessEnabled;
+    bool m_nextTrackPrepared;
+    AudioFormat m_nextTrackFormat;
+    mutable std::mutex m_gaplessMutex;  // Protect gapless state
+    
+    // Advanced SDK parameters
+    int m_thredMode;
+    int m_cycleTime;
+    int m_cycleMinTime;
+    int m_infoCycle;
     
     // Helper functions
     bool findTarget();
-    bool findAndSelectTarget(int targetIndex = -1);  // -1 = interactive selection
+    bool findAndSelectTarget(int targetIndex = -1);
     bool configureDiretta(const AudioFormat& format);
+    
+    // ⭐ v1.2.0: Gapless Pro helper
+    DIRETTA::Stream createStreamFromAudio(const uint8_t* data, 
+                                          size_t numSamples,
+                                          const AudioFormat& format);
     
     // Prevent copying
     DirettaOutput(const DirettaOutput&) = delete;
     DirettaOutput& operator=(const DirettaOutput&) = delete;
-    
-    int64_t m_totalSamplesSent = 0;  // ⭐ Tracking pour pause/seek
-    bool m_isPaused = false;               // ⭐ NOUVEAU
-    int64_t m_pausedPosition = 0;          // ⭐ NOUVEAU
-     // ⭐ NEW: Advanced SDK parameters (stored values)
-    int m_thredMode = 1;
-    int m_cycleTime = 10000;
-    int m_cycleMinTime = 333;
-    int m_infoCycle = 5000;   
-
 };
 
 #endif // DIRETTA_OUTPUT_H

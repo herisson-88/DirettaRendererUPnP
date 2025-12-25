@@ -12,14 +12,27 @@
 extern bool g_verbose;
 #define DEBUG_LOG(x) if (g_verbose) { std::cout << x << std::endl; }
 
+
 DirettaOutput::DirettaOutput()
     : m_mtu(1500)
     , m_mtuManuallySet(false)
     , m_bufferSeconds(2)
     , m_connected(false)
     , m_playing(false)
+    , m_isPaused(false)
+    , m_targetIndex(-1)
+    , m_totalSamplesSent(0)
+    , m_pausedPosition(0)
+    , m_gaplessEnabled(true)       // ⭐ v1.2.0: Gapless enabled by default
+    , m_nextTrackPrepared(false)   // ⭐ v1.2.0
+    , m_thredMode(1)
+    , m_cycleTime(10000)
+    , m_cycleMinTime(333)
+    , m_infoCycle(5000)
 {
-    std::cout << "[DirettaOutput] Created" << std::endl;
+    DEBUG_LOG("[DirettaOutput] Created");
+    DEBUG_LOG("[DirettaOutput] ✓ Gapless Pro mode: " 
+              << (m_gaplessEnabled ? "ENABLED" : "DISABLED"));
 }
 
 DirettaOutput::~DirettaOutput() {
@@ -1195,3 +1208,165 @@ bool DirettaOutput::seek(int64_t samplePosition) {
     std::cout << "[DirettaOutput] ✓ Seeked to sample " << samplePosition << std::endl;
     return true;
    }
+// ═══════════════════════════════════════════════════════════════
+// ⭐ v1.2.0: Gapless Pro - Implementation
+// ═══════════════════════════════════════════════════════════════
+
+bool DirettaOutput::prepareNextTrack(const uint8_t* data, 
+                                     size_t numSamples,
+                                     const AudioFormat& format) {
+    std::lock_guard<std::mutex> lock(m_gaplessMutex);
+    
+    if (!m_connected || !m_syncBuffer) {
+        DEBUG_LOG("[DirettaOutput] ❌ Cannot prepare next track: not connected");
+        return false;
+    }
+    
+    if (!m_gaplessEnabled) {
+        DEBUG_LOG("[DirettaOutput] ⚠️  Gapless disabled, skipping preparation");
+        return false;
+    }
+    
+    DEBUG_LOG("[DirettaOutput] 🎵 Preparing next track for gapless...");
+    DEBUG_LOG("[DirettaOutput]    Format: " << format.sampleRate << "Hz/"
+              << format.bitDepth << "bit/" << format.channels << "ch");
+    
+    try {
+        // Check for format change
+        bool formatChange = (format.sampleRate != m_currentFormat.sampleRate ||
+                            format.bitDepth != m_currentFormat.bitDepth ||
+                            format.channels != m_currentFormat.channels ||
+                            format.isDSD != m_currentFormat.isDSD);
+        
+        if (formatChange) {
+            DEBUG_LOG("[DirettaOutput] ⚠️  Format change detected!");
+            DEBUG_LOG("[DirettaOutput]    Current: " << m_currentFormat.sampleRate 
+                      << "Hz/" << m_currentFormat.bitDepth << "bit");
+            DEBUG_LOG("[DirettaOutput]    Next: " << format.sampleRate 
+                      << "Hz/" << format.bitDepth << "bit");
+            DEBUG_LOG("[DirettaOutput]    → Gapless will trigger format change");
+        }
+        
+        // Get stream for writing
+        bool canWrite = false;
+        DIRETTA::Stream& nextStream = m_syncBuffer->writeStreamStart(canWrite);
+        
+        if (!canWrite) {
+            DEBUG_LOG("[DirettaOutput] ⚠️  Buffer full, cannot prepare next track yet");
+            return false;
+        }
+        
+        DEBUG_LOG("[DirettaOutput] ✓ Got write stream, preparing " << numSamples << " samples");
+        
+        // Create audio stream
+        DIRETTA::Stream audioStream = createStreamFromAudio(data, numSamples, format);
+        
+        // Add to SDK gapless queue
+        m_syncBuffer->addStream(audioStream);
+        
+        // Mark as prepared
+        m_nextTrackPrepared = true;
+        m_nextTrackFormat = format;
+        
+        DEBUG_LOG("[DirettaOutput] ✅ Next track prepared for gapless transition");
+        
+        return true;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "[DirettaOutput] ❌ Exception preparing next track: " 
+                  << e.what() << std::endl;
+        m_nextTrackPrepared = false;
+        return false;
+    }
+}
+
+bool DirettaOutput::isNextTrackReady() const {
+    if (!m_syncBuffer || !m_gaplessEnabled) {
+        return false;
+    }
+    
+    // Check with SDK if stream ready
+    bool ready = m_syncBuffer->checkStreamStart();
+    
+    if (ready && !m_nextTrackPrepared) {
+        DEBUG_LOG("[DirettaOutput] 💡 SDK reports stream ready but not marked locally");
+    }
+    
+    return ready && m_nextTrackPrepared;
+}
+
+void DirettaOutput::cancelNextTrack() {
+    std::lock_guard<std::mutex> lock(m_gaplessMutex);
+    
+    if (m_nextTrackPrepared) {
+        DEBUG_LOG("[DirettaOutput] 🚫 Cancelling prepared next track");
+        m_nextTrackPrepared = false;
+        // Note: SDK automatically cleans up unused streams
+    }
+}
+
+void DirettaOutput::setGaplessMode(bool enabled) {
+    std::lock_guard<std::mutex> lock(m_gaplessMutex);
+    
+    if (m_gaplessEnabled != enabled) {
+        DEBUG_LOG("[DirettaOutput] " << (enabled ? "🎵 Enabling" : "🚫 Disabling") 
+                  << " gapless mode");
+        m_gaplessEnabled = enabled;
+        
+        if (!enabled) {
+            cancelNextTrack();
+        }
+    }
+}
+
+DIRETTA::Stream DirettaOutput::createStreamFromAudio(const uint8_t* data, 
+                                                      size_t numSamples,
+                                                      const AudioFormat& format) {
+    // Calculate data size
+    size_t dataSize;
+    
+    if (format.isDSD) {
+        // DSD: numSamples in bits, convert to bytes
+        // Using 32-bit containers (FMT_DSD_SIZ_32)
+        dataSize = numSamples * format.channels * 4;  // 4 bytes per 32-bit container
+    } else {
+        // PCM: numSamples in frames
+        uint32_t bytesPerSample = (format.bitDepth / 8) * format.channels;
+        dataSize = numSamples * bytesPerSample;
+    }
+    
+    DEBUG_LOG("[DirettaOutput::createStreamFromAudio] Creating stream: " 
+              << dataSize << " bytes for " << numSamples << " samples");
+    
+    // Create stream
+    DIRETTA::Stream stream;
+    stream.resize(dataSize);
+    
+    // Copy data
+    if (!format.isDSD && format.bitDepth == 24) {
+        // S32 → S24 conversion if needed
+        const int32_t* src = reinterpret_cast<const int32_t*>(data);
+        uint8_t* dst = stream.get();
+        
+        for (size_t i = 0; i < numSamples * format.channels; i++) {
+            int32_t sample = src[i];
+            
+            // S32 → S24 (keep the 24 most significant bits)
+            dst[i * 3 + 0] = (sample >> 8) & 0xFF;   // LSB
+            dst[i * 3 + 1] = (sample >> 16) & 0xFF;  // Mid
+            dst[i * 3 + 2] = (sample >> 24) & 0xFF;  // MSB
+        }
+        
+        DEBUG_LOG("[DirettaOutput::createStreamFromAudio] ✓ Converted S32→S24");
+    } else {
+        // Direct copy for other formats
+        memcpy(stream.get(), data, dataSize);
+        DEBUG_LOG("[DirettaOutput::createStreamFromAudio] ✓ Direct copy");
+    }
+    
+    return stream;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// End of v1.2.0 Gapless Pro implementation
+// ═══════════════════════════════════════════════════════════════

@@ -1030,6 +1030,7 @@ AudioEngine::AudioEngine()
     , m_samplesPlayed(0)
     , m_silenceCount(0)
     , m_isDraining(false)
+    , m_nextTrackPrepared(false)  // ⭐ v1.2.0: Gapless Pro
 {
     std::cout << "[AudioEngine] Created" << std::endl;
 }
@@ -1116,6 +1117,11 @@ void AudioEngine::setNextURI(const std::string& uri, const std::string& metadata
 
 void AudioEngine::setTrackEndCallback(const TrackEndCallback& callback) {
     m_trackEndCallback = callback;
+}
+
+void AudioEngine::setNextTrackCallback(const NextTrackCallback& callback) {
+    m_nextTrackCallback = callback;
+    DEBUG_LOG("[AudioEngine] ✓ Next track callback set (Gapless Pro)");
 }
 
 bool AudioEngine::play() {
@@ -1696,4 +1702,80 @@ bool AudioEngine::seek(const std::string& timeStr) {
 
 uint32_t AudioEngine::getCurrentSampleRate() const {
     return m_currentTrackInfo.sampleRate;
+
+// ═══════════════════════════════════════════════════════════════
+// ⭐ v1.2.0: Gapless Pro - Prepare next track for gapless
+// ═══════════════════════════════════════════════════════════════
+
+void AudioEngine::prepareNextTrackForGapless() {
+    // Check if next track exists
+    if (m_nextURI.empty()) {
+        DEBUG_LOG("[AudioEngine] No next track for gapless");
+        return;
+    }
+    
+    // Check if already prepared
+    if (m_nextTrackPrepared) {
+        DEBUG_LOG("[AudioEngine] Next track already prepared");
+        return;
+    }
+    
+    DEBUG_LOG("[AudioEngine] 🎵 Preparing next track for gapless: " << m_nextURI);
+    
+    try {
+        // Open the next track decoder
+        std::unique_ptr<AudioDecoder> nextDecoder = std::make_unique<AudioDecoder>();
+        
+        if (!nextDecoder->open(m_nextURI)) {
+            std::cerr << "[AudioEngine] ❌ Failed to open next track for gapless" << std::endl;
+            return;
+        }
+        
+        // Get format
+        const TrackInfo& nextTrackInfo = nextDecoder->getTrackInfo();
+        
+        // Create AudioFormat for DirettaOutput
+        AudioFormat nextFormat;
+        nextFormat.sampleRate = nextTrackInfo.sampleRate;
+        nextFormat.bitDepth = nextTrackInfo.bitDepth;
+        nextFormat.channels = nextTrackInfo.channels;
+        nextFormat.isDSD = nextTrackInfo.isDSD;
+        nextFormat.isCompressed = nextTrackInfo.isCompressed;
+        
+        // Read first chunk (1 second of audio for buffering)
+        size_t samplesToRead = nextTrackInfo.sampleRate;  // 1 second
+        
+        AudioBuffer nextBuffer;
+        size_t bytesPerSample = (nextTrackInfo.bitDepth / 8) * nextTrackInfo.channels;
+        nextBuffer.resize(samplesToRead * bytesPerSample);
+        
+        size_t samplesRead = nextDecoder->readSamples(nextBuffer, samplesToRead,
+                                                      nextTrackInfo.sampleRate,
+                                                      nextTrackInfo.bitDepth);
+        
+        if (samplesRead > 0) {
+            // Call callback to send to DirettaOutput
+            if (m_nextTrackCallback) {
+                DEBUG_LOG("[AudioEngine] 📤 Sending " << samplesRead 
+                          << " samples to gapless buffer");
+                m_nextTrackCallback(nextBuffer.data(), samplesRead, nextFormat);
+                m_nextTrackPrepared = true;
+                
+                DEBUG_LOG("[AudioEngine] ✅ Next track prepared for gapless transition");
+            } else {
+                DEBUG_LOG("[AudioEngine] ⚠️  No next track callback set");
+            }
+        } else {
+            DEBUG_LOG("[AudioEngine] ⚠️  Failed to read samples from next track");
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "[AudioEngine] ❌ Exception preparing next track: " 
+                  << e.what() << std::endl;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// End of v1.2.0 Gapless Pro implementation
+// ═══════════════════════════════════════════════════════════════
 }

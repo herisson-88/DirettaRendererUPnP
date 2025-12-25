@@ -119,7 +119,8 @@ private:
     // on garde l'excédent ici pour le prochain appel
     AudioBuffer m_remainingSamples;
     size_t m_remainingCount;
-        // ⭐⭐⭐ NEW: Debug/diagnostic counters (instance variables, NOT static!)
+    
+    // ⭐⭐⭐ NEW: Debug/diagnostic counters (instance variables, NOT static!)
     // These were previously static variables causing race conditions when
     // multiple AudioDecoder instances run concurrently (e.g., gapless preload)
     int m_readCallCount = 0;              // readSamples() call counter
@@ -131,9 +132,14 @@ private:
     bool m_bitReversalLogged = false;     // Bit reversal logged (PCM mode)
     bool m_resamplingLogged = false;      // Resampling logged (PCM mode)
     bool m_resamplerInitLogged = false;   // Resampler init logged (open())
-    bool initResampler(uint32_t outputRate, uint32_t outputBits);
     
+    bool initResampler(uint32_t outputRate, uint32_t outputBits);
 };
+
+// ═══════════════════════════════════════════════════════════════
+// Forward declaration for AudioFormat (needed by NextTrackCallback)
+// ═══════════════════════════════════════════════════════════════
+struct AudioFormat;
 
 /**
  * @brief Audio Engine with gapless playback support
@@ -172,12 +178,31 @@ public:
      * @param uri Track URI
      * @param metadata Track metadata
      */
-    using TrackChangeCallback = std::function<void(int, const TrackInfo&, const std::string&, const std::string&)>;
+    using TrackChangeCallback = std::function<void(int, const TrackInfo&, 
+                                                   const std::string&, const std::string&)>;
 
     /**
      * @brief Callback for track end
      */
-    using TrackEndCallback = std::function<void()>;   
+    using TrackEndCallback = std::function<void()>;
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ⭐ v1.2.0: Gapless Pro - NextTrack callback
+    // ═══════════════════════════════════════════════════════════════
+    
+    /**
+     * @brief Callback for next track preparation (Gapless Pro)
+     * 
+     * Called when AudioEngine has pre-loaded the next track and is ready
+     * to send the first audio data for gapless buffering in DirettaOutput.
+     * 
+     * @param data Audio buffer (first chunk of next track)
+     * @param numSamples Number of samples (frames)
+     * @param format Audio format of next track
+     */
+    using NextTrackCallback = std::function<void(const uint8_t*, size_t, const AudioFormat&)>;
+    
+    // ═══════════════════════════════════════════════════════════════
     
     /**
      * @brief Constructor
@@ -205,14 +230,28 @@ public:
      * @brief Set track end callback
      * @param callback Callback function
      */
-    void setTrackEndCallback(const TrackEndCallback& callback); 
+    void setTrackEndCallback(const TrackEndCallback& callback);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ⭐ v1.2.0: Gapless Pro callback setter
+    // ═══════════════════════════════════════════════════════════════
+    
+    /**
+     * @brief Set next track callback for Gapless Pro
+     * @param callback Callback function
+     */
+    void setNextTrackCallback(const NextTrackCallback& callback);
+    
+    // ═══════════════════════════════════════════════════════════════
     
     /**
      * @brief Set current track URI
      * @param uri Track URI
      * @param metadata Track metadata (optional)
+     * @param forceReopen Force reopen even if same URI
      */
-     void setCurrentURI(const std::string& uri, const std::string& metadata, bool forceReopen = false);  // ⭐ Ajouter forceReopen
+    void setCurrentURI(const std::string& uri, const std::string& metadata = "", 
+                      bool forceReopen = false);
     
     /**
      * @brief Set next track URI for gapless playback
@@ -278,8 +317,7 @@ public:
     /**
      * @brief Get current sample rate
      */
-     uint32_t getCurrentSampleRate() const;  // ⭐ AJOUTER ICI
-
+    uint32_t getCurrentSampleRate() const;
     
     /**
      * @brief Main processing loop (called from audio thread)
@@ -299,7 +337,6 @@ private:
     std::string m_nextURI;
     std::string m_nextMetadata;
     TrackInfo m_currentTrackInfo;
-    TrackEndCallback m_trackEndCallback;
     
     // Decoders
     std::unique_ptr<AudioDecoder> m_currentDecoder;
@@ -308,6 +345,8 @@ private:
     // Callbacks
     AudioCallback m_audioCallback;
     TrackChangeCallback m_trackChangeCallback;
+    TrackEndCallback m_trackEndCallback;
+    NextTrackCallback m_nextTrackCallback;  // ⭐ v1.2.0: Gapless Pro
     
     // Synchronization
     mutable std::mutex m_mutex;
@@ -321,10 +360,14 @@ private:
     int m_silenceCount;  // Pour drainage du buffer Diretta
     bool m_isDraining;   // Flag pour éviter de re-logger "Track finished"
     
+    // ⭐ v1.2.0: Gapless Pro state
+    bool m_nextTrackPrepared;  // True if next track already sent to DirettaOutput
+    
     // Helper functions
     bool openCurrentTrack();
     bool preloadNextTrack();
     void transitionToNextTrack();
+    void prepareNextTrackForGapless();  // ⭐ v1.2.0: Gapless Pro helper
 
     // Thread-safe pending next track mechanism
     mutable std::mutex m_pendingMutex;
@@ -332,7 +375,7 @@ private:
     std::string m_pendingNextURI;
     std::string m_pendingNextMetadata;
 
-   // Preload thread management (replaces detached thread)
+    // Preload thread management (replaces detached thread)
     std::thread m_preloadThread;
     std::atomic<bool> m_preloadRunning{false};
     void waitForPreloadThread();
@@ -344,6 +387,7 @@ private:
 
     // Prevent copying
     AudioEngine(const AudioEngine&) = delete;
-    AudioEngine& operator=(const AudioEngine&) = delete;};
+    AudioEngine& operator=(const AudioEngine&) = delete;
+};
 
 #endif // AUDIO_ENGINE_H
