@@ -1198,44 +1198,13 @@ void DirettaOutput::optimizeNetworkConfig(const AudioFormat& format) {
         return;
     }
     
-    DEBUG_LOG("[DirettaOutput] 🔧 Optimizing network config for format...");
+    DEBUG_LOG("[DirettaOutput] 🔧 Configuring network: VarMax (maximum throughput)");
     
-    // Calculer la "complexité" du format
-    uint64_t dataRate = (uint64_t)format.sampleRate * format.bitDepth * format.channels;
+    // ⭐ v1.2.0: Use VarMax for all formats (best performance with jumbo frames)
+    ACQUA::Clock cycle(m_cycleTime);
+    m_syncBuffer->configTransferVarMax(cycle);
     
-    if (format.isDSD) {
-        // DSD : Débit très élevé, timing variable max pour throughput
-        DEBUG_LOG("[DirettaOutput]   Format: DSD" << (format.sampleRate / 44100) 
-                  << " (" << format.sampleRate << "Hz)");
-        DEBUG_LOG("[DirettaOutput]   Mode: VarMax (maximum throughput)");
-        
-        ACQUA::Clock cycle(m_cycleTime);
-        m_syncBuffer->configTransferVarMax(cycle);
-        
-    } else if (format.sampleRate >= 192000 || 
-               (format.sampleRate >= 88200 && format.bitDepth >= 24)) {
-        // Hi-Res (≥192kHz ou ≥88.2kHz/24bit) : Timing variable adaptatif
-        DEBUG_LOG("[DirettaOutput]   Format: Hi-Res " << format.sampleRate 
-                  << "Hz/" << format.bitDepth << "bit");
-        DEBUG_LOG("[DirettaOutput]   Data rate: " << (dataRate / 1000000.0) << " Mbps");
-        DEBUG_LOG("[DirettaOutput]   Mode: Var (adaptive timing)");
-        
-        ACQUA::Clock minTime(m_cycleMinTime);
-        ACQUA::Clock maxTime(m_cycleTime);
-        m_syncBuffer->configTransferAuto(maxTime, minTime, maxTime);
-        
-    } else {
-        // Standard (44.1/48kHz, 16/24bit) : Timing fixe pour stabilité
-        DEBUG_LOG("[DirettaOutput]   Format: Standard " << format.sampleRate 
-                  << "Hz/" << format.bitDepth << "bit");
-        DEBUG_LOG("[DirettaOutput]   Data rate: " << (dataRate / 1000000.0) << " Mbps");
-        DEBUG_LOG("[DirettaOutput]   Mode: Fix (stable timing)");
-        
-        ACQUA::Clock cycle(m_cycleTime);
-        m_syncBuffer->configTransferFix(cycle, 0);  // 0 = auto packets
-    }
-    
-    DEBUG_LOG("[DirettaOutput] ✓ Network config optimized");
+    DEBUG_LOG("[DirettaOutput] ✓ Network configured: VarMax mode");
 }
 
 bool DirettaOutput::seek(int64_t samplePosition) {
