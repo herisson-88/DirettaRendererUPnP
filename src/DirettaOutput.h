@@ -215,6 +215,12 @@ public:
      */
     bool isGaplessMode() const { return m_gaplessEnabled; }
     
+    /**
+     * @brief Check if buffer is empty (for format change drain)
+     * @return true if buffer empty or not connected
+     */
+    bool isBufferEmpty() const;
+    
     // ═══════════════════════════════════════════════════════════════
     // Advanced SDK configuration
     // ═══════════════════════════════════════════════════════════════
@@ -261,6 +267,9 @@ private:
     bool findTarget();
     bool findAndSelectTarget(int targetIndex = -1);
     bool configureDiretta(const AudioFormat& format);
+    
+    // ⭐ v1.2.0 Stable: Network optimization
+    void optimizeNetworkConfig(const AudioFormat& format);
     
     // ⭐ v1.2.0: Gapless Pro helper
     DIRETTA::Stream createStreamFromAudio(const uint8_t* data, 

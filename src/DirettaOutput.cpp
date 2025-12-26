@@ -188,32 +188,37 @@ if (attempt > 2) {  // Si on a réussi après plus d'une tentative
 }
 
 void DirettaOutput::close() {
+    // ⭐ v1.2.0 Stable: Protection contre double close
     if (!m_connected) {
+        DEBUG_LOG("[DirettaOutput] Already closed, skipping");
         return;
     }
     
-    DEBUG_LOG("[DirettaOutput] Closing...");
+    DEBUG_LOG("[DirettaOutput] Closing connection...");
     
-    // ⚠️  Don't call stop() here if already stopped - avoids double pre_disconnect
-    // The onStop callback already called stop(true) for immediate response
+    // Marquer comme déconnecté IMMÉDIATEMENT pour éviter ré-entrée
+    m_connected = false;
+    m_playing = false;
     
-    // Disconnect SyncBuffer
     if (m_syncBuffer) {
-        DEBUG_LOG("[DirettaOutput] Disconnecting SyncBuffer...");
-        // Only disconnect if still playing (avoid double disconnect)
-        if (m_playing) {
-            DEBUG_LOG("[DirettaOutput] ⚠️  Still playing, forcing immediate disconnect");
-            m_syncBuffer->pre_disconnect(true); // Immediate
+        DEBUG_LOG("[DirettaOutput] 1. Disconnecting SyncBuffer...");
+        
+        try {
+            m_syncBuffer->pre_disconnect(true);  // Immediate
+        } catch (const std::exception& e) {
+            std::cerr << "[DirettaOutput] ⚠️  Exception during disconnect: " 
+                      << e.what() << std::endl;
         }
+        
+        DEBUG_LOG("[DirettaOutput] 2. Releasing SyncBuffer...");
         m_syncBuffer.reset();
     }
     
+    DEBUG_LOG("[DirettaOutput] 3. Resetting UDP sockets...");
     m_udp.reset();
     m_raw.reset();
-    m_connected = false;
-    m_playing = false;  // Ensure clean state
     
-    std::cout << "[DirettaOutput] ✓ Closed" << std::endl;
+    DEBUG_LOG("[DirettaOutput] ✓ Connection closed");
 }
 
 bool DirettaOutput::play() {
@@ -420,6 +425,9 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
         std::cerr << "[DirettaOutput] ❌ Failed to reconfigure" << std::endl;
         return false;
     }
+    
+    // ⭐ v1.2.0 Stable: Optimize network config for new format
+    optimizeNetworkConfig(newFormat);
     
     // ⭐ STEP 7: RESTART PLAYBACK IF NEEDED
     if (m_playing) {
@@ -1151,6 +1159,10 @@ DEBUG_LOG("[DirettaOutput]      ⚠️  CRITICAL: This is " << m_bufferSeconds
           << " seconds of audio buffer in Diretta!");
 
 m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);
+    
+    // ⭐ v1.2.0 Stable: Optimize network config for format
+    optimizeNetworkConfig(format);
+    
     DEBUG_LOG("[DirettaOutput] 6. Connecting...");
     m_syncBuffer->connect(0, 0);
     // m_syncBuffer->connectWait();
@@ -1176,6 +1188,56 @@ m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);
     
     return true;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ⭐ v1.2.0 Stable: Network optimization by format
+// ═══════════════════════════════════════════════════════════════
+
+void DirettaOutput::optimizeNetworkConfig(const AudioFormat& format) {
+    if (!m_syncBuffer) {
+        return;
+    }
+    
+    DEBUG_LOG("[DirettaOutput] 🔧 Optimizing network config for format...");
+    
+    // Calculer la "complexité" du format
+    uint64_t dataRate = (uint64_t)format.sampleRate * format.bitDepth * format.channels;
+    
+    if (format.isDSD) {
+        // DSD : Débit très élevé, timing variable max pour throughput
+        DEBUG_LOG("[DirettaOutput]   Format: DSD" << (format.sampleRate / 44100) 
+                  << " (" << format.sampleRate << "Hz)");
+        DEBUG_LOG("[DirettaOutput]   Mode: VarMax (maximum throughput)");
+        
+        DIRETTA::Clock cycle(m_cycleTime);
+        m_syncBuffer->configTransferVarMax(cycle);
+        
+    } else if (format.sampleRate >= 192000 || 
+               (format.sampleRate >= 88200 && format.bitDepth >= 24)) {
+        // Hi-Res (≥192kHz ou ≥88.2kHz/24bit) : Timing variable adaptatif
+        DEBUG_LOG("[DirettaOutput]   Format: Hi-Res " << format.sampleRate 
+                  << "Hz/" << format.bitDepth << "bit");
+        DEBUG_LOG("[DirettaOutput]   Data rate: " << (dataRate / 1000000.0) << " Mbps");
+        DEBUG_LOG("[DirettaOutput]   Mode: Var (adaptive timing)");
+        
+        DIRETTA::Clock minTime(m_cycleMinTime);
+        DIRETTA::Clock maxTime(m_cycleTime);
+        m_syncBuffer->configTransferAuto(maxTime, minTime, maxTime);
+        
+    } else {
+        // Standard (44.1/48kHz, 16/24bit) : Timing fixe pour stabilité
+        DEBUG_LOG("[DirettaOutput]   Format: Standard " << format.sampleRate 
+                  << "Hz/" << format.bitDepth << "bit");
+        DEBUG_LOG("[DirettaOutput]   Data rate: " << (dataRate / 1000000.0) << " Mbps");
+        DEBUG_LOG("[DirettaOutput]   Mode: Fix (stable timing)");
+        
+        DIRETTA::Clock cycle(m_cycleTime);
+        m_syncBuffer->configTransferFix(cycle, 0);  // 0 = auto packets
+    }
+    
+    DEBUG_LOG("[DirettaOutput] ✓ Network config optimized");
+}
+
 bool DirettaOutput::seek(int64_t samplePosition) {
     std::cout << "[DirettaOutput] 🔍 Seeking to sample " << samplePosition << "..." << std::endl;
 
@@ -1293,6 +1355,15 @@ bool DirettaOutput::isNextTrackReady() const {
     }
     
     return ready && m_nextTrackPrepared;
+}
+
+// ⭐ v1.2.0 Stable: Buffer status check
+bool DirettaOutput::isBufferEmpty() const {
+    if (!m_syncBuffer || !m_connected) {
+        return true;  // Considérer vide si pas connecté
+    }
+    
+    return m_syncBuffer->buffer_empty();
 }
 
 void DirettaOutput::cancelNextTrack() {

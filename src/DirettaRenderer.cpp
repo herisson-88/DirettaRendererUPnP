@@ -172,12 +172,16 @@ m_audioEngine->setAudioCallback(
         // RAII guard - clears flag on any exit path
         struct CallbackGuard {
             DirettaRenderer* self;
+            bool manuallyReleased = false;  // ⭐ v1.2.0 Stable: Support manual release
+            
             ~CallbackGuard() {
-                {
-                    std::lock_guard<std::mutex> lk(self->m_callbackMutex);
-                    self->m_callbackRunning = false;
+                if (!manuallyReleased) {  // ⭐ Only release if not done manually
+                    {
+                        std::lock_guard<std::mutex> lk(self->m_callbackMutex);
+                        self->m_callbackRunning = false;
+                    }
+                    self->m_callbackCV.notify_all();
                 }
-                self->m_callbackCV.notify_all();
             }
         } guard{this};
 
@@ -236,11 +240,39 @@ m_audioEngine->setAudioCallback(
                           << (currentFormat.isDSD ? " DSD" : " PCM") << std::endl;
                 std::cout << "════════════════════════════════════════" << std::endl;
                 
+                // ⭐ v1.2.0 Stable: Release callback flag BEFORE long operations
+                {
+                    std::lock_guard<std::mutex> lk(m_callbackMutex);
+                    m_callbackRunning = false;
+                    guard.manuallyReleased = true;  // Prevent double release
+                }
+                m_callbackCV.notify_all();
+                DEBUG_LOG("[Callback] ✓ Callback flag released early (anti-deadlock)");
+                
                 // ⭐⭐⭐ USE changeFormat() FOR PROPER TRANSITION ⭐⭐⭐
                 std::cout << "[Callback] 🔄 Executing format change sequence..." << std::endl;
                 
+                // ⭐ v1.2.0 Stable: Explicit buffer draining before stop
+                if (m_direttaOutput->isConnected()) {
+                    std::cout << "[Callback]    0. Draining buffer before format change..." << std::endl;
+                    
+                    int timeout = 50;  // 500ms max
+                    int drained = 0;
+                    
+                    while (!m_direttaOutput->isBufferEmpty() && timeout-- > 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                        drained += 10;
+                    }
+                    
+                    if (timeout <= 0) {
+                        std::cout << "[Callback]    ⚠️  Buffer drain timeout after 500ms" << std::endl;
+                    } else {
+                        std::cout << "[Callback]    ✓ Buffer drained in " << drained << "ms" << std::endl;
+                    }
+                }
+                
                 // STEP 1: Stop playback (graceful drain)
-                std::cout << "[Callback]    1. Stopping and draining buffers..." << std::endl;
+                std::cout << "[Callback]    1. Stopping..." << std::endl;
                 m_direttaOutput->stop(false);  // ✅ false = graceful drain
                 
                 // STEP 2: Change format
