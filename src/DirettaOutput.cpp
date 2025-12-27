@@ -28,7 +28,7 @@ DirettaOutput::DirettaOutput()
     , m_thredMode(1)
     , m_cycleTime(10000)
     , m_cycleMinTime(333)
-    , m_infoCycle(5000)
+    , m_infoCycle(100000)
 {
     DEBUG_LOG("[DirettaOutput] Created");
     DEBUG_LOG("[DirettaOutput] ✓ Gapless Pro mode: " 
