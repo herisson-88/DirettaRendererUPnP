@@ -10,6 +10,24 @@
 
 ![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)
 ![Multi-Interface](https://img.shields.io/badge/multi--interface-supported-green.svg) ← NEW
+---
+
+## ❤️ Support This Project
+
+If you find this renderer valuable, you can support development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/cometdom)
+
+**Important notes:**
+- ✅ Donations are **optional** and appreciated
+- ✅ Help cover test equipment and coffee ☕
+- ❌ **No guarantees** for features, support, or timelines
+- ❌ The project remains free and open source for everyone
+
+This is a hobby project - donations support development but don't create obligations.
+
+Thank you! 🎵
+
 
 ---
 ## ⚠️ IMPORTANT - PERSONAL USE ONLY
@@ -942,25 +960,7 @@ section below.
 - [ ] Metadata display improvements
 - [ ] Multi-room synchronization (if Diretta SDK adds support)
 
----
 
-## ❤️ Support This Project
-
-If you find this renderer valuable, you can support development:
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/cometdom)
-
-**Important notes:**
-- ✅ Donations are **optional** and appreciated
-- ✅ Help cover test equipment and coffee ☕
-- ❌ **No guarantees** for features, support, or timelines
-- ❌ The project remains free and open source for everyone
-
-This is a hobby project - donations support development but don't create obligations.
-
-Thank you! 🎵
-
----
 ## Contributing
 
 Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for:
