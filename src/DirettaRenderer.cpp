@@ -321,8 +321,7 @@ UPnPDevice::Callbacks callbacks;
 callbacks.onSetURI = [this](const std::string& uri, const std::string& metadata) {
     DEBUG_LOG("[DirettaRenderer] SetURI: " << uri);
     
-    // ⭐ v1.1.2 FIX: Keep mutex locked during entire callback (v1.0.9 structure)
-    // [v1.1.3] Callback mutex removed - simplified like v1.0.6
+    // v1.1.3: Simplified synchronization (v1.0.6 style)
     std::lock_guard<std::mutex> lock(m_mutex);
     
     auto currentState = m_audioEngine->getState();
@@ -343,8 +342,8 @@ callbacks.onSetURI = [this](const std::string& uri, const std::string& metadata)
         // Stop AudioEngine
         m_audioEngine->stop();
         
-        // ⭐ v1.1.2: Wait with mutex held - SAFE (timeout prevents deadlock)
-        // waitForCallbackComplete(); // [v1.1.3] Removed - not needed in v1.0.6 style
+        // ⭐ v1.1.3: Removed callback mutex synchronization (v1.0.6 style)
+        // waitForCallbackComplete();
 
         // Stop and close DirettaOutput
         if (m_direttaOutput) {
@@ -465,10 +464,10 @@ callbacks.onStop = [&lastStopTime, this]() {
     lastStopTime = std::chrono::steady_clock::now();
     
     try {
+        // v1.1.3: Simplified stop (v1.0.6 style - no callback mutex)
+        DEBUG_LOG("[DirettaRenderer] Calling AudioEngine::stop()...");
         m_audioEngine->stop();
-            m_audioEngine->stop();
-        }
-        // waitForCallbackComplete(); // [v1.1.3] Removed - not needed
+        // waitForCallbackComplete(); // v1.1.3: Removed
         DEBUG_LOG("[DirettaRenderer] ✓ AudioEngine stopped");
         
        // ⭐ RESET position: Recharger l'URI pour revenir au début
