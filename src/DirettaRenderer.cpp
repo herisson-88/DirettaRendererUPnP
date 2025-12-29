@@ -364,6 +364,7 @@ m_audioEngine->setAudioCallback(
             
             // ⭐ Propagate compression info for buffer optimization
             format.isCompressed = trackInfo.isCompressed;
+            currentFormat.isDSD = trackInfo.isDSD;
             
             // ⭐ Configure DSD if needed
                 if (trackInfo.isDSD) {
