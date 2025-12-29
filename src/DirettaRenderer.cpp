@@ -366,21 +366,21 @@ m_audioEngine->setAudioCallback(
             format.isCompressed = trackInfo.isCompressed;
             
             // ⭐ Configure DSD if needed
-            //if (trackInfo.isDSD) {
-              //  format.isDSD = true;
-              //  format.bitDepth = 1;  // DSD = 1 bit
-               // format.sampleRate = sampleRate;
+          // if (trackInfo.isDSD) {
+           // format.isDSD = true;
+            //format.bitDepth = 1;  // DSD = 1 bit
+            //format.sampleRate = sampleRate;
                 
                 // Determine DSD format from codec
-              //  std::string codec = trackInfo.codec;
-              //  if (codec.find("lsb") != std::string::npos) {
-                //    format.dsdFormat = AudioFormat::DSDFormat::DSF;
-                  //  DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DSF (LSB)");
-               // } else {
-               //     format.dsdFormat = AudioFormat::DSDFormat::DFF;
-              //      DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DFF (MSB)");
-               // }
-           // }
+            //std::string codec = trackInfo.codec;
+             // if (codec.find("lsb") != std::string::npos) {
+             //  format.dsdFormat = AudioFormat::DSDFormat::DSF;
+            // DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DSF (LSB)");
+        //   } else {
+             //   format.dsdFormat = AudioFormat::DSDFormat::DFF;
+           // DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DFF (MSB)");
+         // }
+   // }
             
             if (g_verbose) {
                 std::cout << "[DirettaRenderer] 🔌 Opening Diretta connection: ";
