@@ -1023,4 +1023,4 @@ This software is provided "as is" without warranty. While designed for high-qual
 
 **Enjoy bit-perfect, high-resolution audio streaming! 🎵**
 
-*Last updated: 2025-12-25*
+*Last updated: 2025-12-30*
