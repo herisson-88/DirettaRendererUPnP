@@ -1108,37 +1108,15 @@ void DirettaOutput::optimizeNetworkConfig(const AudioFormat& format) {
     if (!m_syncBuffer) {
         return;
     }
-   /* 
-    // ⭐ v1.2.0 Stable: Use v1.0.6 proven configuration
-    // The issue was: v1.2.0 used m_cycleTime (10000µs) instead of 200µs
-    // This caused 50× slower packet timing → DSD delay 1min40s!
     
-    bool isLowBitrate = (format.bitDepth <= 16 && format.sampleRate <= 48000 && !format.isDSD);
-
-    if (isLowBitrate) {
-        // Low bitrate (16bit ≤48kHz): smaller packets to avoid drops
-        DEBUG_LOG("[DirettaOutput] ⚠️  Low bitrate format detected (" 
-                  << format.bitDepth << "bit/" << format.sampleRate << "Hz)");
-        DEBUG_LOG("[DirettaOutput] Using configTransferAuto (smaller packets)");
-        
-        m_syncBuffer->configTransferAuto(
-            ACQUA::Clock::MicroSeconds(200),   // limitCycle
-            ACQUA::Clock::MicroSeconds(333),   // minCycle
-            ACQUA::Clock::MicroSeconds(10000)  // maxCycle
-        );
-        DEBUG_LOG("[DirettaOutput] ✓ configTransferAuto (packets ~1-3k)");
-        
-    } else {*/
-        // Hi-Res / DSD: jumbo frames for max performance
-        DEBUG_LOG("[DirettaOutput] ✓ Hi-Res format (" 
-                  << format.bitDepth << "bit/" << format.sampleRate << "Hz)");
-        DEBUG_LOG("[DirettaOutput] Using configTransferVarMax (jumbo frames)");
-        
-        m_syncBuffer->configTransferVarMax(
-            ACQUA::Clock::MicroSeconds(200)   // limitCycle = 200µs (CRITICAL!)
-        );
-        DEBUG_LOG("[DirettaOutput] ✓ configTransferVarMax (Packet Full mode, ~16k)");
-    }
+    // ⭐ Use VarMax for ALL formats - proven stable with 200µs
+    DEBUG_LOG("[DirettaOutput] Configuring network: VarMax (200µs)");
+    
+    m_syncBuffer->configTransferVarMax(
+        ACQUA::Clock::MicroSeconds(200)   // 200µs - CRITICAL timing
+    );
+    
+    DEBUG_LOG("[DirettaOutput] ✓ VarMax configured (jumbo frames, ~16k packets)");
 }
 
 bool DirettaOutput::seek(int64_t samplePosition) {
