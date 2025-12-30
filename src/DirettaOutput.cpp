@@ -81,7 +81,7 @@ bool DirettaOutput::open(const AudioFormat& format, float bufferSeconds) {
     
     if (format.isDSD) {
         // DSD: Raw bitstream, zero decode overhead
-        effectiveBuffer = std::min(bufferSeconds, 0.02f);
+        effectiveBuffer = std::min(bufferSeconds, 0.05f);
         DEBUG_LOG("[DirettaOutput] 🎵 DSD: raw bitstream path");
         
     } else if (!format.isCompressed) {
