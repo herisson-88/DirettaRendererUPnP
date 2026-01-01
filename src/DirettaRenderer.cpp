@@ -261,15 +261,9 @@ m_audioEngine->setAudioCallback(
                     return false;
                 }
                 
-                // ✅ STEP 2: Restart playback
-                std::cout << "[Callback]    2. Restarting playback..." << std::endl;
-                if (!m_direttaOutput->play()) {
-                    std::cerr << "[Callback] ❌ Failed to restart!" << std::endl;
-                    return false;
-                }
                 
-                // ✅ STEP 3: Wait for DAC lock
-                std::cout << "[Callback]    3. Waiting for DAC lock (300ms)..." << std::endl;
+                // ✅ STEP 2: Wait for DAC lock (changeFormat already called play)
+                std::cout << "[Callback]    2. Waiting for DAC lock (300ms)..." << std::endl;
                 std::this_thread::sleep_for(std::chrono::milliseconds(300));
                 
                 std::cout << "[Callback] ✅ Format change completed successfully" << std::endl;

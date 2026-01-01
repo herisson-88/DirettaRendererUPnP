@@ -426,10 +426,19 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
     // ⭐ v1.2.0 Stable: Optimize network config for new format
     optimizeNetworkConfig(newFormat);
     
+    
     // ⭐ STEP 7: RESTART PLAYBACK IF NEEDED
     if (m_playing) {
         std::cout << "[DirettaOutput] 7. Restarting playback..." << std::endl;
-        m_syncBuffer->play();
+        
+        // ⭐ CRITICAL FIX: Use proper play() method to update all flags correctly
+        // Calling m_syncBuffer->play() directly leaves m_playing in inconsistent state!
+        m_playing = false;  // Reset flag to allow play() to work properly
+        
+        if (!play()) {
+            std::cerr << "[DirettaOutput] ❌ Failed to restart playback after format change!" << std::endl;
+            return false;
+        }
         
         // Wait for DAC to lock onto new format
         std::cout << "[DirettaOutput]    Waiting for DAC lock (200ms)..." << std::endl;
