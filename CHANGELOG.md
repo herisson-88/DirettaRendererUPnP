@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 Some bugs fixes
 
-DSD files playback after a delay of 1 nminute 40.
+DSD files playback after a delay of 100 seconds
 
 **Simplified structure - mutex held throughout callback:**
 
