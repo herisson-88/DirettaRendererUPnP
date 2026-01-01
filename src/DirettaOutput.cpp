@@ -359,96 +359,47 @@ bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
         return true;
     }
     
-    std::cout << "[DirettaOutput] ⚠️  Format change during playback - CRITICAL DRAIN REQUIRED" << std::endl;
+    std::cout << "[DirettaOutput] ⚠️  Format change - COMPLETE CLOSE/REOPEN REQUIRED" << std::endl;
+    std::cout << "[DirettaOutput]    (DAC hardware needs time to reinitialize)" << std::endl;
     
-    if (m_syncBuffer) {
-        // ⭐ STEP 1: STOP SENDING NEW DATA (caller must stop feeding audio)
-        std::cout << "[DirettaOutput] 1. Stop sending new audio data..." << std::endl;
-        
-        // ⭐ STEP 2: WAIT FOR ALL QUEUED BUFFERS TO BE PLAYED
-        std::cout << "[DirettaOutput] 2. Draining queued buffers..." << std::endl;
-        int drain_timeout_ms = 10000;  // 10 seconds max for drain
-        int drain_waited_ms = 0;
-        
-        // Get initial buffer count
-        size_t initialBuffered = m_syncBuffer->getLastBufferCount();
-        std::cout << "[DirettaOutput]    Initial buffered samples: " << initialBuffered << std::endl;
-        
-        // Wait until buffer is empty
-        while (drain_waited_ms < drain_timeout_ms) {
-            if (m_syncBuffer->buffer_empty()) {
-                std::cout << "[DirettaOutput]    ✓ All buffers drained!" << std::endl;
-                break;
-            }
-            
-            // Log progress every 200ms
-            if (drain_waited_ms % 200 == 0) {
-                size_t buffered = m_syncBuffer->getLastBufferCount();
-                DEBUG_LOG("[DirettaOutput]    Waiting... (" << buffered << " samples remaining)");
-            }
-            
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            drain_waited_ms += 50;
-        }
-        
-        if (drain_waited_ms >= drain_timeout_ms) {
-            size_t remainingBuffered = m_syncBuffer->getLastBufferCount();
-            std::cerr << "[DirettaOutput]    ⚠️  DRAIN TIMEOUT! " << remainingBuffered 
-                      << " samples still buffered after " << drain_timeout_ms << "ms" << std::endl;
-            std::cerr << "[DirettaOutput]    Forcing immediate disconnect..." << std::endl;
-            // Force immediate disconnect to avoid pink noise
-            m_syncBuffer->pre_disconnect(true);
-        } else {
-            std::cout << "[DirettaOutput]    ✓ Buffer drained in " << drain_waited_ms << "ms" << std::endl;
-            
-            // ⭐ STEP 3: GRACEFUL DISCONNECT
-            std::cout << "[DirettaOutput] 3. Graceful disconnect..." << std::endl;
-            m_syncBuffer->pre_disconnect(false);
-        }
-        
-        // ⭐ STEP 4: WAIT FOR HARDWARE STABILIZATION
-        std::cout << "[DirettaOutput] 4. Waiting for hardware stabilization (200ms)..." << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        
-        // ⭐ STEP 5: DESTROY SYNCBUFFER (force recreation in configureDiretta)
-        // After pre_disconnect(), SyncBuffer cannot be reused for a different format
-        std::cout << "[DirettaOutput] 5. Destroying SyncBuffer for clean recreation..." << std::endl;
-        m_syncBuffer.reset();
-    }
-
-    // ⭐ STEP 6: RECONFIGURE WITH NEW FORMAT
-    std::cout << "[DirettaOutput] 6. Configuring new format..." << std::endl;
-    if (!configureDiretta(newFormat)) {
-        std::cerr << "[DirettaOutput] ❌ Failed to reconfigure" << std::endl;
+    bool wasPlaying = m_playing;
+    
+    // ⭐ STEP 1: COMPLETE CLOSE
+    std::cout << "[DirettaOutput] 1. Closing connection completely..." << std::endl;
+    close();  // Complete close instead of just pre_disconnect
+    
+    // ⭐ STEP 2: WAIT FOR DAC HARDWARE REINITIALIZATION
+    // High-end DACs like Holo Audio Spring 3 need time to:
+    // - Reset PLLs
+    // - Reconfigure clocking
+    // - Lock onto new format
+    std::cout << "[DirettaOutput] 2. Waiting for DAC hardware reinitialization (600ms)..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    std::cout << "[DirettaOutput]    ✓ DAC ready for new format" << std::endl;
+    
+    // ⭐ STEP 3: REOPEN WITH NEW FORMAT
+    std::cout << "[DirettaOutput] 3. Reopening with new format..." << std::endl;
+    if (!open(newFormat, m_bufferSeconds)) {
+        std::cerr << "[DirettaOutput] ❌ Failed to reopen with new format" << std::endl;
         return false;
     }
     
-    // ⭐ v1.2.0 Stable: Optimize network config for new format
-    optimizeNetworkConfig(newFormat);
-    
-    
-    // ⭐ STEP 7: RESTART PLAYBACK IF NEEDED
-    if (m_playing) {
-        std::cout << "[DirettaOutput] 7. Restarting playback..." << std::endl;
-        
-        // ⭐ CRITICAL FIX: Use proper play() method to update all flags correctly
-        // Calling m_syncBuffer->play() directly leaves m_playing in inconsistent state!
-        m_playing = false;  // Reset flag to allow play() to work properly
-        
+    // ⭐ STEP 4: RESTART PLAYBACK IF NEEDED
+    if (wasPlaying) {
+        std::cout << "[DirettaOutput] 4. Restarting playback..." << std::endl;
         if (!play()) {
-            std::cerr << "[DirettaOutput] ❌ Failed to restart playback after format change!" << std::endl;
+            std::cerr << "[DirettaOutput] ❌ Failed to restart playback" << std::endl;
             return false;
         }
         
-        // Wait for DAC to lock onto new format
+        // Additional wait for DAC lock
         std::cout << "[DirettaOutput]    Waiting for DAC lock (200ms)..." << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
     
-    m_currentFormat = newFormat;
-    m_totalSamplesSent = 0;  // Reset counter for new format
-    
     std::cout << "[DirettaOutput] ✅ Format changed successfully" << std::endl;
+    std::cout << "[DirettaOutput]    New format: " << newFormat.sampleRate << "Hz/" 
+              << newFormat.bitDepth << "bit/" << newFormat.channels << "ch" << std::endl;
     
     return true;
 }
