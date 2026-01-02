@@ -1578,15 +1578,46 @@ bool AudioDecoder::seek(double seconds) {
         return false;
     }
     
-// ⭐ v1.2.1: DSD raw seek - let-through method
+    // ⭐ v1.2.1: DSD raw seek with file repositioning
     if (m_rawDSD) {
-        std::cout << "[AudioDecoder] DSD seek to " << seconds << "s" << std::endl;
+        std::cout << "[AudioDecoder] DSD seek to " << seconds << "s (with file repositioning)" << std::endl;
+        
+        // Calculate byte position in DSD file
+        // For DSD: sampleRate = bits per second per channel
+        int64_t bitsPerSecond = m_format.sampleRate * m_format.channels;
+        int64_t targetBit = static_cast<int64_t>(seconds * bitsPerSecond);
+        int64_t targetByte = targetBit / 8;
+        
+        std::cout << "[AudioDecoder]   Target: " << targetByte << " bytes (" << targetBit << " bits)" << std::endl;
+        std::cout << "[AudioDecoder]   Format: " << m_format.sampleRate << " Hz, " 
+                  << m_format.channels << " channels" << std::endl;
+        
+        // Seek in file using byte position
+        AVIOContext* avio = m_formatContext->pb;
+        if (avio) {
+            // Use SEEK_SET to position from start of file
+            int64_t result = avio_seek(avio, targetByte, SEEK_SET);
+            if (result >= 0) {
+                std::cout << "[AudioDecoder]   ✓ File repositioned to byte " << result << std::endl;
+            } else {
+                std::cerr << "[AudioDecoder]   ⚠️  avio_seek failed, code: " << result << std::endl;
+                // Continue anyway - may still work approximately
+            }
+        } else {
+            std::cerr << "[AudioDecoder]   ⚠️  No AVIOContext available for file seek" << std::endl;
+        }
+        
+        // Flush codec buffers to clear old data
         if (m_codecContext) {
             avcodec_flush_buffers(m_codecContext);
+            std::cout << "[AudioDecoder]   ✓ Codec buffers flushed" << std::endl;
         }
+        
+        // Reset internal buffers
         m_remainingCount = 0;
         m_eof = false;
-        std::cout << "[AudioDecoder]   ✓ DSD seek accepted" << std::endl;
+        
+        std::cout << "[AudioDecoder]   ✓ DSD seek completed" << std::endl;
         return true;
     }
     
@@ -1619,7 +1650,12 @@ bool AudioDecoder::seek(double seconds) {
         avcodec_flush_buffers(m_codecContext);
     }
     
-    std::cout << "[AudioDecoder] ✓ Seek completed" << std::endl;
+    // Réinitialiser les buffers internes
+    m_remainingCount = 0;
+    m_eof = false;
+    
+    std::cout << "[AudioDecoder] ✓ Seek successful to ~" << seconds << "s" << std::endl;
+    
     return true;
 }
 
