@@ -1073,17 +1073,12 @@ bool DirettaOutput::seek(int64_t samplePosition) {
         m_syncBuffer->stop();
     }
     
-    // ⭐ DSD SEEK CONVERSION
+    // ⭐ DSD SEEK - NO CONVERSION (already in bits)
     int64_t seekPosition = samplePosition;
     
     if (m_currentFormat.isDSD) {
-        // DSD: Convert to bytes (32-bit containers)
-        // Same calculation as in createStreamFromAudio()
-        seekPosition = samplePosition * m_currentFormat.channels * 4;
-        
-        std::cout << "[DirettaOutput] DSD seek conversion:" << std::endl;
-        std::cout << "   Input position (bits): " << samplePosition << std::endl;
-        std::cout << "   Output position (bytes): " << seekPosition << std::endl;
+        std::cout << "[DirettaOutput] DSD seek (no conversion):" << std::endl;
+        std::cout << "   Position (bits): " << samplePosition << std::endl;
         std::cout << "   Format: DSD" << (m_currentFormat.sampleRate / 44100) 
                   << " (" << m_currentFormat.sampleRate << " Hz)" << std::endl;
     }
@@ -1091,7 +1086,7 @@ bool DirettaOutput::seek(int64_t samplePosition) {
     // Perform seek
     DEBUG_LOG("[DirettaOutput] → Calling SDK seek(" << seekPosition << ")");
     m_syncBuffer->seek(seekPosition);
-    m_totalSamplesSent = samplePosition;  // Keep in original units
+    m_totalSamplesSent = samplePosition;
     
     // Resume if was playing
     if (wasPlaying && m_syncBuffer) {
@@ -1101,7 +1096,6 @@ bool DirettaOutput::seek(int64_t samplePosition) {
     DEBUG_LOG("[DirettaOutput] ✓ Seeked to position " << seekPosition);
     return true;
 }
-
 // ═══════════════════════════════════════════════════════════════
 // ⭐ v1.2.0: Gapless Pro - Implementation
 // ═══════════════════════════════════════════════════════════════
