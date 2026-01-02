@@ -1578,21 +1578,16 @@ bool AudioDecoder::seek(double seconds) {
         return false;
     }
     
-    // ⭐ v1.2.1: DSD raw seek - let-through method (simplified)
+// ⭐ v1.2.1: DSD raw seek - let-through method
     if (m_rawDSD) {
-        std::cout << "[AudioDecoder] DSD seek to " << seconds << "s (accepted, limited accuracy)" << std::endl;
-        
-        // Flush codec buffers to clear old data
+        std::cout << "[AudioDecoder] DSD seek to " << seconds << "s" << std::endl;
         if (m_codecContext) {
             avcodec_flush_buffers(m_codecContext);
         }
-        
-        // Return true - let AudioEngine update position
-        // Output will sync naturally on next data chunk
-        // Note: Exact positioning in DSD raw files is complex
-        // This gives approximate seek functionality
-        std::cout << "[AudioDecoder]   ✓ DSD seek accepted (AudioEngine will update position)" << std::endl;
-        return true;  // ✅ DON'T BLOCK - let it through!
+        m_remainingCount = 0;
+        m_eof = false;
+        std::cout << "[AudioDecoder]   ✓ DSD seek accepted" << std::endl;
+        return true;
     }
     
     // ═══════════════════════════════════════════════════════════════
