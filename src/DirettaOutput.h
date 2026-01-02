@@ -267,9 +267,6 @@ private:
     bool findAndSelectTarget(int targetIndex = -1);
     bool configureDiretta(const AudioFormat& format);
     
-    // ⭐ v1.3.0: Format ID builder (for setSinkConfigure - Yu Harada method)
-    DIRETTA::FormatID buildFormatID(const AudioFormat& format);
-    
     // ⭐ v1.2.0 Stable: Network optimization
     void optimizeNetworkConfig(const AudioFormat& format);
     

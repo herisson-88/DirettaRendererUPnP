@@ -65,77 +65,37 @@ bool DirettaOutput::open(const AudioFormat& format, float bufferSeconds) {
     
     m_currentFormat = format;
     m_totalSamplesSent = 0;
-    DEBUG_LOG("[DirettaOutput] ⭐ m_totalSamplesSent RESET to 0"); 
+    DEBUG_LOG("[DirettaOutput] ⭐ m_totalSamplesSent RESET to 0");
     
-    // ✅ INTELLIGENT BUFFER ADAPTATION based on processing complexity
-    //
-    // Processing Pipeline Complexity:
-    // 1. DSD (DSF/DFF):        Raw bitstream read      → 0.8s  (instant)
-    // 2. WAV/AIFF:             Direct PCM read         → 1.0s  (very fast)
-    // 3. FLAC/ALAC/APE:        Lossless decompression  → 2.0s  (moderate)
-    //
-    // This matches Dominique's insight: Diretta can handle uncompressed 
-    // formats as efficiently as DSD, since both skip the decode step!
+    // ⭐ v1.4.0: SDK Diretta Gapless Pro handles ALL buffering intelligently
+    // User controls buffer via --buffer parameter, SDK adapts automatically
+    // Tests show even --buffer 0 works perfectly - SDK manages everything!
     
-    float effectiveBuffer;
+    float effectiveBuffer = bufferSeconds;  // Respect user choice by default
     
     if (format.isDSD) {
-        // DSD: Raw bitstream, zero decode overhead
-        effectiveBuffer = std::min(bufferSeconds, 0.02f);
-        DEBUG_LOG("[DirettaOutput] 🎵 DSD: raw bitstream path");
-        
-    } else if (!format.isCompressed) {
-        // WAV/AIFF: Uncompressed PCM - intelligent buffer sizing
-        
-        // ⚠️  LOOPBACK DETECTION (v1.0.10)
-        // Check if this is local playback (same-machine streaming)
-        // In loopback mode, data arrives in bursts without network buffering
-        bool isLoopback = false;
-        // Heuristic: If MTU is default (not jumbo), likely loopback wasn't configured
-        // Real network would use jumbo frames (16128)
-        // This is a simple heuristic - not perfect but works in most cases
-        if (m_mtu <= 1500) {
-            isLoopback = true;
-        }
-        
-        if (format.bitDepth >= 24 && format.sampleRate >= 88200) {
-            // Hi-Res audio handling
-            if (isLoopback && format.sampleRate <= 96000) {
-                // Loopback + Hi-Res ≤96kHz: needs larger buffer
-                // Reason: Data arrives in bursts, need extra buffer to prevent underruns
-                effectiveBuffer = std::max(std::min(bufferSeconds, 0.0f), 0.0f);
-                DEBUG_LOG("[DirettaOutput] ⚠️  Loopback Hi-Res detected (" << format.bitDepth 
-                          << "bit/" << format.sampleRate << "Hz)");
-                DEBUG_LOG("[DirettaOutput]   Using 2-2.5s buffer (burst protection)");
-                DEBUG_LOG("[DirettaOutput]   💡 TIP: For lower latency, use remote player");
-                DEBUG_LOG("[DirettaOutput]        or enable oversampling in your player");
-            } else {
-                // Network or high sample rate: normal buffer
-                effectiveBuffer = std::max(std::min(bufferSeconds, 0.0f), 0.0f);
-                DEBUG_LOG("[DirettaOutput] ✓ Hi-Res PCM (" << format.bitDepth 
-                          << "bit/" << format.sampleRate << "Hz): enhanced buffer");
-                DEBUG_LOG("[DirettaOutput]   Buffer: " << effectiveBuffer 
-                          << "s (DAC stabilization)");
-            }
-        } else {
-            // Standard PCM: low latency
-            effectiveBuffer = std::min(bufferSeconds, 0.0f);
-            DEBUG_LOG("[DirettaOutput] ✓ Uncompressed PCM: low-latency path");
-            DEBUG_LOG("[DirettaOutput]   Buffer: " << effectiveBuffer << "s");
-        }
+        // DSD: Minimal buffer optimal (SDK manages sync perfectly)
+        // Even 0.02s works great, but we cap at 0.05s for safety
+        effectiveBuffer = std::min(bufferSeconds, 0.05f);
+        std::cout << "[DirettaOutput] 🎵 DSD mode: minimal buffer " 
+                  << effectiveBuffer << "s (SDK-managed)" << std::endl;
         
     } else {
-        // FLAC/ALAC/etc: Compressed, needs decoding buffer
-        effectiveBuffer = std::max(bufferSeconds, 0.0f);
-        DEBUG_LOG("[DirettaOutput] ℹ️  Compressed PCM (FLAC/ALAC): decoding required");
+        // PCM (compressed or uncompressed): SDK handles efficiently
+        // No forced minimums - user has full control
+        std::cout << "[DirettaOutput] 🎵 PCM mode: user buffer " 
+                  << effectiveBuffer << "s (SDK-managed)" << std::endl;
         
-        if (bufferSeconds < 2) {
-            DEBUG_LOG("[DirettaOutput]   Using 2s minimum for decode stability");
+        // Optional warning if VERY small buffer (might cause issues on slow networks)
+        if (effectiveBuffer < 0.1f && effectiveBuffer > 0.0f) {
+            std::cout << "[DirettaOutput] ⚠️  Small buffer (" << effectiveBuffer 
+                      << "s) - may cause underruns on slow networks" << std::endl;
+            std::cout << "[DirettaOutput]    💡 Tip: Use --buffer 0.5 or higher for network streaming" << std::endl;
         }
     }
     
     m_bufferSeconds = effectiveBuffer;
-    DEBUG_LOG("[DirettaOutput] → Effective buffer: " << m_bufferSeconds << "s");
+    std::cout << "[DirettaOutput] → Buffer: " << m_bufferSeconds << "s" << std::endl;
     
     // Find Diretta target
     DEBUG_LOG("[DirettaOutput] Finding Diretta target...");
@@ -143,6 +103,35 @@ bool DirettaOutput::open(const AudioFormat& format, float bufferSeconds) {
         std::cerr << "[DirettaOutput] ❌ Failed to find or select Diretta target" << std::endl;
         return false;
     }
+    
+    DEBUG_LOG("[DirettaOutput] ✓ Target found and selected");
+    
+    // Configure Diretta with the format
+    if (!configureDiretta(format)) {
+        std::cerr << "[DirettaOutput] ❌ Failed to configure Diretta" << std::endl;
+        return false;
+    }
+    
+    DEBUG_LOG("[DirettaOutput] ✓ Diretta configured");
+    
+    // Network optimization
+    optimizeNetworkConfig(format);
+    
+    std::cout << "[DirettaOutput] ✅ Connection established" << std::endl;
+    std::cout << "[DirettaOutput]    Format: ";
+    if (format.isDSD) {
+        std::cout << "DSD" << (format.sampleRate / 44100) << " (" << format.sampleRate << "Hz)";
+    } else {
+        std::cout << "PCM " << format.bitDepth << "-bit " << format.sampleRate << "Hz";
+    }
+    std::cout << " " << format.channels << "ch" << std::endl;
+    std::cout << "[DirettaOutput]    Buffer: " << m_bufferSeconds << "s (SDK-managed)" << std::endl;
+    std::cout << "[DirettaOutput]    MTU: " << m_mtu << " bytes" << std::endl;
+    
+    m_connected = true;
+    return true;
+}
+
     
     DEBUG_LOG("[DirettaOutput] ✓ Found Diretta target");
     
@@ -350,174 +339,59 @@ void DirettaOutput::resume() {
 
 
 bool DirettaOutput::changeFormat(const AudioFormat& newFormat) {
+    std::cout << "[DirettaOutput] Format change request: "
+              << m_currentFormat.sampleRate << "Hz/" << m_currentFormat.bitDepth << "bit"
+              << " → " << newFormat.sampleRate << "Hz/" << newFormat.bitDepth << "bit" << std::endl;
+    
     if (newFormat == m_currentFormat) {
         std::cout << "[DirettaOutput] ✓ Same format, no change needed" << std::endl;
         return true;
     }
     
-    std::cout << "[DirettaOutput] Format change request: "
-              << m_currentFormat.sampleRate << "Hz/" << m_currentFormat.bitDepth << "bit"
-              << " → " << newFormat.sampleRate << "Hz/" << newFormat.bitDepth << "bit" << std::endl;
-    
-    std::cout << "[DirettaOutput] ⭐ v1.5.0: Yu Harada's official method (with setupBuffer reconfiguration)" << std::endl;
+    std::cout << "[DirettaOutput] ⚠️  Format change - COMPLETE CLOSE/REOPEN REQUIRED" << std::endl;
+    std::cout << "[DirettaOutput]    (DAC hardware needs time to reinitialize)" << std::endl;
     
     bool wasPlaying = m_playing;
     
-    // ⭐ STEP 1: Disconnect (Yu's method - blocking disconnect)
-    std::cout << "[DirettaOutput] 1. Disconnecting..." << std::endl;
-    m_syncBuffer->disconnect(true);  // true = blocking disconnect
-    m_connected = false;
-    m_playing = false;
-    std::cout << "[DirettaOutput]    ✓ Disconnected" << std::endl;
+    // ⭐ STEP 1: COMPLETE CLOSE
+    std::cout << "[DirettaOutput] 1. Closing connection completely..." << std::endl;
+    close();  // Complete close instead of just pre_disconnect
     
-    // ⭐ STEP 2: Wait for DAC hardware reinitialization
-    // High-end DACs (like Holo Audio Spring 3) need time to detect disconnection
-    std::cout << "[DirettaOutput] 2. Waiting for DAC hardware (600ms)..." << std::endl;
+    // ⭐ STEP 2: WAIT FOR DAC HARDWARE REINITIALIZATION
+    // High-end DACs like Holo Audio Spring 3 need time to:
+    // - Reset PLLs
+    // - Reconfigure clocking
+    // - Lock onto new format
+    std::cout << "[DirettaOutput] 2. Waiting for DAC hardware reinitialization (600ms)..." << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(600));
     std::cout << "[DirettaOutput]    ✓ DAC ready for new format" << std::endl;
     
-    // ⭐ STEP 3: setSinkConfigure with new format
-    std::cout << "[DirettaOutput] 3. Setting new format configuration..." << std::endl;
-    DIRETTA::FormatID newFormatID = buildFormatID(newFormat);
-    
-    m_syncBuffer->setSinkConfigure(newFormatID);
-    
-    std::cout << "[DirettaOutput]    ✓ Format configured: " << newFormat.sampleRate << "Hz/"
-              << newFormat.bitDepth << "bit/" << newFormat.channels << "ch" << std::endl;
-    
-    // ⭐ STEP 4: Recalculate buffer sizes for new format (Yu's critical step!)
-    // After setSinkConfigure(), frameSize and 1secSize change based on new format
-    // Without this recalculation, buffer remains configured for old format → choppy audio!
-    std::cout << "[DirettaOutput] 4. Recalculating buffer sizes for new format..." << std::endl;
-    
-    int frameSize = m_syncBuffer->getSinkConfigure().getFrameSize();
-    int fs1sec = m_syncBuffer->getSinkConfigure().get1secSize() / frameSize;
-    
-    std::cout << "[DirettaOutput]    Frame size: " << frameSize << " bytes" << std::endl;
-    std::cout << "[DirettaOutput]    Samples per second: " << fs1sec << std::endl;
-    
-    // ⭐ STEP 5: setupBuffer AGAIN with new sizes (THIS WAS THE MISSING PIECE!)
-    // This reconfigures internal buffers for the new format
-    std::cout << "[DirettaOutput] 5. Setting up buffer for new format..." << std::endl;
-    
-    m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);
-    
-    std::cout << "[DirettaOutput]    ✓ Buffer configured: " << (fs1sec * m_bufferSeconds) 
-              << " samples (" << m_bufferSeconds << "s)" << std::endl;
-    
-    // ⭐ STEP 6: Reconnect (Yu's method - no timeout, then explicit wait)
-    std::cout << "[DirettaOutput] 6. Reconnecting..." << std::endl;
-    
-    // Yu uses connect(true, 0) = blocking with no timeout
-    if (!m_syncBuffer->connect(true, 0)) {
-        std::cerr << "[DirettaOutput] ❌ Connect failed!" << std::endl;
+    // ⭐ STEP 3: REOPEN WITH NEW FORMAT
+    std::cout << "[DirettaOutput] 3. Reopening with new format..." << std::endl;
+    if (!open(newFormat, m_bufferSeconds)) {
+        std::cerr << "[DirettaOutput] ❌ Failed to reopen with new format" << std::endl;
         return false;
     }
     
-    // Then explicit connectWait() - Yu's pattern
-    if (!m_syncBuffer->connectWait(1000)) {
-        std::cerr << "[DirettaOutput] ❌ ConnectWait failed!" << std::endl;
-        return false;
-    }
-    
-    m_connected = true;
-    std::cout << "[DirettaOutput]    ✓ Reconnected" << std::endl;
-    
-    // ⭐ STEP 7: Restart playback if was playing
+    // ⭐ STEP 4: RESTART PLAYBACK IF NEEDED
     if (wasPlaying) {
-        std::cout << "[DirettaOutput] 7. Restarting playback..." << std::endl;
+        std::cout << "[DirettaOutput] 4. Restarting playback..." << std::endl;
         if (!play()) {
-            std::cerr << "[DirettaOutput] ❌ Play failed!" << std::endl;
+            std::cerr << "[DirettaOutput] ❌ Failed to restart playback" << std::endl;
             return false;
         }
-        // Additional wait for DAC lock (conservative approach)
+        
+        // Additional wait for DAC lock
         std::cout << "[DirettaOutput]    Waiting for DAC lock (200ms)..." << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
     
-    m_currentFormat = newFormat;
-    m_totalSamplesSent = 0;  // Reset counter for new format
-    
-    std::cout << "[DirettaOutput] ✅ Format changed successfully (Yu's official method)" << std::endl;
+    std::cout << "[DirettaOutput] ✅ Format changed successfully" << std::endl;
+    std::cout << "[DirettaOutput]    New format: " << newFormat.sampleRate << "Hz/" 
+              << newFormat.bitDepth << "bit/" << newFormat.channels << "ch" << std::endl;
     
     return true;
 }
-
-// ⭐ v1.5.0: Build FormatID from AudioFormat (for setSinkConfigure)
-DIRETTA::FormatID DirettaOutput::buildFormatID(const AudioFormat& format) {
-    DIRETTA::FormatID formatID;
-    
-    // === DSD FORMAT ===
-    if (format.isDSD) {
-        // Base DSD format - always use FMT_DSD1 and FMT_DSD_SIZ_32
-        formatID = DIRETTA::FormatID::FMT_DSD1 | DIRETTA::FormatID::FMT_DSD_SIZ_32;
-        
-        // Always use DSF format (LSB + LITTLE) per Yu recommendation
-        formatID |= DIRETTA::FormatID::FMT_DSD_LSB;
-        formatID |= DIRETTA::FormatID::FMT_DSD_LITTLE;
-        
-        // DSD rate
-        switch (format.sampleRate) {
-            case 2822400:  formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP64; break;   // DSD64
-            case 5644800:  formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP128; break;  // DSD128
-            case 11289600: formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP256; break;  // DSD256
-            case 22579200: formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP512; break;  // DSD512
-            case 45158400: formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP1024; break; // DSD1024
-            default:       formatID |= DIRETTA::FormatID::RAT_44100 | DIRETTA::FormatID::RAT_MP64; break;   // Fallback DSD64
-        }
-        
-    } else {
-        // === PCM FORMAT ===
-        switch (format.bitDepth) {
-            case 16: formatID = DIRETTA::FormatID::FMT_PCM_SIGNED_16; break;
-            case 24: formatID = DIRETTA::FormatID::FMT_PCM_SIGNED_24; break;
-            case 32: formatID = DIRETTA::FormatID::FMT_PCM_SIGNED_32; break;
-            default: formatID = DIRETTA::FormatID::FMT_PCM_SIGNED_32; break;
-        }
-        
-        // Sample rate base + multiplier
-        uint32_t baseRate;
-        uint32_t multiplier;
-        
-        if (format.sampleRate % 44100 == 0) {
-            baseRate = 44100;
-            multiplier = format.sampleRate / 44100;
-            formatID |= DIRETTA::FormatID::RAT_44100;
-        } else if (format.sampleRate % 48000 == 0) {
-            baseRate = 48000;
-            multiplier = format.sampleRate / 48000;
-            formatID |= DIRETTA::FormatID::RAT_48000;
-        } else {
-            baseRate = 44100;
-            multiplier = 1;
-            formatID |= DIRETTA::FormatID::RAT_44100;
-        }
-        
-        // Multiplier
-        switch (multiplier) {
-            case 1:  formatID |= DIRETTA::FormatID::RAT_MP1; break;
-            case 2:  formatID |= DIRETTA::FormatID::RAT_MP2; break;
-            case 4:  formatID |= DIRETTA::FormatID::RAT_MP4; break;
-            case 8:  formatID |= DIRETTA::FormatID::RAT_MP8; break;
-            case 16: formatID |= DIRETTA::FormatID::RAT_MP16; break;
-            case 32: formatID |= DIRETTA::FormatID::RAT_MP32; break;
-            default: formatID |= DIRETTA::FormatID::RAT_MP1; break;
-        }
-    }
-    
-    // === CHANNELS (common to PCM and DSD) ===
-    switch (format.channels) {
-        case 1: formatID |= DIRETTA::FormatID::CHA_1; break;
-        case 2: formatID |= DIRETTA::FormatID::CHA_2; break;
-        case 4: formatID |= DIRETTA::FormatID::CHA_4; break;
-        case 6: formatID |= DIRETTA::FormatID::CHA_6; break;
-        case 8: formatID |= DIRETTA::FormatID::CHA_8; break;
-        default: formatID |= DIRETTA::FormatID::CHA_2; break;
-    }
-    
-    return formatID;
-}
-
 bool DirettaOutput::sendAudio(const uint8_t* data, size_t numSamples) {
     if (!m_connected || !m_playing) {
         return false;
