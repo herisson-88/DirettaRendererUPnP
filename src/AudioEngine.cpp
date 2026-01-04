@@ -264,7 +264,7 @@ bool AudioDecoder::open(const std::string& url) {
             std::cout << "[AudioDecoder] ✓ Opened successfully (DSD NATIVE)" << std::endl;
             
             return true;  // ⭐ Exit early - no codec opening needed!
-        }
+       
     }  // End of DSD detection
     
     // ══════════════════════════════════════════════════════════════
@@ -377,9 +377,9 @@ DEBUG_LOG("[AudioDecoder] 🎵 PCM: " << m_trackInfo.codec
     m_eof = false;
     
     std::cout << "[AudioDecoder] ✓ Opened successfully" << std::endl;
-    
+ 
     return true;
-
+}
 void AudioDecoder::close() {
     if (m_swrContext) {
         swr_free(&m_swrContext);
