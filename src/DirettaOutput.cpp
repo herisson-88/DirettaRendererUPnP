@@ -1030,29 +1030,6 @@ if (m_syncBuffer && isFormatChange) {
     DEBUG_LOG("[DirettaOutput]   New: 0x" << std::hex 
               << static_cast<uint32_t>(formatID) << std::dec);
     
-    // Envoyer silence buffers
-    for (int i = 0; i < silenceCount; i++) {
-        DIRETTA::Stream stream;
-        stream.resize(8192);
-        std::memset(stream.get(), silenceValue, 8192);
-        m_syncBuffer->setStream(stream);
-        
-        // Petit délai tous les 10 buffers
-        if (i > 0 && i % 10 == 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
-        }
-    }
-    
-    // Attendre stabilisation DAC
-    std::this_thread::sleep_for(std::chrono::milliseconds(wasDSD ? 100 : 50));
-    
-    DEBUG_LOG("[DirettaOutput] ✅ Silence buffers sent, DAC stabilized");
-    
-} else if (isFirstConfiguration) {
-    DEBUG_LOG("[DirettaOutput] ℹ️  First configuration, no silence needed");
-} else {
-    DEBUG_LOG("[DirettaOutput] ℹ️  Same format, no silence needed");
-}
 // ════════════════════════════════════════════════════════════════
 // Configurer le nouveau format (ton code existant)
 // ════════════════════════════════════════════════════════════════
@@ -1123,6 +1100,41 @@ m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);
         std::cerr << "[DirettaOutput] ❌ Connection failed" << std::endl;
         return false;
     }
+  // ════════════════════════════════════════════════════════════════
+// ⭐ v1.2.3 : Envoyer silence buffers APRÈS connexion
+// ════════════════════════════════════════════════════════════════
+
+    if (isFormatChange) {
+        DEBUG_LOG("[DirettaOutput] 🔇 Format change detected, sending " 
+              << silenceCount << " silence buffers...");
+        DEBUG_LOG("[DirettaOutput]   Previous: 0x" << std::hex 
+              << static_cast<uint32_t>(previousFormat) << std::dec);
+        DEBUG_LOG("[DirettaOutput]   New: 0x" << std::hex 
+              << static_cast<uint32_t>(formatID) << std::dec);
+    
+    // Envoyer silence buffers
+    for (int i = 0; i < silenceCount; i++) {
+        DIRETTA::Stream stream;
+        stream.resize(8192);
+        std::memset(stream.get(), silenceValue, 8192);
+        m_syncBuffer->setStream(stream);
+        
+        // Petit délai tous les 10 buffers
+        if (i > 0 && i % 10 == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    }
+    
+    // Attendre stabilisation DAC
+    std::this_thread::sleep_for(std::chrono::milliseconds(wasDSD ? 100 : 50));
+    
+    DEBUG_LOG("[DirettaOutput] ✅ Silence buffers sent, DAC stabilized");
+    
+} else if (isFirstConfiguration) {
+    DEBUG_LOG("[DirettaOutput] ℹ️  First configuration, no silence needed");
+} else {
+    DEBUG_LOG("[DirettaOutput] ℹ️  Same format, no silence needed");
+}  
     
     DEBUG_LOG("[DirettaOutput] ✓ Connected: " << format.sampleRate 
               << "Hz/" << format.bitDepth << "bit/" << format.channels << "ch");
