@@ -1000,48 +1000,38 @@ bool DirettaOutput::configureDiretta(const AudioFormat& format) {
     }
     std::cout << " " << format.channels << "ch" << std::endl;
 
-// ════════════════════════════════════════════════════════════════
-// ⭐ v1.2.1 : Silence SEULEMENT lors de VRAIS changements de format
-// ════════════════════════════════════════════════════════════════
-
-// Variable statique pour mémoriser le dernier format configuré
-static DIRETTA::FormatID lastConfiguredFormat = static_cast<DIRETTA::FormatID>(0);
-
-// Vérifier si c'est un VRAI changement de format
-bool isFirstConfiguration = (lastConfiguredFormat == static_cast<DIRETTA::FormatID>(0));
-bool isFormatChange = !isFirstConfiguration && (lastConfiguredFormat != formatID);
-
-if (m_syncBuffer && isFormatChange) {
-    // ⭐ VRAI changement de format détecté !
+    // ════════════════════════════════════════════════════════════════
+    // ⭐ v1.2.3 : Préparer détection changement de format
+    // ════════════════════════════════════════════════════════════════
+    
+    // Variable statique pour mémoriser le dernier format configuré
+    static DIRETTA::FormatID lastConfiguredFormat = static_cast<DIRETTA::FormatID>(0);
+    
+    // Vérifier si c'est un VRAI changement de format
+    bool isFirstConfiguration = (lastConfiguredFormat == static_cast<DIRETTA::FormatID>(0));
+    bool isFormatChange = !isFirstConfiguration && (lastConfiguredFormat != formatID);
     
     // Détecter si on était en DSD en regardant le format PRÉCÉDENT
     DIRETTA::FormatID previousFormat = lastConfiguredFormat;
     bool wasDSD = (static_cast<uint32_t>(previousFormat) & 
                    static_cast<uint32_t>(DIRETTA::FormatID::FMT_DSD1)) != 0;
     
-    // Calculer nombre de silence buffers nécessaires
+    // Calculer nombre de silence buffers nécessaires (utilisés plus tard)
     int silenceCount = wasDSD ? 100 : 30;
     uint8_t silenceValue = wasDSD ? 0x69 : 0x00;
     
-    DEBUG_LOG("[DirettaOutput] 🔇 Format change detected, sending " 
-              << silenceCount << " silence buffers...");
-    DEBUG_LOG("[DirettaOutput]   Previous: 0x" << std::hex 
-              << static_cast<uint32_t>(previousFormat) << std::dec);
-    DEBUG_LOG("[DirettaOutput]   New: 0x" << std::hex 
-              << static_cast<uint32_t>(formatID) << std::dec);
+    // ════════════════════════════════════════════════════════════════
+    // Configurer le nouveau format
+    // ════════════════════════════════════════════════════════════════
     
-// ════════════════════════════════════════════════════════════════
-// Configurer le nouveau format (ton code existant)
-// ════════════════════════════════════════════════════════════════
-
-m_syncBuffer->setSinkConfigure(formatID);
-
-// Mémoriser le format configuré pour la prochaine fois
-lastConfiguredFormat = formatID;
-
-// Verify the configured format with Target
-DIRETTA::FormatID configuredFormat = m_syncBuffer->getSinkConfigure();
+    m_syncBuffer->setSinkConfigure(formatID);
     
+    // Mémoriser le format configuré pour la prochaine fois
+    lastConfiguredFormat = formatID;
+    
+    // Verify the configured format with Target
+    DIRETTA::FormatID configuredFormat = m_syncBuffer->getSinkConfigure();
+        
     if (configuredFormat == formatID) {
         DEBUG_LOG("[DirettaOutput]    ✅ Target accepted requested format");
     } else {
@@ -1071,12 +1061,12 @@ DIRETTA::FormatID configuredFormat = m_syncBuffer->getSinkConfigure();
     DEBUG_LOG("[DirettaOutput] 3. Setting format...");
     // Format already configured during negotiation above
     
-// 4. Configuring transfer...
-DEBUG_LOG("[DirettaOutput] 4. Configuring transfer...");
-
-// Setup buffer (network config will be optimized below)
-const int fs1sec = format.sampleRate;
-m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);
+    // 4. Configuring transfer...
+    DEBUG_LOG("[DirettaOutput] 4. Configuring transfer...");
+    
+    // Setup buffer (network config will be optimized below)
+    const int fs1sec = format.sampleRate;
+    m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);
     
     // ⭐ v1.2.0 Stable: Optimize network config for format
     optimizeNetworkConfig(format);
@@ -1085,61 +1075,64 @@ m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);
     m_syncBuffer->connect(0, 0);
     // m_syncBuffer->connectWait();
 
-// Wait with timeout
-     int timeoutMs = 10000;
-   int waitedMs = 0;
+    // Wait with timeout
+    int timeoutMs = 10000;
+    int waitedMs = 0;
     while (!m_syncBuffer->is_connect() && waitedMs < timeoutMs) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         waitedMs += 100;
     }
-
-
-
     
     if (!m_syncBuffer->is_connect()) {
         std::cerr << "[DirettaOutput] ❌ Connection failed" << std::endl;
         return false;
     }
-  // ════════════════════════════════════════════════════════════════
-// ⭐ v1.2.3 : Envoyer silence buffers APRÈS connexion
-// ════════════════════════════════════════════════════════════════
-
+    
+    // ════════════════════════════════════════════════════════════════
+    // ⭐ v1.2.3 : Envoyer silence buffers APRÈS connexion
+    // ════════════════════════════════════════════════════════════════
+    
     if (isFormatChange) {
         DEBUG_LOG("[DirettaOutput] 🔇 Format change detected, sending " 
-              << silenceCount << " silence buffers...");
+                  << silenceCount << " silence buffers...");
         DEBUG_LOG("[DirettaOutput]   Previous: 0x" << std::hex 
-              << static_cast<uint32_t>(previousFormat) << std::dec);
+                  << static_cast<uint32_t>(previousFormat) << std::dec);
         DEBUG_LOG("[DirettaOutput]   New: 0x" << std::hex 
-              << static_cast<uint32_t>(formatID) << std::dec);
-    
-    // Envoyer silence buffers
-    for (int i = 0; i < silenceCount; i++) {
-        DIRETTA::Stream stream;
-        stream.resize(8192);
-        std::memset(stream.get(), silenceValue, 8192);
-        m_syncBuffer->setStream(stream);
+                  << static_cast<uint32_t>(formatID) << std::dec);
         
-        // Petit délai tous les 10 buffers
-        if (i > 0 && i % 10 == 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        // Envoyer silence buffers
+        for (int i = 0; i < silenceCount; i++) {
+            DIRETTA::Stream stream;
+            stream.resize(8192);
+            std::memset(stream.get(), silenceValue, 8192);
+            m_syncBuffer->setStream(stream);
+            
+            // Petit délai tous les 10 buffers
+            if (i > 0 && i % 10 == 0) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
         }
+        
+        // Attendre stabilisation DAC
+        std::this_thread::sleep_for(std::chrono::milliseconds(wasDSD ? 100 : 50));
+        
+        DEBUG_LOG("[DirettaOutput] ✅ Silence buffers sent, DAC stabilized");
+        
+    } else if (isFirstConfiguration) {
+        DEBUG_LOG("[DirettaOutput] ℹ️  First configuration, no silence needed");
+    } else {
+        DEBUG_LOG("[DirettaOutput] ℹ️  Same format, no silence needed");
     }
-    
-    // Attendre stabilisation DAC
-    std::this_thread::sleep_for(std::chrono::milliseconds(wasDSD ? 100 : 50));
-    
-    DEBUG_LOG("[DirettaOutput] ✅ Silence buffers sent, DAC stabilized");
-    
-} else if (isFirstConfiguration) {
-    DEBUG_LOG("[DirettaOutput] ℹ️  First configuration, no silence needed");
-} else {
-    DEBUG_LOG("[DirettaOutput] ℹ️  Same format, no silence needed");
-}  
     
     DEBUG_LOG("[DirettaOutput] ✓ Connected: " << format.sampleRate 
               << "Hz/" << format.bitDepth << "bit/" << format.channels << "ch");
     
     return true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ⭐ v1.2.0 Stable: Network optimization by format
+// ═══════════════════════════════════════════════════════════════
 
 
 // ═══════════════════════════════════════════════════════════════
