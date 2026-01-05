@@ -848,9 +848,15 @@ bool DirettaOutput::verifyTargetAvailable() {
 bool DirettaOutput::configureDiretta(const AudioFormat& format) {
     DEBUG_LOG("[DirettaOutput] Configuring SyncBuffer...");
     
-    if (!m_syncBuffer) {
-        DEBUG_LOG("[DirettaOutput] Creating SyncBuffer...");
-        m_syncBuffer = std::make_unique<DIRETTA::SyncBuffer>();
+    // ⭐ v1.2.3 : TOUJOURS recréer m_syncBuffer pour éviter les blocages
+    if (m_syncBuffer) {
+        DEBUG_LOG("[DirettaOutput] Destroying existing SyncBuffer...");
+        m_syncBuffer.reset();  // Détruire l'ancien
+    }
+    
+    DEBUG_LOG("[DirettaOutput] Creating new SyncBuffer...");
+    m_syncBuffer = std::make_unique<DIRETTA::SyncBuffer>();
+  
     }
   
     // ===== BUILD FORMAT =====
@@ -999,7 +1005,7 @@ bool DirettaOutput::configureDiretta(const AudioFormat& format) {
         std::cout << "PCM " << format.bitDepth << "-bit " << format.sampleRate << "Hz";
     }
     std::cout << " " << format.channels << "ch" << std::endl;
-
+    DEBUG_LOG("[DirettaOutput] ⭐ Starting format configuration...");
     // ════════════════════════════════════════════════════════════════
     // ⭐ v1.2.3 : Préparer détection changement de format
     // ════════════════════════════════════════════════════════════════
@@ -1025,7 +1031,8 @@ bool DirettaOutput::configureDiretta(const AudioFormat& format) {
     // ════════════════════════════════════════════════════════════════
     
     m_syncBuffer->setSinkConfigure(formatID);
-    
+    DEBUG_LOG("[DirettaOutput] ⭐ setSinkConfigure() completed");
+
     // Mémoriser le format configuré pour la prochaine fois
     lastConfiguredFormat = formatID;
     
@@ -1073,7 +1080,9 @@ bool DirettaOutput::configureDiretta(const AudioFormat& format) {
     
     DEBUG_LOG("[DirettaOutput] 6. Connecting...");
     m_syncBuffer->connect(0, 0);
+    DEBUG_LOG("[DirettaOutput] ⭐ connect() called, waiting for is_connect()..."); 
     // m_syncBuffer->connectWait();
+
 
     // Wait with timeout
     int timeoutMs = 10000;
