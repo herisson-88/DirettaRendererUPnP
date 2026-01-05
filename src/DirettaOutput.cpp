@@ -970,68 +970,70 @@ if (format.dsdFormat == AudioFormat::DSDFormat::DFF) {
     }
     std::cout << " " << format.channels << "ch" << std::endl;
 
-// Variable statique pour détecter la première configuration
-static bool isFirstConfiguration = true;
+// ════════════════════════════════════════════════════════════════
+// ⭐ v1.2.1 : Silence SEULEMENT lors de VRAIS changements de format
+// ════════════════════════════════════════════════════════════════
 
-// Vérifier qu'on a déjà un format configuré (pas la première fois)
-if (m_syncBuffer && !isFirstConfiguration) {
+// Variable statique pour mémoriser le dernier format configuré
+static DIRETTA::FormatID lastConfiguredFormat = static_cast<DIRETTA::FormatID>(0);
+
+// Vérifier si c'est un VRAI changement de format
+bool isFirstConfiguration = (lastConfiguredFormat == static_cast<DIRETTA::FormatID>(0));
+bool isFormatChange = !isFirstConfiguration && (lastConfiguredFormat != formatID);
+
+if (m_syncBuffer && isFormatChange) {
+    // ⭐ VRAI changement de format détecté !
     
-    // Détecter si on était en DSD en regardant le format actuel
-    DIRETTA::FormatID currentFormat = m_syncBuffer->getSinkConfigure();
-    bool wasDSD = (static_cast<uint32_t>(currentFormat) & 
+    // Détecter si on était en DSD en regardant le format PRÉCÉDENT
+    DIRETTA::FormatID previousFormat = lastConfiguredFormat;
+    bool wasDSD = (static_cast<uint32_t>(previousFormat) & 
                    static_cast<uint32_t>(DIRETTA::FormatID::FMT_DSD1)) != 0;
     
-    if (wasDSD) {
-        // DSD → autre format : envoyer 100 buffers de silence DSD
-        DEBUG_LOG("[DirettaOutput] 🔇 Sending 100 DSD silence buffers before format change...");
-        
-        std::vector<uint8_t> silenceBuffer(8192, 0x69);  // DSD silence = 0x69
-        
-        for (int i = 0; i < 100; i++) {
-            DIRETTA::Stream stream;
-            stream.resize(silenceBuffer.size());
-            memcpy(stream.get(), silenceBuffer.data(), silenceBuffer.size());
-            m_syncBuffer->setStream(stream);
-            
-            // Petit délai tous les 10 buffers
-            if (i % 10 == 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            }
-        }
-        
-        // Attendre que tout soit envoyé
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        DEBUG_LOG("[DirettaOutput] ✅ DSD silence buffers sent");
-        
-    } else {
-        // PCM → autre format : envoyer 30 buffers de silence PCM
-        DEBUG_LOG("[DirettaOutput] 🔇 Sending 30 PCM silence buffers before format change...");
-        
-        std::vector<uint8_t> silenceBuffer(4096, 0x00);  // PCM silence = 0x00
-        
-        for (int i = 0; i < 30; i++) {
-            DIRETTA::Stream stream;
-            stream.resize(silenceBuffer.size());
-            memcpy(stream.get(), silenceBuffer.data(), silenceBuffer.size());
-            m_syncBuffer->setStream(stream);
-            
-            if (i % 10 == 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(5));
-            }
-        }
-        
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        DEBUG_LOG("[DirettaOutput] ✅ PCM silence buffers sent");
-    }
-} else {
-    if (isFirstConfiguration) {
-        DEBUG_LOG("[DirettaOutput] ℹ️  First configuration, skipping silence buffers");
-    }
-}
-    m_syncBuffer->setSinkConfigure(formatID);
+    // Calculer nombre de silence buffers nécessaires
+    int silenceCount = wasDSD ? 100 : 30;
+    uint8_t silenceValue = wasDSD ? 0x69 : 0x00;
     
-    // Verify the configured format with Target
-    DIRETTA::FormatID configuredFormat = m_syncBuffer->getSinkConfigure();
+    DEBUG_LOG("[DirettaOutput] 🔇 Format change detected, sending " 
+              << silenceCount << " silence buffers...");
+    DEBUG_LOG("[DirettaOutput]   Previous: 0x" << std::hex 
+              << static_cast<uint32_t>(previousFormat) << std::dec);
+    DEBUG_LOG("[DirettaOutput]   New: 0x" << std::hex 
+              << static_cast<uint32_t>(formatID) << std::dec);
+    
+    // Envoyer silence buffers
+    for (int i = 0; i < silenceCount; i++) {
+        DIRETTA::Stream stream;
+        stream.resize(8192);
+        std::memset(stream.get(), silenceValue, 8192);
+        m_syncBuffer->setStream(stream);
+        
+        // Petit délai tous les 10 buffers
+        if (i > 0 && i % 10 == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+    }
+    
+    // Attendre stabilisation DAC
+    std::this_thread::sleep_for(std::chrono::milliseconds(wasDSD ? 100 : 50));
+    
+    DEBUG_LOG("[DirettaOutput] ✅ Silence buffers sent, DAC stabilized");
+    
+} else if (isFirstConfiguration) {
+    DEBUG_LOG("[DirettaOutput] ℹ️  First configuration, no silence needed");
+} else {
+    DEBUG_LOG("[DirettaOutput] ℹ️  Same format, no silence needed");
+}
+// ════════════════════════════════════════════════════════════════
+// Configurer le nouveau format (ton code existant)
+// ════════════════════════════════════════════════════════════════
+
+m_syncBuffer->setSinkConfigure(formatID);
+
+// Mémoriser le format configuré pour la prochaine fois
+lastConfiguredFormat = formatID;
+
+// Verify the configured format with Target
+DIRETTA::FormatID configuredFormat = m_syncBuffer->getSinkConfigure();
     
     if (configuredFormat == formatID) {
         DEBUG_LOG("[DirettaOutput]    ✅ Target accepted requested format");
