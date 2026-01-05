@@ -1141,7 +1141,7 @@ m_syncBuffer->setupBuffer(fs1sec * m_bufferSeconds, 4, false);
     
     return true;
 }
-
+}
 // ═══════════════════════════════════════════════════════════════
 // ⭐ v1.2.0 Stable: Network optimization by format
 // ═══════════════════════════════════════════════════════════════
@@ -1150,7 +1150,8 @@ void DirettaOutput::optimizeNetworkConfig(const AudioFormat& format) {
     if (!m_syncBuffer) {
         return;
     }
-}
+
+
     DEBUG_LOG("[DirettaOutput] 🔧 Configuring network: VarMax (maximum throughput)");
     
     // ⭐ v1.2.0: Use VarMax for all formats (best performance with jumbo frames)
