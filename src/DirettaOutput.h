@@ -279,7 +279,7 @@ private:
     DirettaOutput(const DirettaOutput&) = delete;
     DirettaOutput& operator=(const DirettaOutput&) = delete;
 
-    / ⭐ v1.2.1 : DSD bit reversal flag
+    // ⭐ v1.2.1 : DSD bit reversal flag
     bool m_needDsdBitReversal = false;
 };
 
