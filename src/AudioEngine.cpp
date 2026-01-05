@@ -244,11 +244,11 @@ bool AudioDecoder::open(const std::string& url) {
                 // Fallback : détecter par codec ID
                 if (codecpar->codec_id == AV_CODEC_ID_DSD_LSBF ||
                     codecpar->codec_id == AV_CODEC_ID_DSD_LSBF_PLANAR) {
-                    m_trackInfo.dsdSourceFormat = DSDSourceFormat::DSF;
+                    m_trackInfo.dsdSourceFormat = TrackInfo::DSDSourceFormat::DSF;
                     DEBUG_LOG("[AudioDecoder] 📀 DSD source format: DSF (detected from codec)");
                 }
                 else {
-                    m_trackInfo.dsdSourceFormat = DSDSourceFormat::DFF;
+                    m_trackInfo.dsdSourceFormat = TrackInfo::DSDSourceFormat::DFF;
                     DEBUG_LOG("[AudioDecoder] 📀 DSD source format: DFF (detected from codec)");
                 }
             }
