@@ -972,7 +972,7 @@ if (format.dsdFormat == AudioFormat::DSDFormat::DFF) {
 
 // Détecter si on était en DSD en regardant le format actuel
 DIRETTA::FormatID currentFormat = m_syncBuffer->getSinkConfigure();
-bool wasDSD = (currentFormat & DIRETTA::FormatID::FMT_DSD1) != 0;
+bool wasDSD = (static_cast<uint32_t>(currentFormat) & static_cast<uint32_t>(DIRETTA::FormatID::FMT_DSD1)) != 0;
 
 if (wasDSD) {
     // DSD → autre format : envoyer 100 buffers de silence DSD
@@ -1016,7 +1016,6 @@ if (wasDSD) {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     DEBUG_LOG("[DirettaOutput] ✅ PCM silence buffers sent");
 }
-
     m_syncBuffer->setSinkConfigure(formatID);
     
     // Verify the configured format with Target
