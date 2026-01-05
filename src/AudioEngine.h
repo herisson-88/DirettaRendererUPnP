@@ -19,11 +19,7 @@ extern "C" {
 /**
  * @brief DSD source format (DSF vs DFF)
  */
-enum class DSDSourceFormat {
-    DSF,      // LSB first (bit 0 = LSB)
-    DFF,      // MSB first (bit 0 = MSB)
-    Unknown
-};
+
 /**
  * @brief Audio track information
  */
@@ -40,7 +36,7 @@ struct TrackInfo {
     bool isCompressed; // true if format requires decoding (FLAC/ALAC), false for WAV/AIFF
     
     // ⭐ NOUVEAU v1.2.1
-    DSDSourceFormat dsdSourceFormat;
+    AudioFormat::DSDFormat dsdSourceFormat;
 
     TrackInfo() : sampleRate(0), bitDepth(0), channels(2), duration(0), 
                   isDSD(false), dsdRate(0), isCompressed(true), 

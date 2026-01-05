@@ -232,12 +232,12 @@ bool AudioDecoder::open(const std::string& url) {
             // Détecter par extension fichier
             if (url.find(".dsf") != std::string::npos || 
                 url.find(".DSF") != std::string::npos) {
-                m_trackInfo.dsdSourceFormat = DSDSourceFormat::DSF;
+                m_trackInfo.dsdSourceFormat = AudioFormat::DSDFormat::DSF;
                 DEBUG_LOG("[AudioDecoder] 📀 DSD source format: DSF (LSB first)");
             }
             else if (url.find(".dff") != std::string::npos || 
                      url.find(".DFF") != std::string::npos) {
-                m_trackInfo.dsdSourceFormat = DSDSourceFormat::DFF;
+                m_trackInfo.dsdSourceFormat = AudioFormat::DSDFormat::DFF;
                 DEBUG_LOG("[AudioDecoder] 📀 DSD source format: DFF (MSB first)");
             }
             else {
