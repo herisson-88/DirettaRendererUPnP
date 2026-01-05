@@ -863,7 +863,7 @@ bool DirettaOutput::configureDiretta(const AudioFormat& format) {
         // ✅ Base DSD format - always use FMT_DSD1 and FMT_DSD_SIZ_32
         formatID = DIRETTA::FormatID::FMT_DSD1 | DIRETTA::FormatID::FMT_DSD_SIZ_32;
         
-        // ⭐ v1.2.3 : Configuration intelligente basée sur format source
+        // ⭐ v1.2.1 : Configuration intelligente basée sur format source
         
         // Détecter format source (DSF = LSB, DFF = MSB)
         bool sourceIsLSB = (format.dsdSourceFormat == DSDSourceFormat::DSF);

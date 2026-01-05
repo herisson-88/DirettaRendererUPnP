@@ -23,7 +23,7 @@ enum class DSDSourceFormat {
     DSF,      // LSB first (bit 0 = LSB)
     DFF,      // MSB first (bit 0 = MSB)
     Unknown
-
+};
 /**
  * @brief Audio track information
  */
