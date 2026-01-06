@@ -88,7 +88,7 @@ bool DirettaOutput::open(const AudioFormat& format, float bufferSeconds) {
     m_totalSamplesSent = 0;
     DEBUG_LOG("[DirettaOutput] ⭐ m_totalSamplesSent RESET to 0");
     
-    // ⭐ v1.4.0: SDK Diretta Gapless Pro handles ALL buffering intelligently
+    // ⭐ v1.2.0: SDK Diretta Gapless Pro handles ALL buffering intelligently
     // User controls buffer via --buffer parameter, SDK adapts automatically
     // Tests show even --buffer 0 works perfectly - SDK manages everything!
     
