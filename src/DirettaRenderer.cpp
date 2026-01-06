@@ -866,7 +866,6 @@ void DirettaRenderer::audioThreadFunc() {
             
             nextProcessTime += lastInterval;
             
-            if (!success) {
             // ⭐ Static counters OUTSIDE if/else to avoid shadow variable bug
             static int failCount = 0;
             static int totalFails = 0;
@@ -886,7 +885,7 @@ void DirettaRenderer::audioThreadFunc() {
                 
             } else {
                 // Reset le compteur d'échecs consécutifs quand ça réussit
-                failCount = 0;  // ← Maintenant c'est la MÊME variable !
+                failCount = 0;
             }
                    
         } else {
