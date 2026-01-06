@@ -38,6 +38,25 @@ AudioBuffer::~AudioBuffer() {
     }
 }
 
+AudioBuffer::AudioBuffer(AudioBuffer&& other) noexcept
+    : m_data(other.m_data)
+    , m_size(other.m_size)
+{
+    other.m_data = nullptr;
+    other.m_size = 0;
+}
+
+AudioBuffer& AudioBuffer::operator=(AudioBuffer&& other) noexcept {
+    if (this != &other) {
+        delete[] m_data;
+        m_data = other.m_data;
+        m_size = other.m_size;
+        other.m_data = nullptr;
+        other.m_size = 0;
+    }
+    return *this;
+}
+
 void AudioBuffer::resize(size_t size) {
     if (m_data) {
         delete[] m_data;
@@ -274,6 +293,30 @@ bool AudioDecoder::open(const std::string& url) {
 
             m_trackInfo.isDSD = true;
             m_trackInfo.bitDepth = 1; // DSD is 1-bit
+
+            // Detect DSF vs DFF from file extension (for correct bit ordering)
+            if (m_formatContext && m_formatContext->url) {
+                std::string url(m_formatContext->url);
+                if (url.find(".dsf") != std::string::npos ||
+                    url.find(".DSF") != std::string::npos) {
+                    m_trackInfo.dsdSourceFormat = TrackInfo::DSDSourceFormat::DSF;
+                    DEBUG_LOG("[AudioDecoder] DSD source format: DSF (LSB first)");
+                } else if (url.find(".dff") != std::string::npos ||
+                           url.find(".DFF") != std::string::npos) {
+                    m_trackInfo.dsdSourceFormat = TrackInfo::DSDSourceFormat::DFF;
+                    DEBUG_LOG("[AudioDecoder] DSD source format: DFF (MSB first)");
+                } else {
+                    // Fallback: detect from codec ID
+                    if (codecpar->codec_id == AV_CODEC_ID_DSD_LSBF ||
+                        codecpar->codec_id == AV_CODEC_ID_DSD_LSBF_PLANAR) {
+                        m_trackInfo.dsdSourceFormat = TrackInfo::DSDSourceFormat::DSF;
+                        DEBUG_LOG("[AudioDecoder] DSD source format: DSF (from codec)");
+                    } else {
+                        m_trackInfo.dsdSourceFormat = TrackInfo::DSDSourceFormat::DFF;
+                        DEBUG_LOG("[AudioDecoder] DSD source format: DFF (from codec)");
+                    }
+                }
+            }
 
             // CRITICAL: FFmpeg reports packet rate, not DSD bit rate!
             // For DSD: bit_rate = packet_rate × 8 (8 bits per byte)

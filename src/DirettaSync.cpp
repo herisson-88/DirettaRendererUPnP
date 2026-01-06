@@ -310,6 +310,7 @@ bool DirettaSync::open(const AudioFormat& format) {
             m_ringBuffer.clear();
             m_prefillComplete = false;
             m_stopRequested = false;
+            m_draining = false;  // CRITICAL: Reset draining flag or sendAudio() will reject data
             play();
             m_playing = true;
             m_paused = false;

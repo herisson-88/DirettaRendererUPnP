@@ -169,9 +169,22 @@ bool DirettaRenderer::start() {
 
                 if (trackInfo.isDSD) {
                     format.bitDepth = 1;
-                    format.dsdFormat = (trackInfo.codec.find("lsb") != std::string::npos)
-                        ? AudioFormat::DSDFormat::DSF
-                        : AudioFormat::DSDFormat::DFF;
+                    // Use detected source format (from file extension or codec)
+                    if (trackInfo.dsdSourceFormat == TrackInfo::DSDSourceFormat::DSF) {
+                        format.dsdFormat = AudioFormat::DSDFormat::DSF;
+                        DEBUG_LOG("[Callback] DSD format: DSF (LSB first)");
+                    } else if (trackInfo.dsdSourceFormat == TrackInfo::DSDSourceFormat::DFF) {
+                        format.dsdFormat = AudioFormat::DSDFormat::DFF;
+                        DEBUG_LOG("[Callback] DSD format: DFF (MSB first)");
+                    } else {
+                        // Fallback to codec string if detection failed
+                        format.dsdFormat = (trackInfo.codec.find("lsb") != std::string::npos)
+                            ? AudioFormat::DSDFormat::DSF
+                            : AudioFormat::DSDFormat::DFF;
+                        DEBUG_LOG("[Callback] DSD format: "
+                                  << (format.dsdFormat == AudioFormat::DSDFormat::DSF ? "DSF" : "DFF")
+                                  << " (from codec fallback)");
+                    }
                 }
 
                 // Open/resume connection if needed
