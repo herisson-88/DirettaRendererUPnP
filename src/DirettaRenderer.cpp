@@ -201,23 +201,33 @@ m_audioEngine->setAudioCallback(
         bool needReopen = false;
         bool formatChanged = false;
 
-        // Build current format from callback parameters
+// Build current format from callback parameters
         AudioFormat currentFormat(sampleRate, bitDepth, channels);
         currentFormat.isDSD = trackInfo.isDSD;
         currentFormat.isCompressed = trackInfo.isCompressed;
 
         if (trackInfo.isDSD) {
             currentFormat.bitDepth = 1;  // DSD = 1 bit
-            std::string codec = trackInfo.codec;
-            if (codec.find("lsb") != std::string::npos) {
+            
+            // ⭐ v1.2.1 : Utiliser la détection depuis AudioEngine (plus précise)
+            if (trackInfo.dsdSourceFormat == TrackInfo::DSDSourceFormat::DSF) {
                 currentFormat.dsdFormat = AudioFormat::DSDFormat::DSF;
-                DEBUG_LOG("[Callback] DSD format: DSF (LSB)");
-            } else {
+                DEBUG_LOG("[Callback] DSD format: DSF (LSB) - from file detection");
+            } else if (trackInfo.dsdSourceFormat == TrackInfo::DSDSourceFormat::DFF) {
                 currentFormat.dsdFormat = AudioFormat::DSDFormat::DFF;
-                DEBUG_LOG("[Callback] DSD format: DFF (MSB)");
+                DEBUG_LOG("[Callback] DSD format: DFF (MSB) - from file detection");
+            } else {
+                // Fallback sur codec string si détection a échoué
+                std::string codec = trackInfo.codec;
+                if (codec.find("lsb") != std::string::npos) {
+                    currentFormat.dsdFormat = AudioFormat::DSDFormat::DSF;
+                    DEBUG_LOG("[Callback] DSD format: DSF (LSB) - from codec fallback");
+                } else {
+                    currentFormat.dsdFormat = AudioFormat::DSDFormat::DFF;
+                    DEBUG_LOG("[Callback] DSD format: DFF (MSB) - from codec fallback");
+                }
             }
         }
-        
         // ═══════════════════════════════════════════════════════════════
         // ⭐ Format change detection (works EVEN after close())
         // ═══════════════════════════════════════════════════════════════
@@ -337,22 +347,31 @@ m_audioEngine->setAudioCallback(
             // ⭐ Propagate compression info for buffer optimization
             format.isCompressed = trackInfo.isCompressed;
             
-            // ⭐ Configure DSD if needed
-                if (trackInfo.isDSD) {
-                format.isDSD = true;
-                format.bitDepth = 1;  // DSD = 1 bit
-                format.sampleRate = sampleRate;
-                
-                // Determine DSD format from codec
-                std::string codec = trackInfo.codec;
-                if (codec.find("lsb") != std::string::npos) {
-                format.dsdFormat = AudioFormat::DSDFormat::DSF;
-                DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DSF (LSB)");
-             } else {
-                format.dsdFormat = AudioFormat::DSDFormat::DFF;
-            DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DFF (MSB)");
-          }
-      }
+// ⭐ Configure DSD if needed
+if (trackInfo.isDSD) {
+    format.isDSD = true;
+    format.bitDepth = 1;  // DSD = 1 bit
+    format.sampleRate = sampleRate;
+    
+    // ⭐ v1.2.3 : Utiliser la détection depuis AudioEngine (même code que callback)
+    if (trackInfo.dsdSourceFormat == TrackInfo::DSDSourceFormat::DSF) {
+        format.dsdFormat = AudioFormat::DSDFormat::DSF;
+        DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DSF (LSB) - from file detection");
+    } else if (trackInfo.dsdSourceFormat == TrackInfo::DSDSourceFormat::DFF) {
+        format.dsdFormat = AudioFormat::DSDFormat::DFF;
+        DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DFF (MSB) - from file detection");
+    } else {
+        // Fallback sur codec string si détection a échoué
+        std::string codec = trackInfo.codec;
+        if (codec.find("lsb") != std::string::npos) {
+            format.dsdFormat = AudioFormat::DSDFormat::DSF;
+            DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DSF (LSB) - from codec fallback");
+        } else {
+            format.dsdFormat = AudioFormat::DSDFormat::DFF;
+            DEBUG_LOG("[DirettaRenderer] 🎵 DSD format: DFF (MSB) - from codec fallback");
+        }
+    }
+}
             
             if (g_verbose) {
                 std::cout << "[DirettaRenderer] 🔌 Opening Diretta connection: ";
@@ -661,33 +680,34 @@ callbacks.onStop = [&lastStopTime, this]() {
     }
 };
 
-callbacks.onSeek = [this](const std::string& target) {  // ⭐ Enlever unit
-    std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
+callbacks.onSeek = [this](const std::string& target) {
+    std::lock_guard<std::mutex> lock(m_mutex);
     std::cout << "════════════════════════════════════════" << std::endl;
     std::cout << "[DirettaRenderer] 🔍 SEEK REQUESTED" << std::endl;
     std::cout << "   Target: " << target << std::endl;
     std::cout << "════════════════════════════════════════" << std::endl;
     
     try {
-        // Parser le target (format: "HH:MM:SS" ou "HH:MM:SS.mmm")
         double seconds = parseTimeString(target);
-        
         std::cout << "[DirettaRenderer] Parsed time: " << seconds << "s" << std::endl;
-        // Seek dans AudioEngine
+        
+        // Seek dans AudioEngine SEULEMENT
+        // Le SDK Diretta se resynchronisera naturellement
         if (m_audioEngine) {
             std::cout << "[DirettaRenderer] Seeking AudioEngine..." << std::endl;
             if (!m_audioEngine->seek(seconds)) {
                 std::cerr << "[DirettaRenderer] ❌ AudioEngine seek failed" << std::endl;
                 return;
             }
-            DEBUG_LOG("[DirettaRenderer] ✓ Seek request sent to AudioEngine (async)");        }
+            DEBUG_LOG("[DirettaRenderer] ✓ Seek request sent to AudioEngine (async)");
+        }
         
-            DEBUG_LOG("[DirettaRenderer] ✓ Seek complete");
+        DEBUG_LOG("[DirettaRenderer] ✓ Seek complete");
         
     } catch (const std::exception& e) {
         std::cerr << "❌ Exception in Seek callback: " << e.what() << std::endl;
     }
-	};
+};
         
 
 m_upnp->setCallbacks(callbacks);       

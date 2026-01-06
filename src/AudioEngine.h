@@ -17,23 +17,38 @@ extern "C" {
 }
 
 /**
+ * @brief DSD source format (DSF vs DFF)
+ */
+
+/**
  * @brief Audio track information
  */
 struct TrackInfo {
+    // ⭐ v1.2.3 : DSD source format enum (défini ici pour éviter dépendances)
+    enum class DSDSourceFormat {
+        DSF,      // LSB first
+        DFF,      // MSB first  
+        Unknown
+    };
+    
     std::string uri;
     std::string metadata;
     uint32_t sampleRate;
     uint32_t bitDepth;
     uint32_t channels;
     std::string codec;
-    uint64_t duration; // in samples
-    bool isDSD;        // true if DSD format
-    int dsdRate;       // DSD rate (64, 128, 256, 512, 1024)
-    bool isCompressed; // true if format requires decoding (FLAC/ALAC), false for WAV/AIFF
+    uint64_t duration;
+    bool isDSD;
+    int dsdRate;
+    bool isCompressed;
     
-    TrackInfo() : sampleRate(0), bitDepth(0), channels(2), duration(0), isDSD(false), dsdRate(0), isCompressed(true) {}
-};
+    // ⭐ v1.2.3 : Format source DSD
+    DSDSourceFormat dsdSourceFormat;
 
+    TrackInfo() : sampleRate(0), bitDepth(0), channels(2), duration(0), 
+                  isDSD(false), dsdRate(0), isCompressed(true), 
+                  dsdSourceFormat(DSDSourceFormat::Unknown) {}
+};
 /**
  * @brief Audio buffer for streaming
  */
