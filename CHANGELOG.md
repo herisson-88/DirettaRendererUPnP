@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.2.1] - 2026-01-06
+
+### 🎵 DSD Format Enhancement
+
+**Improved DSD File Detection**
+- **Smart DSF vs DFF detection**: Automatic detection of DSD source format based on file extension (`.dsf` or `.dff`)
+- **Bit order handling**: Proper bit reversal flag (`m_needDsdBitReversal`) to handle LSB-first (DSF) vs MSB-first (DFF) formats
+- **Format propagation**: DSD source format information flows from AudioEngine to DirettaRenderer for accurate playback configuration
+
+**Technical Implementation:**
+- `TrackInfo::DSDSourceFormat` enum to track DSF vs DFF files
+- File extension parsing in AudioEngine to detect format type
+- Fallback to codec string parsing if file detection fails
+- Integration with DirettaOutput for correct bit order processing
+
+### 🔧 Seeking Improvements
+
+**DSD Raw Seek Enhancement**
+- **File repositioning for DSD**: Precise seeking in raw DSD streams using byte-level positioning
+- **Accurate calculation**: Bit-accurate positioning based on sample rate and channel count
+- **Better logging**: Enhanced debug output showing target bytes, bits, and format information
+
+**Benefits:**
+- More accurate seek operations in DSD files
+- Proper file pointer management during playback
+- Improved user experience when scrubbing through DSD tracks
+
 ## [1.2.0] - 2025-12-27
 
 ### 🎵 Major Features
