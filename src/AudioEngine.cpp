@@ -246,7 +246,7 @@ bool AudioDecoder::open(const std::string& url) {
             m_trackInfo.isDSD = true;
             m_trackInfo.bitDepth = 1; // DSD is 1-bit
             
-        // ⭐ v1.2.1 : Détecter DSF vs DFF
+        // ⭐ v1.2.0 : Détecter DSF vs DFF
         if (m_formatContext && m_formatContext->url) {
             std::string url(m_formatContext->url);
             
@@ -1556,7 +1556,7 @@ bool AudioDecoder::seek(double seconds) {
         return false;
     }
     
-    // ⭐ v1.2.1: DSD raw seek with file repositioning
+    // ⭐ v1.2.0: DSD raw seek with file repositioning
     if (m_rawDSD) {
         std::cout << "[AudioDecoder] DSD seek to " << seconds << "s (with file repositioning)" << std::endl;
         
