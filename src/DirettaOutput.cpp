@@ -1130,7 +1130,7 @@ bool DirettaOutput::configureDiretta(const AudioFormat& format) {
 // ⭐ v1.2.0 Stable: Network optimization by format
 // ═══════════════════════════════════════════════════════════════
 
-void DirettaOutput::optimizeNetworkConfig(const AudioFormat& /*format*/ {
+void DirettaOutput::optimizeNetworkConfig(const AudioFormat& /*format*/) {
     if (!m_syncBuffer) {
         return;
     }
