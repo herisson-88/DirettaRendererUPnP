@@ -116,7 +116,10 @@ bool DirettaRenderer::start() {
         m_direttaOutput->setTargetIndex(m_config.targetIndex);
          // ⭐ NEW: Set transfer mode
         m_direttaOutput->setTransferMode(m_config.transferMode);
-        
+        // ⭐ v1.3.0: Set cycle time (CRITIQUE pour Fix mode!)
+        m_direttaOutput->setCycleTime(m_config.cycleTime);
+
+
         // ⭐ Verify target is available by attempting discovery
         if (!m_direttaOutput->verifyTargetAvailable()) {
             std::cerr << "[DirettaRenderer] " << std::endl;
