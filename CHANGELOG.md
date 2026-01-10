@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.3.0] - 2026-01-
+## [1.3.0] - 2026-01-10
 ### 🚀 NEW FEATURES
  **Same-Format Fast Path (Thanks to SwissMountainsBear)**
  Track transitions within the same audio format are now dramatically faster.
@@ -51,6 +51,65 @@ Technical details:
 - Formula: cycleTime = (effectiveMTU / bytesPerSecond) × 1,000,000 µs
 - Effective MTU = configured MTU - 24 bytes overhead
 - Applied in DirettaOutput::optimizeNetworkConfig()
+
+**Added `--transfer-mode` option for precise timing control**
+
+Users can now choose between two transfer timing modes:
+
+- **VarMax (default)**: Adaptive cycle timing for optimal bandwidth usage
+  - Cycle time varies dynamically between min and max values
+  - Best for most users and use cases
+  
+- **Fix**: Fixed cycle timing for precise timing control
+  - Cycle time remains constant at user-specified value
+  - Enables experimentation with specific frequencies
+  - Requested by audiophile users who report sonic differences with certain fixed frequencies
+
+**Usage examples:**
+
+```bash
+# Default adaptive mode (VarMax)
+sudo ./DirettaRendererUPnP --target 1
+
+# Fixed timing mode at 528 Hz (1893 µs)
+sudo ./DirettaRendererUPnP --target 1 --transfer-mode fix --cycle-time 1893
+
+# Fixed timing mode at 500 Hz (2000 µs)
+sudo ./DirettaRendererUPnP --target 1 --transfer-mode fix --cycle-time 2000
+```
+
+**Popular cycle time values for Fix mode:**
+- 1893 µs = 528 Hz (reported as "musical" by some audiophiles)
+- 2000 µs = 500 Hz
+- 1000 µs = 1000 Hz
+
+
+### Technical Details
+
+- **VarMax mode**: Uses Diretta SDK `configTransferVarMax()` 
+  - Adaptive cycle timing between min (333 µs) and max (default 10000 µs)
+  - Optimal for bandwidth efficiency
+  
+- **Fix mode**: Uses Diretta SDK `configTransferFix()`
+  - Fixed cycle time at user-specified value
+  - Requires explicit `--cycle-time` parameter
+  - Provides precise timing control for audio experimentation
+
+- **Cycle time parameter behavior:**
+  - In VarMax mode: Sets maximum cycle time (optional)
+  - In Fix mode: Sets fixed cycle time (required)
+
+
+### Requirements
+
+- Fix mode requires explicit `--cycle-time` specification
+- If `--transfer-mode fix` is used without `--cycle-time`, the renderer will exit with a clear error message and usage examples
+
+
+### Breaking Changes
+
+None. VarMax mode is the default, so existing configurations and scripts continue to work unchanged.
+
 
 ### 🐛 CRITICAL BUGFIXES (Thanks to SwissMountainsBear)
  🔴 Shadow Variable in Audio Thread (DirettaRenderer.cpp)
@@ -151,7 +210,8 @@ Dominique COMET:
 ## 🔄 MIGRATION FROM v1.2.x
 ═══════════════════════════════════════════════════════════════════════════
 
-No configuration changes required. All improvements are automatic.
+Configutaion change, please remove diretta-renderer.conf and and start-renderer.sh files in /opt/diretta-renderer-upnp/ before install sytemd.
+
 
 Optional Recommendations:
 ────────────────────────────────────────────────────────────────────────────

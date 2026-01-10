@@ -8,8 +8,9 @@
 
 ---
 
-![Version](https://img.shields.io/badge/version-1.2.1-blue.svg)
-![Multi-Interface - Gapless enhanced ](https://img.shields.io/badge/multi--interface-supported-green.svg) ← NEW
+![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
+![Gapless enhanced ](https://img.shields.io/badge/Gapless-enhanced-green.svg)
+![Transfer Mode ](https://img.shields.io/badge/Transfer-Mode-orange.svg)
 
 ---
 
@@ -51,7 +52,7 @@ This renderer uses the **Diretta Host SDK**, which is proprietary software by Yu
 - [System Optimization](#system-optimization)
 - [Command Line Options](#command-line-options)
 - [Advanced Settings](#advanced-settings)
-- [Multi-Homed Systems](#multi-homed-systems--network-interface-selection) ← NOUVEAU
+- [Multi-Homed Systems](#multi-homed-systems--network-interface-selection)
 - [Documentation](#documentation)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
@@ -309,13 +310,13 @@ cd DirettaRendererUPnP
 # Build (Makefile auto-detects SDK location)
 make
 
-## Upgrade from v1.1.1
+## Upgrade from v1.2.2
 
-**No configuration changes needed!**
+**configuration changes needed!**
 
 1. Backup your current version:
    ```bash
-   cp bin/DirettaRendererUPnP bin/DirettaRendererUPnP.v1.1.1.backup
+   cp bin/DirettaRendererUPnP bin/DirettaRendererUPnP.v1.2.2.backup
    ```
 
 2. Update binary:
@@ -330,8 +331,9 @@ make
    sudo ./bin/DirettaRendererUPnP --target 1 --verbose (+other options you need)
    ```
 
-# Before installing service (if updating to version 1.0.9 - settings will be lost - not needed if you update from v1.1.0 to v1.1.1)
+# Before installing service (if updating to version 1.2.2 - settings will be lost)
 sudo rm /opt/diretta-renderer-upnp/diretta-renderer.conf
+sudo rm /opt/diretta-renderer-upnp/start-renderer.sh
 
 sudo systemctl stop diretta-renderer
 
@@ -412,12 +414,6 @@ sudo ./bin/DirettaRendererUPnP --target 1 --buffer 0.5
 # Total latency: ~1.5 seconds
 ```
 
-### Disable Gapless (if needed)
-
-```bash
-sudo ./bin/DirettaRendererUPnP --target 1 --no-gapless
-```
-
 ### Verbose Logging
 
 See gapless in action:
@@ -433,7 +429,6 @@ Expected logs during gapless transitions:
 [DirettaOutput] 🎵 Preparing next track for gapless...
 [DirettaOutput] ✅ Next track prepared for gapless transition
 ```
-
 ---
 
 ## Advanced Usage
@@ -443,6 +438,9 @@ Expected logs during gapless transitions:
 Choose buffer size based on your network:
 
 ```bash
+# No latency 
+--buffer 0.0
+
 # Minimal latency (stable network required)
 --buffer 0.5    # ~1.5s total latency
 
@@ -740,11 +738,11 @@ For more solutions, see the [Troubleshooting Guide](docs/TROUBLESHOOTING.md).
 --verbose               Enable verbose debug output
 ```
 
-### Advanced Diretta SDK Options
+## Advanced Settings
 
 Fine-tune the Diretta protocol behavior for optimal performance:
 
-#### Thread Mode (`--thread-mode <value>`)
+### Thread Mode (`--thread-mode <value>`)
 
 Controls real-time thread behavior using a bitmask. Add values together for multiple flags.
 
@@ -778,58 +776,80 @@ Controls real-time thread behavior using a bitmask. Add values together for mult
 --thread-mode 33
 ```
 
-#### Transfer Timing
+### Transfer Mode (v1.3.0+)
 
-Fine-tune packet transfer timing:
+DirettaRendererUPnP supports two transfer timing modes for advanced audio control.
 
-```bash
---cycle-time <µs>       Transfer packet cycle max time (default: 10000)
-                        Range: 333-10000 microseconds
+### VarMax Mode (Default)
 
---cycle-min-time <µs>   Transfer packet cycle min time (default: 333)
-                        Only used in random mode
-
---info-cycle <µs>       Information packet cycle time (default: 5000)
-```
-
-**Example:**
-```bash
-# Faster packet cycling for low-latency
---cycle-time 5000 --info-cycle 2500
-```
-
-#### MTU Override
+Adaptive cycle timing that automatically adjusts between minimum and maximum values for optimal bandwidth usage.
 
 ```bash
---mtu <bytes>           Force specific MTU (default: auto-detect)
-                        Common values: 1500 (standard), 9000 (jumbo), 16128 (max)
+sudo ./DirettaRendererUPnP --target 1
 ```
 
-## Configuration File
+**Characteristics:**
+- Cycle time varies dynamically (333 µs to 10000 µs by default)
+- Optimal bandwidth efficiency
+- Best for most users and use cases
 
-Edit `/opt/diretta-renderer-upnp/diretta-renderer.conf` for persistent settings:
+### Fix Mode
+
+Fixed cycle timing that maintains a constant, precise timing value. Requested by audiophile users who report sonic differences with specific frequencies.
 
 ```bash
-# Basic settings
-TARGET=1
-PORT=4005
-BUFFER=2.0
-GAPLESS=""
-VERBOSE=""
-
-# Advanced Diretta SDK settings (uncomment to override defaults)
-#THREAD_MODE=17
-#CYCLE_TIME=10000
-#CYCLE_MIN_TIME=333
-#INFO_CYCLE=5000
-#MTU_OVERRIDE=16128
+sudo ./DirettaRendererUPnP --target 1 --transfer-mode fix --cycle-time 1893
 ```
 
-After editing, reload the service:
+**Characteristics:**
+- Cycle time remains constant at specified value
+- Precise timing control for audio experimentation
+- Requires explicit `--cycle-time` parameter
+- Some users report perceiving sonic differences
+
+### Popular Cycle Time Values
+
+| Cycle Time (µs) | Frequency (Hz) | Notes |
+|-----------------|----------------|-------|
+| 1893 | 528 | Reported as "musical" by some audiophiles |
+| 2000 | 500 | Nice round number, 0.5 kHz |
+| 1000 | 1000 | 1 kHz timing |
+
+### Examples
+
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl restart diretta-renderer
+# Default VarMax mode
+sudo ./DirettaRendererUPnP --target 1
+
+# VarMax with custom maximum cycle time
+sudo ./DirettaRendererUPnP --target 1 --cycle-time 5000
+
+# Fix mode at 528 Hz (1893 µs)
+sudo ./DirettaRendererUPnP --target 1 --transfer-mode fix --cycle-time 1893
+
+# Fix mode at 500 Hz (2000 µs)
+sudo ./DirettaRendererUPnP --target 1 --transfer-mode fix --cycle-time 2000
 ```
+
+### Help
+
+```bash
+./DirettaRendererUPnP --help
+```
+
+Look for the "Transfer Mode Options" section for complete documentation.
+
+### Technical Details
+
+- **VarMax mode**: Uses Diretta SDK `configTransferVarMax()`
+- **Fix mode**: Uses Diretta SDK `configTransferFix()`
+- Cycle time is displayed in both microseconds and Hertz for Fix mode
+- Validation ensures Fix mode always has an explicit cycle-time value
+
+### Notes
+
+This feature enables experimentation with precise timing control. While some audiophile users report perceiving sonic differences with specific fixed frequencies, scientific evidence for audible differences is limited. Your experience may vary.
+
 
 ## Performance Tuning Examples
 
