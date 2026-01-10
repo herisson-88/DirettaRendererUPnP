@@ -1211,6 +1211,7 @@ void DirettaOutput::optimizeNetworkConfig(const AudioFormat& format) {
     }
     
     DEBUG_LOG("[DirettaOutput] ✓ Network configured");
+}
 // ═══════════════════════════════════════════════════════════════
 // ⭐ v1.2.0: Gapless Pro - Implementation
 // ═══════════════════════════════════════════════════════════════
