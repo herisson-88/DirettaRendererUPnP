@@ -1195,27 +1195,22 @@ void DirettaOutput::optimizeNetworkConfig(const AudioFormat& format) {
         std::cout << "[DirettaOutput] ✓ Transfer: VarMax (adaptive)" << std::endl;
         
     } else {
-        // Fix: Fixed cycle time (precise timing control)
-        bool success = m_syncBuffer->configTransferFix(cycle);
+        // Fix: Use VarMax with min=max to achieve fixed timing
+        // TODO: Replace with configTransferFix() once Yu Harada confirms the int parameter
+        ACQUA::Clock minCycle(cycleTime);
+        ACQUA::Clock maxCycle(cycleTime);
+        m_syncBuffer->configTransferVarMax(minCycle, maxCycle);
         
-        if (success) {
-            // Calculate frequency: freq = 1 / (cycle_time_seconds)
-            double freq_hz = 1000000.0 / cycleTime;
-            
-            DEBUG_LOG("[DirettaOutput]    Mode: Fix (precise timing)");
-            std::cout << "[DirettaOutput] ✓ Transfer: Fix (precise timing)" << std::endl;
-            std::cout << "[DirettaOutput]    Fixed cycle: " << cycleTime 
-                      << " µs (" << std::fixed << std::setprecision(2) 
-                      << freq_hz << " Hz)" << std::endl;
-        } else {
-            std::cerr << "[DirettaOutput] ❌ configTransferFix failed!" << std::endl;
-            std::cerr << "[DirettaOutput]    Falling back to VarMax..." << std::endl;
-            m_syncBuffer->configTransferVarMax(cycle);
-        }
+        double freq_hz = 1000000.0 / cycleTime;
+        
+        DEBUG_LOG("[DirettaOutput]    Mode: Fix (precise timing via VarMax min=max)");
+        std::cout << "[DirettaOutput] ✓ Transfer: Fix (precise timing)" << std::endl;
+        std::cout << "[DirettaOutput]    Fixed cycle: " << cycleTime 
+                  << " µs (" << std::fixed << std::setprecision(2) 
+                  << freq_hz << " Hz)" << std::endl;
     }
     
     DEBUG_LOG("[DirettaOutput] ✓ Network configured");
-}
 // ═══════════════════════════════════════════════════════════════
 // ⭐ v1.2.0: Gapless Pro - Implementation
 // ═══════════════════════════════════════════════════════════════
