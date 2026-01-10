@@ -1198,7 +1198,7 @@ if (m_transferMode == TransferMode::VarMax) {
     // Fix: Fixed cycle time with period
     // Both parameters are the same value (cycle time in microseconds)
     int periodTime = 32;  // Period time = cycle time
-    bool success = m_syncBuffer->configTransferFix(cycle, 1000000)
+    bool success = m_syncBuffer->configTransferFix(cycle, 1000000);
     
     if (success) {
         double freq_hz = 1000000.0 / cycleTime;
