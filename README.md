@@ -363,7 +363,7 @@ sudo ./install-systemd.sh
  8. Disable auto-start:
      sudo systemctl disable diretta-renderer       
 ```
-## 🎵 What's New in v1.2.0 - Gapless Pro Edition
+## 🎵 Gapless Pro Edition
 ---
 ### Seamless Track Transitions
 DirettaRendererUPnP now features **Gapless Pro** - true seamless playback using native Diretta SDK methods:
