@@ -1185,25 +1185,15 @@ void DirettaOutput::optimizeNetworkConfig(const AudioFormat& format) {
     // ⭐ v1.3.1: Configure transfer mode
     // ═══════════════════════════════════════════════════════════════
     
-    ACQUA::Clock cycle(cycleTime);
+        ACQUA::Clock cycle(cycleTime);
+    m_syncBuffer->configTransferVarMax(cycle);
     
     if (m_transferMode == TransferMode::VarMax) {
-        // VarMax: Adaptive cycle time (variable between min and max)
-        m_syncBuffer->configTransferVarMax(cycle);
-        
         DEBUG_LOG("[DirettaOutput]    Mode: VarMax (adaptive)");
         std::cout << "[DirettaOutput] ✓ Transfer: VarMax (adaptive)" << std::endl;
-        
     } else {
-        // Fix: Use VarMax with min=max to achieve fixed timing
-        // TODO: Replace with configTransferFix() once Yu Harada confirms the int parameter
-        ACQUA::Clock minCycle(cycleTime);
-        ACQUA::Clock maxCycle(cycleTime);
-        m_syncBuffer->configTransferVarMax(minCycle, maxCycle);
-        
         double freq_hz = 1000000.0 / cycleTime;
-        
-        DEBUG_LOG("[DirettaOutput]    Mode: Fix (precise timing via VarMax min=max)");
+        DEBUG_LOG("[DirettaOutput]    Mode: Fix (precise timing)");
         std::cout << "[DirettaOutput] ✓ Transfer: Fix (precise timing)" << std::endl;
         std::cout << "[DirettaOutput]    Fixed cycle: " << cycleTime 
                   << " µs (" << std::fixed << std::setprecision(2) 
