@@ -1197,7 +1197,7 @@ if (m_transferMode == TransferMode::VarMax) {
 } else {
     // Fix: Fixed cycle time with period
     // Both parameters are the same value (cycle time in microseconds)
-    int periodTime = cycleTime;  // Period time = cycle time
+    int periodTime = 32;  // Period time = cycle time
     bool success = m_syncBuffer->configTransferFix(cycle, periodTime);
     
     if (success) {
