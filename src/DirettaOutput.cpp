@@ -1181,26 +1181,41 @@ void DirettaOutput::optimizeNetworkConfig(const AudioFormat& format) {
                   << " µs (calculated)");
     }
     
-    // ═══════════════════════════════════════════════════════════════
-    // ⭐ v1.3.1: Configure transfer mode
-    // ═══════════════════════════════════════════════════════════════
-    
-        ACQUA::Clock cycle(cycleTime);
+// ═══════════════════════════════════════════════════════════════
+// ⭐ v1.3.1: Configure transfer mode
+// ═══════════════════════════════════════════════════════════════
+
+if (m_transferMode == TransferMode::VarMax) {
+    // VarMax: Adaptive cycle time
+    ACQUA::Clock cycle = ACQUA::Clock::MicroSeconds(cycleTime);
     m_syncBuffer->configTransferVarMax(cycle);
     
-    if (m_transferMode == TransferMode::VarMax) {
-        DEBUG_LOG("[DirettaOutput]    Mode: VarMax (adaptive)");
-        std::cout << "[DirettaOutput] ✓ Transfer: VarMax (adaptive)" << std::endl;
-    } else {
+    DEBUG_LOG("[DirettaOutput]    Mode: VarMax (adaptive)");
+    std::cout << "[DirettaOutput] ✓ Transfer: VarMax (adaptive)" << std::endl;
+    
+} else {
+    // Fix: Fixed period timing (as per Yu Harada's example)
+    ACQUA::Clock cycle = ACQUA::Clock::MicroSeconds(cycleTime);  // ← MicroSeconds()!
+    int periodTime = cycleTime;  // Same value in microseconds
+    bool success = m_syncBuffer->configTransferFix(cycle, periodTime);
+    
+    if (success) {
         double freq_hz = 1000000.0 / cycleTime;
+        
         DEBUG_LOG("[DirettaOutput]    Mode: Fix (precise timing)");
         std::cout << "[DirettaOutput] ✓ Transfer: Fix (precise timing)" << std::endl;
-        std::cout << "[DirettaOutput]    Fixed cycle: " << cycleTime 
+        std::cout << "[DirettaOutput]    Fixed period: " << cycleTime 
                   << " µs (" << std::fixed << std::setprecision(2) 
                   << freq_hz << " Hz)" << std::endl;
+    } else {
+        std::cerr << "[DirettaOutput] ❌ configTransferFix failed!" << std::endl;
+        std::cerr << "[DirettaOutput]    Falling back to VarMax..." << std::endl;
+        ACQUA::Clock fallback = ACQUA::Clock::MicroSeconds(cycleTime);
+        m_syncBuffer->configTransferVarMax(fallback);
     }
-    
-    DEBUG_LOG("[DirettaOutput] ✓ Network configured");
+}
+
+DEBUG_LOG("[DirettaOutput] ✓ Network configured");
 }
 // ═══════════════════════════════════════════════════════════════
 // ⭐ v1.2.0: Gapless Pro - Implementation
