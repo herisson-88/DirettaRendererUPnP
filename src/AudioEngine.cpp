@@ -38,6 +38,26 @@ AudioBuffer::~AudioBuffer() {
         delete[] m_data;
     }
 }
+// ⭐ Move constructor (safe transfer of ownership)
+AudioBuffer::AudioBuffer(AudioBuffer&& other) noexcept
+    : m_data(other.m_data)
+    , m_size(other.m_size)
+{
+    other.m_data = nullptr;
+    other.m_size = 0;
+}
+
+// ⭐ Move assignment operator (safe transfer of ownership)
+AudioBuffer& AudioBuffer::operator=(AudioBuffer&& other) noexcept {
+    if (this != &other) {
+        delete[] m_data;
+        m_data = other.m_data;
+        m_size = other.m_size;
+        other.m_data = nullptr;
+        other.m_size = 0;
+    }
+    return *this;
+}
 
 // ⭐ Move constructor (safe transfer of ownership)
 AudioBuffer::AudioBuffer(AudioBuffer&& other) noexcept
@@ -403,13 +423,12 @@ bool AudioDecoder::open(const std::string& url) {
     
     m_trackInfo.bitDepth = realBitDepth;
 
-
-DEBUG_LOG("[AudioDecoder] 🎵 PCM: " << m_trackInfo.codec 
-          << " " << m_trackInfo.sampleRate << "Hz/"
-          << m_trackInfo.bitDepth << "bit/"
-          << m_trackInfo.channels << "ch");
-
-        // Calculate duration
+    DEBUG_LOG("[AudioDecoder] 🎵 PCM: " << m_trackInfo.codec
+              << " " << m_trackInfo.sampleRate << "Hz/"
+              << m_trackInfo.bitDepth << "bit/"
+              << m_trackInfo.channels << "ch");
+    
+    // Calculate duration
     if (audioStream->duration != AV_NOPTS_VALUE) {
         m_trackInfo.duration = av_rescale_q(audioStream->duration, 
                                             audioStream->time_base,
@@ -1243,7 +1262,10 @@ bool AudioEngine::process(size_t samplesNeeded) {
                     targetSeconds = 0;
                 }
                 
-                // Perform the actual seek
+                if (info.isDSD) {
+                    DEBUG_LOG("[AudioEngine] DSD seek ignored (no-op)");
+                     // Don't call decoder->seek()
+            } else {
                 if (m_currentDecoder->seek(targetSeconds)) {
                     // Update position
                     m_samplesPlayed = static_cast<uint64_t>(targetSeconds * info.sampleRate);
@@ -1259,11 +1281,11 @@ bool AudioEngine::process(size_t samplesNeeded) {
                     std::cerr << "[AudioEngine] ❌ Seek failed in decoder" << std::endl;
                 }
             }
+       
         }
-        
         // Continue processing after seek
     }
-    
+}
     std::lock_guard<std::mutex> lock(m_mutex);    
     // Double vérification avec mutex
     if (m_state.load() != State::PLAYING) {

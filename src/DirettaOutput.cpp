@@ -8,6 +8,7 @@
 #include <cstring>
 #include <thread>
 #include <chrono>
+#include <iomanip> 
 // ════════════════════════════════════════════════════════════════
 // ⭐ v1.2.0 : Bit reversal lookup table for DSD MSB<->LSB conversion
 // ════════════════════════════════════════════════════════════════
@@ -45,8 +46,8 @@ DirettaOutput::DirettaOutput()
     , m_pausedPosition(0)
     , m_gaplessEnabled(true)       // ⭐ v1.2.0: Gapless enabled by default
     , m_nextTrackPrepared(false)   // ⭐ v1.2.0
+    , m_transferMode(TransferMode::VarMax)
     , m_thredMode(1)
-    , m_cycleTime(10000)
     , m_cycleMinTime(333)
     , m_infoCycle(100000)
 {
@@ -75,8 +76,20 @@ void DirettaOutput::setMTU(uint32_t mtu) {
     
     std::cout << std::endl;
 }
-
-
+void DirettaOutput::setTransferMode(TransferMode mode) {
+    if (m_connected) {
+        std::cerr << "[DirettaOutput] ⚠️  Cannot change transfer mode while connected" << std::endl;
+        return;
+    }
+    
+    m_transferMode = mode;
+    
+    if (mode == TransferMode::VarMax) {
+        DEBUG_LOG("[DirettaOutput] ✓ Transfer mode: VarMax (adaptive)");
+    } else {
+        DEBUG_LOG("[DirettaOutput] ✓ Transfer mode: Fix (precise timing)");
+    }
+}
 
 bool DirettaOutput::open(const AudioFormat& format, int bufferSeconds) {
     DEBUG_LOG("[DirettaOutput] Opening: " 
@@ -297,20 +310,21 @@ void DirettaOutput::resume() {
         return;
     }
     
-    DEBUG_LOG("[DirettaOutput] ▶️  Resuming from sample " << m_pausedPosition << "...");
+    DEBUG_LOG("[DirettaOutput] ▶️  Resuming...");
     
     if (m_syncBuffer) {
-        // Seek à la position sauvegardée
-        m_syncBuffer->seek(m_pausedPosition);
-        
-        // Redémarrer la lecture
+        // DSD: Just play
+        // PCM: Seek then play
+        if (!m_currentFormat.isDSD) {
+            m_syncBuffer->seek(m_pausedPosition);
+        }
         m_syncBuffer->play();
     }
     
     m_isPaused = false;
     m_playing = true;
     
-    std::cout << "[DirettaOutput] ✓ Resumed" << std::endl;
+    DEBUG_LOG("[DirettaOutput] ✓ Resumed");
 }
 
 
@@ -510,97 +524,202 @@ bool DirettaOutput::findAndSelectTarget(int targetIndex) {
     findSetting.Loopback = false;
     findSetting.ProductID = 0;
     
-    DIRETTA::Find find(findSetting);
-    
-    if (!find.open()) {
-        std::cerr << "[DirettaOutput] ❌ Failed to open Find" << std::endl;
-        return false;
-    }
-    
+    // ⭐ v1.3.0: Retry loop with infinite mode support
+    int retryCount = 0;
+    bool targetFound = false;
     DIRETTA::Find::PortResalts targets;
-    if (!find.findOutput(targets)) {
-        std::cerr << "[DirettaOutput] ❌ Failed to find outputs" << std::endl;
+    
+    bool infiniteMode = (TARGET_FIND_MAX_RETRIES < 0);
+    
+    if (infiniteMode) {
+        std::cout << "[DirettaOutput] 🔍 Searching for Diretta targets (infinite wait mode)..." << std::endl;
+    } else {
+        std::cout << "[DirettaOutput] 🔍 Searching for Diretta targets (max " 
+                  << TARGET_FIND_MAX_RETRIES << " attempts)..." << std::endl;
+    }
+    
+    while (!targetFound && (infiniteMode || retryCount < TARGET_FIND_MAX_RETRIES)) {
+        DIRETTA::Find find(findSetting);
+        
+        // Try to open Find
+        if (!find.open()) {
+            if (retryCount == 0) {
+                std::cerr << "[DirettaOutput] ⚠️  Failed to open Find, retrying..." << std::endl;
+            }
+            retryCount++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(TARGET_FIND_RETRY_DELAY_MS));
+            continue;
+        }
+        
+        // Try to find outputs
+        if (!find.findOutput(targets)) {
+            if (retryCount == 0) {
+                std::cerr << "[DirettaOutput] ⚠️  Failed to find outputs, retrying..." << std::endl;
+            }
+            retryCount++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(TARGET_FIND_RETRY_DELAY_MS));
+            continue;
+        }
+        
+        // Check if targets found
+        if (targets.empty()) {
+            if (retryCount == 0) {
+                // First attempt - show helpful message
+                std::cout << "[DirettaOutput] ⏳ No Diretta targets found yet, waiting..." << std::endl;
+                std::cout << "[DirettaOutput]    Please check:" << std::endl;
+                std::cout << "[DirettaOutput]      1. Diretta Target is powered on" << std::endl;
+                std::cout << "[DirettaOutput]      2. Target is connected to the same network" << std::endl;
+                std::cout << "[DirettaOutput]      3. Network firewall allows Diretta protocol" << std::endl;
+                
+                if (infiniteMode) {
+                    std::cout << "[DirettaOutput]    Will wait indefinitely until target appears..." << std::endl;
+                } else {
+                    std::cout << "[DirettaOutput]    Will retry every " 
+                              << (TARGET_FIND_RETRY_DELAY_MS / 1000) << " seconds..." << std::endl;
+                }
+            } else if (retryCount % 30 == 0) {
+                // Show status every 30 attempts (~1 minute in infinite mode)
+                int minutes = (retryCount * TARGET_FIND_RETRY_DELAY_MS) / 60000;
+                if (infiniteMode) {
+                    std::cout << "[DirettaOutput] ⏳ Still waiting for target... (" 
+                              << minutes << " minute" << (minutes > 1 ? "s" : "") << " elapsed)" << std::endl;
+                } else {
+                    std::cout << "[DirettaOutput] ⏳ Still searching... (attempt " 
+                              << (retryCount + 1) << "/" << TARGET_FIND_MAX_RETRIES << ")" << std::endl;
+                }
+            }
+            
+            retryCount++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(TARGET_FIND_RETRY_DELAY_MS));
+            continue;
+        }
+        
+        // Success! Target(s) found
+        targetFound = true;
+    }
+    
+    // Final check: did we find any targets?
+    if (!targetFound || targets.empty()) {
+        // Only fail if not in infinite mode
+        std::cerr << "[DirettaOutput] ❌ Failed to find Diretta targets after " 
+                  << retryCount << " attempts" << std::endl;
+        std::cerr << "[DirettaOutput]    Total wait time: " 
+                  << (retryCount * TARGET_FIND_RETRY_DELAY_MS / 1000) << " seconds" << std::endl;
+        std::cerr << "[DirettaOutput]    The service will stop. Please:" << std::endl;
+        std::cerr << "[DirettaOutput]      1. Ensure Diretta Target is powered on" << std::endl;
+        std::cerr << "[DirettaOutput]      2. Ensure Target is on the same network" << std::endl;
+        std::cerr << "[DirettaOutput]      3. Restart the service when ready" << std::endl;
         return false;
     }
     
-    if (targets.empty()) {
-        std::cerr << "[DirettaOutput] ❌ No Diretta targets found" << std::endl;
-        std::cerr << "[DirettaOutput] Please check:" << std::endl;
-        std::cerr << "[DirettaOutput]   1. Diretta Target is powered on" << std::endl;
-        std::cerr << "[DirettaOutput]   2. Target is connected to the same network" << std::endl;
-        std::cerr << "[DirettaOutput]   3. Network firewall allows Diretta protocol" << std::endl;
-        return false;
+    // Target found successfully!
+    int waitSeconds = (retryCount * TARGET_FIND_RETRY_DELAY_MS) / 1000;
+    if (retryCount > 0) {
+        std::cout << "[DirettaOutput] ✅ Found " << targets.size() << " target(s) " 
+                  << "(after waiting " << waitSeconds << " second" 
+                  << (waitSeconds > 1 ? "s" : "") << ")" << std::endl;
+    } else {
+        std::cout << "[DirettaOutput] ✓ Found " << targets.size() << " target(s)" << std::endl;
     }
-    
-    std::cout << "[DirettaOutput] ✓ Found " << targets.size() << " target(s)" << std::endl;
     std::cout << std::endl;
     
+    // [REST OF THE FUNCTION - SAME AS BEFORE]
     // If only one target, use it automatically
     if (targets.size() == 1) {
         m_targetAddress = targets.begin()->first;
-        DEBUG_LOG("[DirettaOutput] ✓ Auto-selected only available target");
-    }
-    // Multiple targets: interactive selection
-    else {
-        std::cout << "══════════════════════════════════════════════════════" << std::endl;
-        std::cout << "  📡 Multiple Diretta Targets Detected" << std::endl;
-        std::cout << "══════════════════════════════════════════════════════" << std::endl;
-        std::cout << std::endl;
+        std::cout << "[DirettaOutput] ✓ Auto-selected only available target" << std::endl;
         
-        // List all targets with index
-        int index = 1;
-        std::vector<ACQUA::IPAddress> targetList;
-        
-        for (const auto& target : targets) {
-            targetList.push_back(target.first);
+        // Measure MTU for selected target
+        DIRETTA::Find find(findSetting);
+        if (find.open()) {
+            uint32_t measuredMTU = 1500;
+            DEBUG_LOG("[DirettaOutput] Measuring network MTU...");
             
-            std::cout << "[" << index << "] Target #" << index << std::endl;
-            std::cout << "    Address: " << target.first.get_str() << std::endl;
-            std::cout << std::endl;
-            index++;
-        }
-        
-        std::cout << "══════════════════════════════════════════════════════" << std::endl;
-        
-        int selection = 0;
-        
-        // If targetIndex provided (from command line), use it
-        if (targetIndex >= 0 && targetIndex < static_cast<int>(targetList.size())) {
-            selection = targetIndex;
-            std::cout << "Using target #" << (selection + 1) << " (from command line)" << std::endl;
-        } else {
-            // Interactive selection
-            std::cout << "\nPlease select a target (1-" << targetList.size() << "): ";
-            std::cout.flush();
-            
-            std::string input;
-            std::getline(std::cin, input);
-            
-            try {
-                selection = std::stoi(input) - 1;  // Convert to 0-based index
+            if (find.measSendMTU(m_targetAddress, measuredMTU)) {
+                DEBUG_LOG("[DirettaOutput] 📊 Physical MTU measured: " << measuredMTU << " bytes");
                 
-                if (selection < 0 || selection >= static_cast<int>(targetList.size())) {
-                    std::cerr << "[DirettaOutput] ❌ Invalid selection: " << (selection + 1) << std::endl;
-                    std::cerr << "[DirettaOutput] Please select a number between 1 and " << targetList.size() << std::endl;
-                    return false;
+                if (measuredMTU >= 9000) {
+                    std::cout << "[DirettaOutput] 📊 MTU: " << measuredMTU << " bytes (Jumbo frames ✓)" << std::endl;
+                } else if (measuredMTU > 1500) {
+                    std::cout << "[DirettaOutput] 📊 MTU: " << measuredMTU << " bytes (Extended frames)" << std::endl;
+                } else {
+                    DEBUG_LOG("[DirettaOutput] 📊 MTU: " << measuredMTU << " bytes (Standard Ethernet)");
                 }
-            } catch (...) {
-                std::cerr << "[DirettaOutput] ❌ Invalid input. Please enter a number." << std::endl;
-                return false;
+                
+                m_mtu = measuredMTU;
+            } else {
+                std::cerr << "[DirettaOutput] ⚠️  Failed to measure MTU, using default: 1500 bytes" << std::endl;
+                m_mtu = 1500;
             }
         }
         
-        m_targetAddress = targetList[selection];
-        std::cout << "\n[DirettaOutput] ✓ Selected target #" << (selection + 1) << ": " 
-                  << m_targetAddress.get_str() << std::endl;
+        std::cout << "[DirettaOutput] ✓ MTU configured: " << m_mtu << " bytes" << std::endl;
+        std::cout << "[DirettaOutput] ✓ Target found and selected" << std::endl;
         std::cout << std::endl;
+        
+        return true;
     }
+    
+    // Multiple targets: handle selection
+    std::cout << "══════════════════════════════════════════════════════" << std::endl;
+    std::cout << "  📡 Multiple Diretta Targets Detected" << std::endl;
+    std::cout << "══════════════════════════════════════════════════════" << std::endl;
+    std::cout << std::endl;
+    
+    // List all targets with index
+    int index = 1;
+    std::vector<ACQUA::IPAddress> targetList;
+    
+    for (const auto& target : targets) {
+        targetList.push_back(target.first);
+        
+        std::cout << "[" << index << "] Target #" << index << std::endl;
+        std::cout << "    Address: " << target.first.get_str() << std::endl;
+        std::cout << std::endl;
+        index++;
+    }
+    
+    std::cout << "══════════════════════════════════════════════════════" << std::endl;
+    
+    int selection = 0;
+    
+    // If targetIndex provided (from command line), use it
+    if (targetIndex >= 0 && targetIndex < static_cast<int>(targetList.size())) {
+        selection = targetIndex;
+        std::cout << "Using target #" << (selection + 1) << " (from command line)" << std::endl;
+    } else {
+        // Interactive selection
+        std::cout << "\nPlease select a target (1-" << targetList.size() << "): ";
+        std::cout.flush();
+        
+        std::string input;
+        std::getline(std::cin, input);
+        
+        try {
+            selection = std::stoi(input) - 1;  // Convert to 0-based index
+            
+            if (selection < 0 || selection >= static_cast<int>(targetList.size())) {
+                std::cerr << "[DirettaOutput] ❌ Invalid selection: " << (selection + 1) << std::endl;
+                std::cerr << "[DirettaOutput] Please select a number between 1 and " << targetList.size() << std::endl;
+                return false;
+            }
+        } catch (...) {
+            std::cerr << "[DirettaOutput] ❌ Invalid input. Please enter a number." << std::endl;
+            return false;
+        }
+    }
+    
+    m_targetAddress = targetList[selection];
+    std::cout << "\n[DirettaOutput] ✓ Selected target #" << (selection + 1) << ": " 
+              << m_targetAddress.get_str() << std::endl;
+    std::cout << std::endl;
     
     // Measure MTU for selected target
     uint32_t measuredMTU = 1500;
     DEBUG_LOG("[DirettaOutput] Measuring network MTU...");
     
-    if (find.measSendMTU(m_targetAddress, measuredMTU)) {
+    DIRETTA::Find find(findSetting);
+    if (find.open() && find.measSendMTU(m_targetAddress, measuredMTU)) {
         DEBUG_LOG("[DirettaOutput] 📊 Physical MTU measured: " << measuredMTU << " bytes");
         
         if (measuredMTU >= 9000) {
@@ -622,6 +741,7 @@ bool DirettaOutput::findAndSelectTarget(int targetIndex) {
 
     return true;
 }
+
 
 void DirettaOutput::listAvailableTargets() {
     DIRETTA::Find::Setting findSetting;
@@ -1134,59 +1254,74 @@ void DirettaOutput::optimizeNetworkConfig(const AudioFormat& /*format*/) {
     if (!m_syncBuffer) {
         return;
     }
-
-
-    DEBUG_LOG("[DirettaOutput] 🔧 Configuring network: VarMax (maximum throughput)");
     
-    // ⭐ v1.2.0: Use VarMax for all formats (best performance with jumbo frames)
-    ACQUA::Clock cycle(m_cycleTime);
+    DEBUG_LOG("[DirettaOutput] 🔧 Network optimization:");
+    DEBUG_LOG("[DirettaOutput]    MTU: " << m_mtu << " bytes");
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ⭐ v1.3.1: Determine cycle time (dynamic or user-specified)
+    // ═══════════════════════════════════════════════════════════════
+    
+    unsigned int cycleTime;
+    
+    // In Fix mode with user-specified cycle-time, use that value
+    // Otherwise calculate optimal cycle time dynamically
+    if (m_transferMode == TransferMode::Fix && m_cycleTime != 10000) {
+        // User specified --cycle-time for precise control
+        cycleTime = m_cycleTime;
+        DEBUG_LOG("[DirettaOutput]    Cycle time: " << cycleTime 
+                  << " µs (user-specified)");
+    } else {
+        // Calculate optimal cycle time dynamically (v1.3.0 feature)
+        DirettaCycleCalculator calculator(m_mtu);
+        
+        // For DSD, use 1 bit per sample; for PCM use actual bit depth
+        int bitsPerSample = format.isDSD ? 1 : format.bitDepth;
+        
+        cycleTime = calculator.calculate(
+            format.sampleRate, 
+            format.channels, 
+            bitsPerSample
+        );
+        DEBUG_LOG("[DirettaOutput]    Cycle time: " << cycleTime 
+                  << " µs (calculated)");
+    }
+    
+// ═══════════════════════════════════════════════════════════════
+// ⭐ v1.3.1: Configure transfer mode
+// ═══════════════════════════════════════════════════════════════
+
+if (m_transferMode == TransferMode::VarMax) {
+    // VarMax: Adaptive cycle time
+    ACQUA::Clock cycle = ACQUA::Clock::MicroSeconds(cycleTime);
     m_syncBuffer->configTransferVarMax(cycle);
     
-    DEBUG_LOG("[DirettaOutput] ✓ Network configured: VarMax mode");
+    DEBUG_LOG("[DirettaOutput]    Mode: VarMax (adaptive)");
+    std::cout << "[DirettaOutput] ✓ Transfer: VarMax (adaptive)" << std::endl;
+    
+} else {
+    // Fix: Fixed period timing (as per Yu Harada's example)
+    ACQUA::Clock cycle = ACQUA::Clock::MicroSeconds(cycleTime);  // ← MicroSeconds()!
+    int periodTime = cycleTime;  // Same value in microseconds
+    bool success = m_syncBuffer->configTransferFix(cycle, periodTime);
+    
+    if (success) {
+        double freq_hz = 1000000.0 / cycleTime;
+        
+        DEBUG_LOG("[DirettaOutput]    Mode: Fix (precise timing)");
+        std::cout << "[DirettaOutput] ✓ Transfer: Fix (precise timing)" << std::endl;
+        std::cout << "[DirettaOutput]    Fixed period: " << cycleTime 
+                  << " µs (" << std::fixed << std::setprecision(2) 
+                  << freq_hz << " Hz)" << std::endl;
+    } else {
+        std::cerr << "[DirettaOutput] ❌ configTransferFix failed!" << std::endl;
+        std::cerr << "[DirettaOutput]    Falling back to VarMax..." << std::endl;
+        ACQUA::Clock fallback = ACQUA::Clock::MicroSeconds(cycleTime);
+        m_syncBuffer->configTransferVarMax(fallback);
+    }
 }
 
-bool DirettaOutput::seek(int64_t samplePosition) {
-    DEBUG_LOG("[DirettaOutput] 🔍 Seeking to sample " << samplePosition);
-
-    if (!m_syncBuffer) {
-        std::cerr << "[DirettaOutput] ⚠️  No SyncBuffer available for seek" << std::endl;
-        return false;
-    }
-
-    bool wasPlaying = m_playing;
-    
-    // Pause if playing
-    if (wasPlaying && m_syncBuffer) {
-        m_syncBuffer->stop();
-    }
-    
-    // ⭐ DSD SEEK CONVERSION
-    int64_t seekPosition = samplePosition;
-    
-    if (m_currentFormat.isDSD) {
-        // DSD: Convert to bytes (32-bit containers)
-        // Same calculation as in createStreamFromAudio()
-        seekPosition = samplePosition * m_currentFormat.channels * 4;
-        
-        std::cout << "[DirettaOutput] DSD seek conversion:" << std::endl;
-        std::cout << "   Input position (bits): " << samplePosition << std::endl;
-        std::cout << "   Output position (bytes): " << seekPosition << std::endl;
-        std::cout << "   Format: DSD" << (m_currentFormat.sampleRate / 44100) 
-                  << " (" << m_currentFormat.sampleRate << " Hz)" << std::endl;
-    }
-    
-    // Perform seek
-    DEBUG_LOG("[DirettaOutput] → Calling SDK seek(" << seekPosition << ")");
-    m_syncBuffer->seek(seekPosition);
-    m_totalSamplesSent = samplePosition;  // Keep in original units
-    
-    // Resume if was playing
-    if (wasPlaying && m_syncBuffer) {
-        m_syncBuffer->play();
-    }
-   
-    DEBUG_LOG("[DirettaOutput] ✓ Seeked to position " << seekPosition);
-    return true;
+DEBUG_LOG("[DirettaOutput] ✓ Network configured");
 }
 // ═══════════════════════════════════════════════════════════════
 // ⭐ v1.2.0: Gapless Pro - Implementation

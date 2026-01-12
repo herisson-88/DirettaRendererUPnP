@@ -1,11 +1,243 @@
 # Changelog
 ## [1.2.2] - 2026-01-09
 
+## [1.3.0] - 2026-01-11
+### 🚀 NEW FEATURES
+ **Same-Format Fast Path (Thanks to SwissMountainsBear)**
+ Track transitions within the same audio format are now dramatically faster.
+
+BEFORE: 600-1200ms (full reconnection, configuration, DAC lock)
+AFTER:  <50ms (instant resume)
+
+Performance Gain: 24× faster transitions
+
+How it works:
+- Connection kept alive between same-format tracks
+- Smart buffer management (DSD: silence clearing, PCM: seek_front)
+- Format changes still trigger full reconnection (safe behavior)
+
+Impact:
+- Seamless album playback (DSD64, DSD128, DSD256, DSD512)
+- Better user experience with control points (JPLAY, Bubble UPnP, etc.)
+- Especially beneficial for high DSD rates where reconnection is expensive
+
+Technical details:
+- Implemented in DirettaOutput::open() with format comparison
+- Format change detection enhanced for reliability
+- Connection persistence logic in DirettaRenderer callbacks
+
+
+📡 Dynamic Cycle Time Calculation
+
+**Network timing now adapts automatically to audio format characteristics**
+
+ Implementation:
+- New DirettaCycleCalculator class analyzes format parameters
+- Calculates optimal cycle time based on sample rate, bit depth, channels
+- Considers MTU size and network overhead (24 bytes)
+- Range: 100µs to 50ms (dynamically calculated per format)
+
+Results:
+- DSD64 (2.8MHz):  ~23ms optimal cycle time (was 10ms fixed)
+- PCM 44.1k:       ~50ms optimal cycle time (was 10ms fixed)
+- DSD512:          ~5ms optimal cycle time (high throughput)
+
+Performance Impact:
+- PCM 44.1k: Network packets reduced from 100/sec to 20/sec (5× reduction)
+- Better MTU utilization: PCM now uses 55% of 16K jumbo frames vs 11% before
+- Significantly reduced audio dropouts
+- Lower CPU overhead for network operations
+
+Technical details:
+- Formula: cycleTime = (effectiveMTU / bytesPerSecond) × 1,000,000 µs
+- Effective MTU = configured MTU - 24 bytes overhead
+- Applied in DirettaOutput::optimizeNetworkConfig()
+
+**Added `--transfer-mode` option for precise timing control**
+
+Users can now choose between two transfer timing modes:
+
+- **VarMax (default)**: Adaptive cycle timing for optimal bandwidth usage
+  - Cycle time varies dynamically between min and max values
+  - Best for most users and use cases
+  
+- **Fix**: Fixed cycle timing for precise timing control
+  - Cycle time remains constant at user-specified value
+  - Enables experimentation with specific frequencies
+  - Requested by audiophile users who report sonic differences with certain fixed frequencies
+
+**Usage examples:**
+
+```bash
+# Default adaptive mode (VarMax)
+sudo ./DirettaRendererUPnP --target 1
+
+# Fixed timing mode at 528 Hz (1893 µs)
+sudo ./DirettaRendererUPnP --target 1 --transfer-mode fix --cycle-time 1893
+
+# Fixed timing mode at 500 Hz (2000 µs)
+sudo ./DirettaRendererUPnP --target 1 --transfer-mode fix --cycle-time 2000
+```
+
+**Popular cycle time values for Fix mode:**
+- 1893 µs = 528 Hz (reported as "musical" by some audiophiles)
+- 2000 µs = 500 Hz
+- 1000 µs = 1000 Hz
+
+
+### Technical Details
+
+- **VarMax mode**: Uses Diretta SDK `configTransferVarMax()` 
+  - Adaptive cycle timing between min (333 µs) and max (default 10000 µs)
+  - Optimal for bandwidth efficiency
+  
+- **Fix mode**: Uses Diretta SDK `configTransferFix()`
+  - Fixed cycle time at user-specified value
+  - Requires explicit `--cycle-time` parameter
+  - Provides precise timing control for audio experimentation
+
+- **Cycle time parameter behavior:**
+  - In VarMax mode: Sets maximum cycle time (optional)
+  - In Fix mode: Sets fixed cycle time (required)
+
+
+### Requirements
+
+- Fix mode requires explicit `--cycle-time` specification
+- If `--transfer-mode fix` is used without `--cycle-time`, the renderer will exit with a clear error message and usage examples
+
+
+### Breaking Changes
+
+None. VarMax mode is the default, so existing configurations and scripts continue to work unchanged.
+
+
+### 🐛 CRITICAL BUGFIXES (Thanks to SwissMountainsBear)
+ 🔴 Shadow Variable in Audio Thread (DirettaRenderer.cpp)
+───────────────────────────────────────────────────────────────────────────
+Problem: 
+- Two separate `static int failCount` variables in if/else branches
+- Reset logic never worked (wrong variable scope)
+- Consecutive failure counter didn't accumulate properly
+
+Impact:
+- Inaccurate error reporting
+- Misleading debug logs
+
+Fix:
+- Moved static declaration outside if/else scope
+- Single shared variable for both success and failure paths
+- Proper counter reset on success
+
+Files: src/DirettaRenderer.cpp
+
+
+🟡 Duplicate DEBUG_LOG (AudioEngine.cpp)
+───────────────────────────────────────────────────────────────────────────
+Problem:
+- PCM format logged twice in verbose mode
+- First log statement missing semicolon (potential compilation issue)
+
+Impact:
+- Cluttered logs in verbose mode
+- Risk of compilation errors on strict compilers
+
+Fix:
+- Removed duplicate log statement
+- Ensured proper semicolon on remaining log
+
+Files: src/AudioEngine.cpp
+
+
+🔴 AudioBuffer Rule of Three Violation (AudioEngine.h)
+───────────────────────────────────────────────────────────────────────────
+Problem:
+- AudioBuffer class manages raw memory (new[]/delete[])
+- No copy constructor or copy assignment operator
+- Risk of double-delete crash if buffer accidentally copied
+
+Impact:
+- Potential crashes (double-delete)
+- Undefined behavior with buffer copies
+- Memory safety issue
+
+Fix:
+- Added copy prevention: Copy constructor/assignment = delete
+- Implemented move semantics for safe ownership transfer
+- Move constructor and move assignment operator added
+
+### Fixed
+- No more crashes when Diretta target unavailable - service waits indefinitely and auto-connects (no reboot needed).
+
+### ⚠️  BEHAVIOR CHANGES
+ **DSD Seek Disabled**
+ Issue: 
+DSD seek causes audio distortion and desynchronization due to buffer 
+alignment issues and SDK synchronization problems.
+
+Implementation:
+- DSD seek commands are accepted (return success) but not executed
+- Prevents crashes in poorly-implemented UPnP clients (e.g., JPLAY iOS)
+- Audio continues playing without interruption
+- Position tracking may be approximate
+
+Behavior:
+- PCM: Seek works perfectly with exact positioning
+- DSD: Seek command ignored (no-op), playback continues
+
+Workaround:
+For precise DSD positioning: Use Stop → Seek → Play sequence
+
+Technical details:
+- Blocked in AudioEngine::process() before calling AudioDecoder::seek()
+- DirettaOutput::seek() commented out (unused code)
+- Resume without seek for DSD (position approximate)
+
+Files: src/AudioEngine.cpp, src/DirettaOutput.cpp
+
+## 👥 CREDITS
+═══════════════════════════════════════════════════════════════════════════
+
+SwissMountainsBear:
+  - Same-format fast path implementation
+  - Critical bug identification and fixes (shadow variable, Rule of Three)
+  - DSD512 testing and validation
+  - Collaborative development
+
+Dominique COMET:
+  - Dynamic cycle time implementation
+  - Integration and testing
+  - DSD/PCM validation
+  - Project maintenance
+
+
+## 🔄 MIGRATION FROM v1.2.x
+═══════════════════════════════════════════════════════════════════════════
+
+Configutaion change, please remove diretta-renderer.conf and and start-renderer.sh files in /opt/diretta-renderer-upnp/ before install sytemd.
+
+
+Optional Recommendations:
+────────────────────────────────────────────────────────────────────────────
+For DSD256/512 users: Consider increasing buffer parameter if minor scratches 
+occur during fast path transitions:
+
+  --buffer 1.0   (for DSD256)
+  --buffer 1.2   (for DSD512)
+
+This provides more headroom for same-format transitions.
+
+## [1.2.2] - 2026-01-09
+
 --no-gapless option removed.
 The --no-gapless option is no longer supported.
 Gapless works perfectly with all standard UPnP control points.
 
 For Audirvana users, simply setting Universal Gapless in Audirvana might work, though with some limitations. If you want Audirvana to work with the Diretta Host SDK, please reach out to the Audirvana Team.
+
+No functional changes - gapless continues to work perfectly.
+
+## [1.2.1] - 2026-01-06
 
 No functional changes - gapless continues to work perfectly.
 ## [1.2.1] - 2026-01-06

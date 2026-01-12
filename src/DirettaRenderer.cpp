@@ -56,6 +56,7 @@ DirettaRenderer::Config::Config() {
     uuid = generateUUID();
     targetIndex = -1;  // Default: interactive selection
     networkInterface = "";  // (vide = auto-detect)
+    transferMode = TransferMode::VarMax;  // ← ADD: Default to VarMax
 }
 
 // ============================================================================
@@ -113,7 +114,12 @@ bool DirettaRenderer::start() {
         // Create DirettaOutput first to verify target
         m_direttaOutput = std::make_unique<DirettaOutput>();
         m_direttaOutput->setTargetIndex(m_config.targetIndex);
-        
+         // ⭐ NEW: Set transfer mode
+        m_direttaOutput->setTransferMode(m_config.transferMode);
+        // ⭐ v1.3.0: Set cycle time (CRITIQUE pour Fix mode!)
+        m_direttaOutput->setCycleTime(m_config.cycleTime);
+
+
         // ⭐ Verify target is available by attempting discovery
         if (!m_direttaOutput->verifyTargetAvailable()) {
             std::cerr << "[DirettaRenderer] " << std::endl;
@@ -549,7 +555,16 @@ callbacks.onSetURI = [this](const std::string& uri, const std::string& metadata)
 
 // CRITICAL: SetNextAVTransportURI pour le gapless
 callbacks.onSetNextURI = [this](const std::string& uri, const std::string& metadata) {
-    std::lock_guard<std::mutex> lock(m_mutex);  // Serialize UPnP actions
+    std::lock_guard<std::mutex> lock(m_mutex);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // ⚠️  v1.2.1: Check if gapless is enabled before processing
+    // ═══════════════════════════════════════════════════════════════
+    if (!m_config.gaplessEnabled) {
+        DEBUG_LOG("[DirettaRenderer] ⚠️  SetNextAVTransportURI ignored (gapless disabled)");
+        return;  // Ignore silently - prevents crash during device discovery
+    }
+    
     DEBUG_LOG("[DirettaRenderer] ✓ SetNextAVTransportURI received for gapless");
     m_audioEngine->setNextURI(uri, metadata);
 };

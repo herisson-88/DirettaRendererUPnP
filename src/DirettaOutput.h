@@ -8,6 +8,10 @@
 #include <memory>
 #include <atomic>
 #include <mutex>
+#include <cmath>       
+#include <algorithm>
+const int TARGET_FIND_MAX_RETRIES = -1;      // -1 = infinite, 30 = ~60s, 90 = ~3min
+const int TARGET_FIND_RETRY_DELAY_MS = 2000; // 2 seconds between attempts
 
 /**
  * @brief Audio format specification
@@ -45,6 +49,50 @@ struct AudioFormat {
     bool operator!=(const AudioFormat& other) const {
         return !(*this == other);
     }
+};
+
+class DirettaCycleCalculator {
+public:
+    static constexpr int OVERHEAD = 24;
+    
+    explicit DirettaCycleCalculator(uint32_t mtu = 1500)
+        : m_mtu(mtu), m_efficientMTU(mtu - OVERHEAD) {}
+    
+    unsigned int calculate(uint32_t sampleRate, int channels, int bitsPerSample) const {
+        double bytesPerSecond = static_cast<double>(sampleRate) * 
+                                static_cast<double>(channels) * 
+                                static_cast<double>(bitsPerSample) / 8.0;
+        
+        double cycleTimeUs = (static_cast<double>(m_efficientMTU) / bytesPerSecond) * 1000000.0;
+        
+        unsigned int result = static_cast<unsigned int>(std::round(cycleTimeUs));
+        return std::max(100u, std::min(result, 50000u));
+    }
+    
+private:
+    uint32_t m_mtu;
+    int m_efficientMTU;
+};  // ← ⭐ CE POINT-VIRGULE EST OBLIGATOIRE !
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ⭐ v1.3.0: Transfer modes for Diretta SDK
+// ═══════════════════════════════════════════════════════════════════════════
+/**
+ * @brief Transfer modes for Diretta SDK
+ * 
+ * VarMax: Variable/adaptive packet timing (default)
+ *         - Cycle time varies adaptively
+ *         - Optimal bandwidth usage
+ *         - SDK: configTransferVarMax()
+ * 
+ * Fix: Fixed packet timing (precise control)
+ *      - Cycle time is fixed at user-specified value
+ *      - Precise timing for audiophile applications
+ *      - SDK: configTransferFix()
+ */
+enum class TransferMode {
+    VarMax,  // Variable/adaptive (default)
+    Fix      // Fixed (precise timing)
 };
 
 /**
@@ -169,7 +217,7 @@ public:
     void resume();
     bool isPaused() const { return m_isPaused; }
     bool isPlaying() const { return m_playing; } 
-    bool seek(int64_t samplePosition);
+    
     
     // ═══════════════════════════════════════════════════════════════
     // ⭐ v1.2.0: Gapless Pro - Native SDK gapless support
@@ -230,6 +278,18 @@ public:
     void setCycleMinTime(int time) { m_cycleMinTime = time; }
     void setInfoCycle(int time) { m_infoCycle = time; }
     
+    /**
+     * @brief Set transfer mode (VarMax or Fix)
+     * 
+     * VarMax (default): Adaptive cycle time, optimal bandwidth usage
+     * Fix: Fixed cycle time for precise timing control
+     * 
+     * Must be called BEFORE open()
+     * 
+     * @param mode Transfer mode (VarMax or Fix)
+     */
+    void setTransferMode(TransferMode mode);
+    
 private:
     // Network
     std::unique_ptr<ACQUA::UDPV6> m_udp;
@@ -261,6 +321,9 @@ private:
     int m_cycleTime;
     int m_cycleMinTime;
     int m_infoCycle;
+    
+    // ⭐ v1.3.0: Transfer mode
+    TransferMode m_transferMode;
     
     // Helper functions
     bool findTarget();
