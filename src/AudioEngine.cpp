@@ -59,6 +59,27 @@ AudioBuffer& AudioBuffer::operator=(AudioBuffer&& other) noexcept {
     return *this;
 }
 
+// ⭐ Move constructor (safe transfer of ownership)
+AudioBuffer::AudioBuffer(AudioBuffer&& other) noexcept
+    : m_data(other.m_data)
+    , m_size(other.m_size)
+{
+    other.m_data = nullptr;
+    other.m_size = 0;
+}
+
+// ⭐ Move assignment operator (safe transfer of ownership)
+AudioBuffer& AudioBuffer::operator=(AudioBuffer&& other) noexcept {
+    if (this != &other) {
+        delete[] m_data;
+        m_data = other.m_data;
+        m_size = other.m_size;
+        other.m_data = nullptr;
+        other.m_size = 0;
+    }
+    return *this;
+}
+
 void AudioBuffer::resize(size_t size) {
     if (m_data) {
         delete[] m_data;
@@ -245,7 +266,7 @@ bool AudioDecoder::open(const std::string& url) {
             m_trackInfo.isDSD = true;
             m_trackInfo.bitDepth = 1; // DSD is 1-bit
             
-        // ⭐ v1.2.1 : Détecter DSF vs DFF
+        // ⭐ v1.2.0 : Détecter DSF vs DFF
         if (m_formatContext && m_formatContext->url) {
             std::string url(m_formatContext->url);
             
@@ -1557,7 +1578,7 @@ bool AudioDecoder::seek(double seconds) {
         return false;
     }
     
-    // ⭐ v1.2.1: DSD raw seek with file repositioning
+    // ⭐ v1.2.0: DSD raw seek with file repositioning
     if (m_rawDSD) {
         std::cout << "[AudioDecoder] DSD seek to " << seconds << "s (with file repositioning)" << std::endl;
         
