@@ -1199,17 +1199,33 @@ bool DirettaSync::getNewStream(DIRETTA::Stream& stream) {
     }
 
     // Post-online stabilization
-    // Scale stabilization buffers for higher DSD rates to allow CPU/cache warmup
-    // DSD512 needs more warmup cycles than DSD64 due to 8x data throughput
+    // Scale stabilization to achieve consistent WARMUP TIME regardless of MTU
+    // With small MTU (1500), getNewStream() is called more frequently (shorter cycle time)
+    // With large MTU (9000+), calls are less frequent (longer cycle time)
+    // We need to scale buffer count to achieve target warmup duration
     if (!m_postOnlineDelayDone.load(std::memory_order_acquire)) {
         int stabilizationTarget = static_cast<int>(DirettaBuffer::POST_ONLINE_SILENCE_BUFFERS);
+
         if (currentIsDsd) {
-            // Scale by DSD multiplier: DSD64=1x, DSD128=2x, DSD256=4x, DSD512=8x
+            // Target warmup time scales with DSD rate:
+            // DSD64: 50ms, DSD128: 100ms, DSD256: 200ms, DSD512: 400ms
             int currentSampleRate = m_sampleRate.load(std::memory_order_acquire);
-            int dsdMultiplier = currentSampleRate / 2822400;  // DSD64 baseline
-            if (dsdMultiplier > 1) {
-                stabilizationTarget *= dsdMultiplier;
-            }
+            int dsdMultiplier = currentSampleRate / 2822400;  // DSD64 = 1
+            int targetWarmupMs = 50 * std::max(1, dsdMultiplier);  // 50ms baseline
+
+            // Calculate cycle time based on MTU and data rate
+            // cycleTime = (efficientMTU / bytesPerSecond) in microseconds
+            int efficientMTU = static_cast<int>(m_effectiveMTU) - 24;  // Subtract overhead
+            double bytesPerSecond = static_cast<double>(currentSampleRate) * 2 / 8.0;  // 2ch, 1bit
+            double cycleTimeUs = (static_cast<double>(efficientMTU) / bytesPerSecond) * 1000000.0;
+
+            // Calculate buffers needed for target warmup time
+            // targetWarmupMs * 1000 = warmup in microseconds
+            double buffersNeeded = (targetWarmupMs * 1000.0) / cycleTimeUs;
+            stabilizationTarget = static_cast<int>(std::ceil(buffersNeeded));
+
+            // Clamp to reasonable range
+            stabilizationTarget = std::max(50, std::min(stabilizationTarget, 3000));
         }
 
         int count = m_stabilizationCount.fetch_add(1, std::memory_order_acq_rel) + 1;

@@ -34,21 +34,38 @@
 | Heap allocations per DSD read | 2 (std::vector) | 0 (steady state) |
 | Memory pattern | Alloc/free every call | Pre-allocated, reused |
 
-### 3. DSD512 Startup Fix for Zen3 CPUs
+### 3. DSD512 Startup Fix for Zen3 CPUs (MTU-Aware)
 
-- Scaled post-online stabilization buffers based on DSD rate
-- Higher DSD rates now get proportionally more warmup cycles
+- Scaled post-online stabilization to achieve consistent **warmup TIME** regardless of MTU
 - Fixes harsh sound at DSD512 startup on AMD Zen3 systems (works fine on Zen4)
 - Root cause: Zen3's slower memory controller and different cache hierarchy need more warmup time at high data throughput
+- Additional issue: With small MTU (1500), `getNewStream()` is called more frequently (shorter cycle time), so a fixed buffer count resulted in insufficient warmup time
 
-| DSD Rate | Stabilization Buffers | Warmup Time |
-|----------|----------------------|-------------|
-| DSD64    | 50 (unchanged)       | ~50ms       |
-| DSD128   | 100 (2x)             | ~100ms      |
-| DSD256   | 200 (4x)             | ~200ms      |
-| DSD512   | 400 (8x)             | ~400ms      |
+**Target warmup time by DSD rate:**
 
-- **Files:** `src/DirettaSync.cpp` (lines 1180-1203)
+| DSD Rate | Target Warmup |
+|----------|---------------|
+| DSD64    | 50ms          |
+| DSD128   | 100ms         |
+| DSD256   | 200ms         |
+| DSD512   | 400ms         |
+
+**Buffer count scales with MTU to achieve target time:**
+
+| MTU | Cycle Time (DSD512) | Buffers for 400ms |
+|-----|---------------------|-------------------|
+| 1500 | 261 μs | ~1530 buffers |
+| 9000 | 1,590 μs | ~252 buffers |
+| 16128 | 2,853 μs | ~140 buffers |
+
+**Formula:**
+```
+targetWarmupMs = 50ms × dsdMultiplier
+cycleTimeUs = (MTU - 24) / bytesPerSecond × 1,000,000
+buffersNeeded = targetWarmupMs × 1000 / cycleTimeUs
+```
+
+- **Files:** `src/DirettaSync.cpp` (lines 1201-1239)
 
 ### 4. DSD Rate Downgrade Transition Noise Fix
 
