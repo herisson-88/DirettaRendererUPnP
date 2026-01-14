@@ -448,15 +448,44 @@ public:
             }
 
             for (; i + 4 <= bytesPerChannel; i += 4) {
+                // Left channel - collect 4 bytes
+                uint8_t groupL[4];
                 for (int j = 0; j < 4; j++) {
                     uint8_t b = srcL[i + j];
                     if (bitReversalTable) b = bitReversalTable[b];
-                    dst[outputBytes++] = b;
+                    groupL[j] = b;
                 }
+                // Write with byte swap if needed
+                if (needByteSwap) {
+                    dst[outputBytes++] = groupL[3];
+                    dst[outputBytes++] = groupL[2];
+                    dst[outputBytes++] = groupL[1];
+                    dst[outputBytes++] = groupL[0];
+                } else {
+                    dst[outputBytes++] = groupL[0];
+                    dst[outputBytes++] = groupL[1];
+                    dst[outputBytes++] = groupL[2];
+                    dst[outputBytes++] = groupL[3];
+                }
+
+                // Right channel - collect 4 bytes
+                uint8_t groupR[4];
                 for (int j = 0; j < 4; j++) {
                     uint8_t b = srcR[i + j];
                     if (bitReversalTable) b = bitReversalTable[b];
-                    dst[outputBytes++] = b;
+                    groupR[j] = b;
+                }
+                // Write with byte swap if needed
+                if (needByteSwap) {
+                    dst[outputBytes++] = groupR[3];
+                    dst[outputBytes++] = groupR[2];
+                    dst[outputBytes++] = groupR[1];
+                    dst[outputBytes++] = groupR[0];
+                } else {
+                    dst[outputBytes++] = groupR[0];
+                    dst[outputBytes++] = groupR[1];
+                    dst[outputBytes++] = groupR[2];
+                    dst[outputBytes++] = groupR[3];
                 }
             }
 
