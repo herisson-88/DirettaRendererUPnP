@@ -268,16 +268,6 @@ public:
     float getBufferLevel() const;
     const AudioFormat& getFormat() const { return m_currentFormat; }
 
-    /**
-     * @brief Set S24 pack mode hint for 24-bit audio
-     *
-     * Propagates alignment hint from TrackInfo to ring buffer for better
-     * 24-bit sample detection when track starts with silence.
-     */
-    void setS24PackModeHint(DirettaRingBuffer::S24PackMode hint) {
-        m_ringBuffer.setS24PackModeHint(hint);
-    }
-
     //=========================================================================
     // Target Management
     //=========================================================================
@@ -384,9 +374,6 @@ private:
     std::atomic<bool> m_needDsdBitReversal{false};
     std::atomic<bool> m_needDsdByteSwap{false};  // For LITTLE endian targets
     std::atomic<bool> m_isLowBitrate{false};
-
-    // Cached DSD conversion mode - set at track open, eliminates per-iteration branch checks
-    DirettaRingBuffer::DSDConversionMode m_dsdConversionMode{DirettaRingBuffer::DSDConversionMode::Passthrough};
 
     // Prefill and stabilization
     size_t m_prefillTarget = 0;
