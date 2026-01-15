@@ -8,12 +8,12 @@
 
 ---
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)
 ![Gapless enhanced ](https://img.shields.io/badge/Gapless-enhanced-green.svg)
 ![Transfer Mode ](https://img.shields.io/badge/Transfer-Mode-orange.svg)
 
 ---
-
+Freeze after pause >10-20 seconds~~ ✅ Fixed in v1.3.1
 ---
 
 ## ❤️ Support This Project
