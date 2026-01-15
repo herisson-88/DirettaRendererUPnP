@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0]
+### 🐛 Bug Fixes
+ **Critical:** Fixed freeze after pause >10-20 seconds
+  - Root cause: Drainage state machine not reset on resume
+  - Solution: Reset m_isDraining and m_silenceCount flags
+  - Affects: GentooPlayer and other distributions
+
+### ✨ New Features
+ **Timestamps:** Automatic [HH:MM:SS.mmm] on all log output
+  - Enables precise timing analysis
+  - Helps identify timeouts and race conditions
+  - Useful for debugging network issues
+
+
 ## [1.3.0] - 2026-01-11
 ### 🚀 NEW FEATURES
  **Same-Format Fast Path (Thanks to SwissMountainsBear)**
