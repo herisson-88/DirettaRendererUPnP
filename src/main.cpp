@@ -11,6 +11,7 @@
 #include <thread>
 #include <chrono>
 #include <iomanip>    // ⭐ v1.3.0: Pour std::fixed, std::setprecision
+#include "TimestampedLogger.h"
 
 // Version information
 #define RENDERER_VERSION "1.3.0"    // ⭐ v1.3.0: Transfer mode option (VarMax/Fix)
@@ -266,6 +267,11 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
+        // ⭐ v1.3.1: Install timestamped logging (MUST BE FIRST!)
+    TimestampedStreambuf* coutBuf = nullptr;
+    TimestampedStreambuf* cerrBuf = nullptr;
+    installTimestampedLogging(coutBuf, cerrBuf);
+
     // Setup signal handlers
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
@@ -353,6 +359,9 @@ int main(int argc, char* argv[]) {
     }
     
     std::cout << "\n✓ Renderer stopped" << std::endl;
+        // ⭐ v1.3.1: Cleanup
+    if (coutBuf) delete coutBuf;
+    if (cerrBuf) delete cerrBuf;
     
     return 0;
 }
