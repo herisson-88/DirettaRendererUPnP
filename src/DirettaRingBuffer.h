@@ -184,11 +184,114 @@ public:
     const uint8_t* getStagingDSD() const { return m_stagingDSD; }
 
     //=========================================================================
+    // Direct Write API - eliminates memcpy for contiguous regions
+    //=========================================================================
+
+    /**
+     * @brief Get direct write pointer for zero-copy writes
+     *
+     * Returns a pointer to contiguous writable space in the ring buffer.
+     * Use this to write directly without staging buffer overhead.
+     * Call commitDirectWrite() after writing to advance the write pointer.
+     *
+     * @param needed Minimum bytes needed
+     * @param region Output: pointer to writable region (valid until commitDirectWrite)
+     * @param available Output: contiguous bytes available (may be > needed)
+     * @return true if contiguous space >= needed available, false if wraparound required
+     *
+     * Usage:
+     *   uint8_t* ptr;
+     *   size_t avail;
+     *   if (ring.getDirectWriteRegion(size, ptr, avail)) {
+     *       memcpy(ptr, data, size);  // or decode directly here
+     *       ring.commitDirectWrite(size);
+     *   } else {
+     *       ring.push(data, size);  // fallback for wraparound case
+     *   }
+     */
+    bool getDirectWriteRegion(size_t needed, uint8_t*& region, size_t& available) {
+        if (size_ == 0 || needed == 0) {
+            region = nullptr;
+            available = 0;
+            return false;
+        }
+
+        size_t wp = writePos_.load(std::memory_order_acquire);
+        size_t rp = readPos_.load(std::memory_order_acquire);
+
+        // Calculate free space
+        size_t free = (rp > wp) ? (rp - wp - 1) : (size_ - wp + rp - 1);
+        if (free < needed) {
+            region = nullptr;
+            available = 0;
+            return false;
+        }
+
+        // Calculate contiguous space from write position to end of buffer
+        size_t contiguous = size_ - wp;
+
+        // Also consider the read position for wrap case
+        if (rp <= wp) {
+            // Write position is ahead of or equal to read position
+            // Contiguous space is to end of buffer (we can't wrap past read)
+            contiguous = size_ - wp;
+        } else {
+            // Read position is ahead - contiguous space is to read position
+            contiguous = rp - wp - 1;
+        }
+
+        if (contiguous >= needed) {
+            region = buffer_.data() + wp;
+            available = contiguous;
+            return true;
+        }
+
+        // Not enough contiguous space - caller should use fallback
+        region = nullptr;
+        available = 0;
+        return false;
+    }
+
+    /**
+     * @brief Commit a direct write, advancing the write pointer
+     * @param written Number of bytes actually written (must be <= available from getDirectWriteRegion)
+     */
+    void commitDirectWrite(size_t written) {
+        if (written == 0 || size_ == 0) return;
+        size_t wp = writePos_.load(std::memory_order_relaxed);
+        writePos_.store((wp + written) & mask_, std::memory_order_release);
+    }
+
+    /**
+     * @brief Get staging buffer for format conversion with direct commit
+     *
+     * For format conversions that need a staging area, this provides the staging
+     * buffer and allows direct commit to ring buffer afterward.
+     *
+     * @param stagingType Which staging buffer to use (0=24bit, 1=16to32, 2=DSD)
+     * @return Pointer to staging buffer (STAGING_SIZE bytes available)
+     */
+    uint8_t* getStagingForConversion(int stagingType) {
+        switch (stagingType) {
+            case 0: return m_staging24BitPack;
+            case 1: return m_staging16To32;
+            case 2: return m_stagingDSD;
+            default: return m_staging24BitPack;
+        }
+    }
+
+    // Expose staging buffer size for callers
+    static constexpr size_t getStagingBufferSize() { return STAGING_SIZE; }
+
+    //=========================================================================
     // Push methods (write to buffer)
     //=========================================================================
 
     /**
      * @brief Push PCM data directly (no conversion)
+     *
+     * Optimized path: uses direct write when contiguous space available,
+     * avoiding the check-then-copy overhead of the wraparound case.
      */
     size_t push(const uint8_t* data, size_t len) {
         if (size_ == 0) return 0;
@@ -196,6 +299,16 @@ public:
         if (len > free) len = free;
         if (len == 0) return 0;
 
+        // Fast path: try direct write (no wraparound)
+        uint8_t* region;
+        size_t available;
+        if (getDirectWriteRegion(len, region, available)) {
+            memcpy_audio(region, data, len);
+            commitDirectWrite(len);
+            return len;
+        }
+
+        // Slow path: handle wraparound
         size_t wp = writePos_.load(std::memory_order_acquire);
         size_t firstChunk = std::min(len, size_ - wp);
 

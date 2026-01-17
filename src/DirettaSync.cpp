@@ -113,10 +113,10 @@ bool DirettaSync::openSyncConnection() {
     DIRETTA_LOG("Opening DIRETTA::Sync with threadMode=" << m_config.threadMode);
 
     bool opened = false;
-    for (int attempt = 0; attempt < 3 && !opened; attempt++) {
+    for (int attempt = 0; attempt < DirettaRetry::OPEN_RETRIES && !opened; attempt++) {
         if (attempt > 0) {
             DIRETTA_LOG("open() retry #" << attempt);
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(DirettaRetry::OPEN_DELAY_MS));
         }
         opened = DIRETTA::Sync::open(
             DIRETTA::Sync::THRED_MODE(m_config.threadMode),
@@ -553,8 +553,8 @@ bool DirettaSync::open(const AudioFormat& format) {
 
     // setSink reconfiguration
     bool sinkSet = false;
-    int maxAttempts = needFullConnect ? 20 : 15;
-    int retryDelayMs = needFullConnect ? 500 : 300;
+    int maxAttempts = needFullConnect ? DirettaRetry::SETSINK_RETRIES_FULL : DirettaRetry::SETSINK_RETRIES_QUICK;
+    int retryDelayMs = needFullConnect ? DirettaRetry::SETSINK_DELAY_FULL_MS : DirettaRetry::SETSINK_DELAY_QUICK_MS;
     for (int attempt = 0; attempt < maxAttempts && !sinkSet; attempt++) {
         if (attempt > 0) {
             DIRETTA_LOG("setSink retry #" << attempt);
@@ -578,10 +578,10 @@ bool DirettaSync::open(const AudioFormat& format) {
         }
 
         bool connected = false;
-        for (int attempt = 0; attempt < 3 && !connected; attempt++) {
+        for (int attempt = 0; attempt < DirettaRetry::CONNECT_RETRIES && !connected; attempt++) {
             if (attempt > 0) {
                 DIRETTA_LOG("connect retry #" << attempt);
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                std::this_thread::sleep_for(std::chrono::milliseconds(DirettaRetry::CONNECT_DELAY_MS));
             }
             connected = connect(0);
         }
@@ -730,10 +730,10 @@ bool DirettaSync::reopenForFormatChange() {
 
     // Re-discover sink with retry
     bool sinkFound = false;
-    for (int attempt = 0; attempt < 10 && !sinkFound; attempt++) {
+    for (int attempt = 0; attempt < DirettaRetry::REOPEN_SINK_RETRIES && !sinkFound; attempt++) {
         if (attempt > 0) {
             DIRETTA_LOG("setSink retry #" << attempt);
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(DirettaRetry::REOPEN_SINK_DELAY_MS));
         }
         sinkFound = setSink(m_targetAddress, cycleTime, false, m_effectiveMTU);
     }
@@ -963,6 +963,10 @@ void DirettaSync::configureRingPCM(int rate, int channels, int direttaBps, int i
     m_needDsdBitReversal.store(false, std::memory_order_release);
     m_needDsdByteSwap.store(false, std::memory_order_release);
     m_isLowBitrate.store(direttaBps <= 2 && rate <= 48000, std::memory_order_release);
+    m_dsdConversionMode = DirettaRingBuffer::DSDConversionMode::Passthrough;
+
+    // Increment format generation to invalidate cached values in sendAudio
+    m_formatGeneration.fetch_add(1, std::memory_order_release);
 
     size_t bytesPerSecond = static_cast<size_t>(rate) * channels * direttaBps;
     size_t ringSize = DirettaBuffer::calculateBufferSize(bytesPerSecond, DirettaBuffer::PCM_BUFFER_SECONDS);
@@ -991,6 +995,9 @@ void DirettaSync::configureRingDSD(uint32_t byteRate, int channels) {
     m_need16To32Upsample.store(false, std::memory_order_release);
     m_channels.store(channels, std::memory_order_release);
     m_isLowBitrate.store(false, std::memory_order_release);
+
+    // Increment format generation to invalidate cached values in sendAudio
+    m_formatGeneration.fetch_add(1, std::memory_order_release);
 
     uint32_t bytesPerSecond = byteRate * channels;
     size_t ringSize = DirettaBuffer::calculateBufferSize(bytesPerSecond, DirettaBuffer::DSD_BUFFER_SECONDS);
@@ -1108,12 +1115,25 @@ size_t DirettaSync::sendAudio(const uint8_t* data, size_t numSamples) {
     RingAccessGuard ringGuard(m_ringUsers, m_reconfiguring);
     if (!ringGuard.active()) return 0;
 
-    // Snapshot config state
-    bool dsdMode = m_isDsdMode.load(std::memory_order_acquire);
-    bool pack24bit = m_need24BitPack.load(std::memory_order_acquire);
-    bool upsample16to32 = m_need16To32Upsample.load(std::memory_order_acquire);
-    int numChannels = m_channels.load(std::memory_order_acquire);
-    int bytesPerSample = m_bytesPerSample.load(std::memory_order_acquire);
+    // Generation counter optimization: single atomic load vs 5-6 loads
+    // Only reload format atomics when format has actually changed
+    uint32_t gen = m_formatGeneration.load(std::memory_order_acquire);
+    if (gen != m_cachedFormatGen) {
+        m_cachedDsdMode = m_isDsdMode.load(std::memory_order_acquire);
+        m_cachedPack24bit = m_need24BitPack.load(std::memory_order_acquire);
+        m_cachedUpsample16to32 = m_need16To32Upsample.load(std::memory_order_acquire);
+        m_cachedChannels = m_channels.load(std::memory_order_acquire);
+        m_cachedBytesPerSample = m_bytesPerSample.load(std::memory_order_acquire);
+        m_cachedDsdConversionMode = m_dsdConversionMode;
+        m_cachedFormatGen = gen;
+    }
+
+    // Use cached values (no atomic loads in hot path)
+    bool dsdMode = m_cachedDsdMode;
+    bool pack24bit = m_cachedPack24bit;
+    bool upsample16to32 = m_cachedUpsample16to32;
+    int numChannels = m_cachedChannels;
+    int bytesPerSample = m_cachedBytesPerSample;
 
     size_t written = 0;
     size_t totalBytes;
@@ -1127,7 +1147,7 @@ size_t DirettaSync::sendAudio(const uint8_t* data, size_t numSamples) {
 
         // Use optimized path with cached conversion mode (no per-iteration branching)
         written = m_ringBuffer.pushDSDPlanarOptimized(
-            data, totalBytes, numChannels, m_dsdConversionMode);
+            data, totalBytes, numChannels, m_cachedDsdConversionMode);
         formatLabel = "DSD";
 
     } else if (pack24bit) {

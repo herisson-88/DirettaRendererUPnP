@@ -1,5 +1,63 @@
 # Changelog
 
+## 2026-01-17 (Session 2) - Timing Variance Optimization
+
+Systematic optimization pass focused on reducing timing variance in the audio hot path. Based on the principle that consistent timing matters more than average-case speed for audio quality.
+
+**Full technical details:** [docs/Timing_Variance_Optimization_Report.md](docs/Timing_Variance_Optimization_Report.md)
+
+### Phase 1: Quick Wins
+
+| ID | Change | Impact |
+|----|--------|--------|
+| **N3** | Consolidated bit reversal LUT | Single 256-byte table shared between AudioEngine and DirettaRingBuffer |
+| **S4** | Retry constants namespace | `DirettaRetry::` constants replace magic numbers |
+| **S5** | DSD diagnostics compile flag | Build with `make DSD_DIAG=1` when needed |
+
+### Phase 2: Moderate Effort
+
+| ID | Change | Impact |
+|----|--------|--------|
+| **R1+R2** | Format generation counter | 1 atomic load vs 5-6 per sendAudio() call (~200-300ns saved) |
+
+### Phase 3: Significant Effort
+
+| ID | Change | Impact |
+|----|--------|--------|
+| **N1** | Direct write API | Zero-copy fast path for contiguous ring buffer regions |
+| **N4** | SIMD memcpy assessment | Current AVX2 implementation deemed optimal |
+
+### New APIs
+
+**DirettaRingBuffer:**
+- `getDirectWriteRegion(size_t needed, uint8_t*& region, size_t& available)` - Get direct write pointer
+- `commitDirectWrite(size_t written)` - Commit direct write
+- `getStagingForConversion(int type)` - Get staging buffer by type
+- `getStagingBufferSize()` - Staging buffer size constant
+
+**DirettaRetry namespace:**
+- `OPEN_RETRIES`, `OPEN_DELAY_MS` - Connection establishment
+- `SETSINK_RETRIES_FULL/QUICK`, `SETSINK_DELAY_FULL/QUICK_MS` - Sink configuration
+- `CONNECT_RETRIES`, `CONNECT_DELAY_MS` - Connect sequence
+- `REOPEN_SINK_RETRIES`, `REOPEN_SINK_DELAY_MS` - Format change reopen
+
+### Build Options
+
+```bash
+make              # Normal build
+make DSD_DIAG=1   # Enable DSD diagnostic output
+```
+
+### Files Modified
+
+- `src/AudioEngine.cpp` - LUT consolidation, DSD diagnostics conditional
+- `src/DirettaSync.h` - Retry namespace, generation counter, cached format values
+- `src/DirettaSync.cpp` - Use retry constants, generation counter pattern
+- `src/DirettaRingBuffer.h` - Direct write API, optimized push()
+- `Makefile` - DSD_DIAG option
+
+---
+
 ## 2026-01-17 - Hot Path Simplification
 
 Systematic code simplification focused on reducing timing variance in the audio callback hot path. The goal is improved audio quality through more predictable code execution.
