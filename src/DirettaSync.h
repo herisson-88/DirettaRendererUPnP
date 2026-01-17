@@ -398,6 +398,7 @@ private:
     // Statistics
     std::atomic<int> m_streamCount{0};
     std::atomic<int> m_pushCount{0};
+    std::atomic<uint32_t> m_underrunCount{0};
 };
 
 #endif // DIRETTA_SYNC_H

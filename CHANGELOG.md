@@ -1,5 +1,45 @@
 # Changelog
 
+## 2026-01-17 - Hot Path Simplification
+
+Systematic code simplification focused on reducing timing variance in the audio callback hot path. The goal is improved audio quality through more predictable code execution.
+
+**Full technical details:** [docs/Hot Path Simplification Report.md](docs/Hot%20Path%20Simplification%20Report.md)
+
+### Critical Changes (Hot Path)
+
+| ID | Change | Impact |
+|----|--------|--------|
+| **C0** | Lock-free callback synchronization | Eliminates syscalls from hot path |
+| **C1** | Bitmask ring buffer wrap (`& mask_`) | Constant-time position calculation |
+| **C4** | Unified memcpy path | Consistent timing, no branch |
+| **C6** | Silent underrun counting | No blocking I/O in hot path |
+| **C7** | Single bit-reversal LUT | Better cache locality |
+
+### Secondary Changes (Track Initialization)
+
+| ID | Change | Impact |
+|----|--------|--------|
+| **S1** | Dead code removal | ~75 lines removed |
+| **S2** | Legacy DSD path removal | Zero per-iteration branches |
+
+### Summary
+
+- ~200 lines of code removed
+- Zero syscalls in audio callback
+- Eliminated per-iteration branches in DSD conversion
+- Improved cache locality for DSD operations
+
+### Files Modified
+
+- `src/DirettaRingBuffer.h` - Ring buffer optimizations, LUT consolidation, legacy DSD removal
+- `src/DirettaSync.cpp` - Underrun handling, dead code removal, removed unused LUT
+- `src/DirettaSync.h` - Added underrun counter atomic
+- `src/DirettaRenderer.cpp` - Lock-free callback synchronization
+- `src/DirettaRenderer.h` - Atomic members for callback sync
+
+---
+
 ## 2026-01-16
 
 ### FFmpeg 8.0.1 Minimal Build Option
