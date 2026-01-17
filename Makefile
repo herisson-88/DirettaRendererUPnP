@@ -159,27 +159,70 @@ $(info ════════════════════════�
 $(info )
 
 # ============================================
-# Diretta SDK Auto-Detection
+# Diretta SDK Auto-Detection with Version Discovery
 # ============================================
 
 ifdef DIRETTA_SDK_PATH
     SDK_PATH = $(DIRETTA_SDK_PATH)
     $(info ✓ Using SDK from environment: $(SDK_PATH))
 else
-    SDK_SEARCH_PATHS = \
-        $(HOME)/DirettaHostSDK_147 \
-        ./DirettaHostSDK_147 \
-        ../DirettaHostSDK_147 \
-        /opt/DirettaHostSDK_147 \
-        $(HOME)/audio/DirettaHostSDK_147 \
-        /usr/local/DirettaHostSDK_147
-
-    SDK_PATH = $(firstword $(foreach path,$(SDK_SEARCH_PATHS),$(wildcard $(path))))
-
+    # ⭐ NEW: Auto-detect ANY SDK version (DirettaHostSDK_*)
+    # Search in common locations, find all versions, pick the highest
+    
+    SDK_SEARCH_DIRS = \
+        $(HOME) \
+        . \
+        .. \
+        /opt \
+        $(HOME)/audio \
+        /usr/local
+    
+    # Find all DirettaHostSDK_* directories across search paths
+    ALL_SDK_PATHS := $(foreach dir,$(SDK_SEARCH_DIRS),$(wildcard $(dir)/DirettaHostSDK_*))
+    
+    # Extract version numbers and sort (highest first)
+    # Format: /path/DirettaHostSDK_148 → 148
+    SDK_VERSIONS := $(sort $(foreach path,$(ALL_SDK_PATHS),$(subst DirettaHostSDK_,,$(notdir $(path)))))
+    
+    # Get highest version (last in sorted list)
+    LATEST_VERSION := $(lastword $(SDK_VERSIONS))
+    
+    # Find the actual path for the latest version
+    ifdef LATEST_VERSION
+        SDK_PATH = $(firstword $(filter %/DirettaHostSDK_$(LATEST_VERSION),$(ALL_SDK_PATHS)))
+    endif
+    
+    # Fallback: if no DirettaHostSDK_* found, try exact version matches for backwards compat
     ifeq ($(SDK_PATH),)
-        $(error ❌ Diretta SDK not found! Searched in: $(SDK_SEARCH_PATHS))
+        SDK_LEGACY_PATHS = \
+            $(HOME)/DirettaHostSDK_148 \
+            ./DirettaHostSDK_148 \
+            ../DirettaHostSDK_148 \
+            /opt/DirettaHostSDK_148 \
+            $(HOME)/audio/DirettaHostSDK_148 \
+            /usr/local/DirettaHostSDK_148
+        
+        SDK_PATH = $(firstword $(foreach path,$(SDK_LEGACY_PATHS),$(wildcard $(path))))
+    endif
+    
+    ifeq ($(SDK_PATH),)
+        $(info )
+        $(info ❌ Diretta SDK not found!)
+        $(info )
+        $(info 📁 Searched in:)
+        $(foreach dir,$(SDK_SEARCH_DIRS),$(info    $(dir)/DirettaHostSDK_*))
+        $(info )
+        $(info 💡 Solutions:)
+        $(info    1. Download SDK to one of the locations above)
+        $(info    2. Or set custom path: make DIRETTA_SDK_PATH=/your/path)
+        $(info )
+        $(error SDK not found)
     else
-        $(info ✓ SDK auto-detected: $(SDK_PATH))
+        $(info ✓ SDK auto-detected: $(SDK_PATH) $(if $(LATEST_VERSION),(version $(LATEST_VERSION)),))
+        ifneq ($(words $(ALL_SDK_PATHS)),1)
+            $(info 📋 Found $(words $(ALL_SDK_PATHS)) SDK version(s): $(SDK_VERSIONS))
+            $(info 📌 Using latest: $(LATEST_VERSION))
+        endif
     endif
 endif
 
@@ -284,7 +327,7 @@ TARGET = $(BINDIR)/DirettaRendererUPnP
 # Build Rules
 # ============================================
 
-.PHONY: all clean info help list-variants examples
+.PHONY: all clean info help list-variants examples list-sdks
 
 all: $(TARGET)
 	@echo ""
@@ -330,12 +373,26 @@ info:
 	@echo ""
 	@echo "SDK:"
 	@echo "  Path:         $(SDK_PATH)"
+	@echo "  Version:      $(if $(LATEST_VERSION),$(LATEST_VERSION),custom)"
 	@echo "  Diretta Lib:  $(SDK_LIB_DIRETTA)"
 	@echo "  ACQUA Lib:    $(SDK_LIB_ACQUA)"
 	@echo ""
 	@echo "Build:"
 	@echo "  Compiler:     $(CXX)"
 	@echo "  Target:       $(TARGET)"
+	@echo ""
+	@echo "════════════════════════════════════════════════════════"
+
+list-sdks:
+	@echo "════════════════════════════════════════════════════════"
+	@echo " Installed Diretta SDK Versions"
+	@echo "════════════════════════════════════════════════════════"
+	@echo ""
+	@$(foreach dir,$(SDK_SEARCH_DIRS), \
+		$(foreach sdk,$(wildcard $(dir)/DirettaHostSDK_*), \
+			echo "  ✓ $(sdk) (version $(subst DirettaHostSDK_,,$(notdir $(sdk))))";))
+	@echo ""
+	@echo "Currently using: $(SDK_PATH)"
 	@echo ""
 	@echo "════════════════════════════════════════════════════════"
 
@@ -378,6 +435,9 @@ examples:
 	@echo "  make ARCH_NAME=x64-linux-musl15zen4"
 	@echo "  make ARCH_NAME=aarch64-linux-musl15"
 	@echo ""
+	@echo "Custom SDK location:"
+	@echo "  make DIRETTA_SDK_PATH=/custom/path/DirettaHostSDK_150"
+	@echo ""
 	@echo "════════════════════════════════════════════════════════"
 
 help:
@@ -387,6 +447,7 @@ help:
 	@echo "  make              Auto-detect architecture and build"
 	@echo "  make clean        Remove build artifacts"
 	@echo "  make info         Show detailed configuration"
+	@echo "  make list-sdks    List all installed SDK versions"
 	@echo "  make list-variants List all SDK library variants"
 	@echo "  make examples     Show build command examples"
 	@echo "  make help         Show this help"
@@ -410,4 +471,3 @@ help:
 	@echo "For more examples: make examples"
 
 -include $(DEPENDS)
-
