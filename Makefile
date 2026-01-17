@@ -1,4 +1,5 @@
-# Diretta UPnP Renderer - Makefile with Manual Architecture Override
+# Diretta UPnP Renderer - Makefile with SDK Version Auto-Detection
+# FIXED VERSION - Simplified SDK detection
 # Supports: x64 (v2/v3/v4/zen4), aarch64, riscv64
 # 
 # Usage:
@@ -117,15 +118,6 @@ else
 endif
 
 # Derived values from FULL_VARIANT
-# FULL_VARIANT format examples:
-#   x64-linux-15v3
-#   x64-linux-15zen4
-#   x64-linux-musl15zen4
-#   aarch64-linux-15
-#   riscv64-linux-15
-#
-# DIRETTA_ARCH      = first component (x64 / aarch64 / riscv64 / ...)
-# DIRETTA_LIB_SUFFIX = everything after "<arch>-linux-"
 DIRETTA_ARCH      = $(word 1,$(subst -, ,$(FULL_VARIANT)))
 DIRETTA_LIB_SUFFIX = $(subst $(DIRETTA_ARCH)-linux-,,$(FULL_VARIANT))
 
@@ -159,70 +151,40 @@ $(info ════════════════════════�
 $(info )
 
 # ============================================
-# Diretta SDK Auto-Detection with Version Discovery
+# Diretta SDK Auto-Detection - SIMPLIFIED VERSION
 # ============================================
 
 ifdef DIRETTA_SDK_PATH
     SDK_PATH = $(DIRETTA_SDK_PATH)
+    SDK_VERSION = custom
     $(info ✓ Using SDK from environment: $(SDK_PATH))
 else
-    # ⭐ NEW: Auto-detect ANY SDK version (DirettaHostSDK_*)
-    # Search in common locations, find all versions, pick the highest
+    # Search for DirettaHostSDK_* in common locations
+    SDK_CANDIDATES := $(shell find $(HOME) . .. /opt $(HOME)/audio /usr/local \
+        -maxdepth 1 -type d -name 'DirettaHostSDK_*' 2>/dev/null | sort -V | tail -1)
     
-    SDK_SEARCH_DIRS = \
-        $(HOME) \
-        . \
-        .. \
-        /opt \
-        $(HOME)/audio \
-        /usr/local
-    
-    # Find all DirettaHostSDK_* directories across search paths
-    ALL_SDK_PATHS := $(foreach dir,$(SDK_SEARCH_DIRS),$(wildcard $(dir)/DirettaHostSDK_*))
-    
-    # Extract version numbers and sort (highest first)
-    # Format: /path/DirettaHostSDK_148 → 148
-    SDK_VERSIONS := $(sort $(foreach path,$(ALL_SDK_PATHS),$(subst DirettaHostSDK_,,$(notdir $(path)))))
-    
-    # Get highest version (last in sorted list)
-    LATEST_VERSION := $(lastword $(SDK_VERSIONS))
-    
-    # Find the actual path for the latest version
-    ifdef LATEST_VERSION
-        SDK_PATH = $(firstword $(filter %/DirettaHostSDK_$(LATEST_VERSION),$(ALL_SDK_PATHS)))
-    endif
-    
-    # Fallback: if no DirettaHostSDK_* found, try exact version matches for backwards compat
-    ifeq ($(SDK_PATH),)
-        SDK_LEGACY_PATHS = \
-            $(HOME)/DirettaHostSDK_148 \
-            ./DirettaHostSDK_148 \
-            ../DirettaHostSDK_148 \
-            /opt/DirettaHostSDK_148 \
-            $(HOME)/audio/DirettaHostSDK_148 \
-            /usr/local/DirettaHostSDK_148
-        
-        SDK_PATH = $(firstword $(foreach path,$(SDK_LEGACY_PATHS),$(wildcard $(path))))
-    endif
-    
-    ifeq ($(SDK_PATH),)
+    ifneq ($(SDK_CANDIDATES),)
+        SDK_PATH = $(SDK_CANDIDATES)
+        SDK_VERSION = $(subst DirettaHostSDK_,,$(notdir $(SDK_PATH)))
+        $(info ✓ SDK auto-detected: $(SDK_PATH))
+        $(info ✓ SDK version: $(SDK_VERSION))
+    else
         $(info )
         $(info ❌ Diretta SDK not found!)
         $(info )
-        $(info 📁 Searched in:)
-        $(foreach dir,$(SDK_SEARCH_DIRS),$(info    $(dir)/DirettaHostSDK_*))
+        $(info 📁 Searched for DirettaHostSDK_* in:)
+        $(info    $(HOME)/)
+        $(info    ./)
+        $(info    ../)
+        $(info    /opt/)
+        $(info    $(HOME)/audio/)
+        $(info    /usr/local/)
         $(info )
         $(info 💡 Solutions:)
         $(info    1. Download SDK to one of the locations above)
-        $(info    2. Or set custom path: make DIRETTA_SDK_PATH=/your/path)
+        $(info    2. Or set: make DIRETTA_SDK_PATH=/your/path/DirettaHostSDK_XXX)
         $(info )
         $(error SDK not found)
-    else
-        $(info ✓ SDK auto-detected: $(SDK_PATH) $(if $(LATEST_VERSION),(version $(LATEST_VERSION)),))
-        ifneq ($(words $(ALL_SDK_PATHS)),1)
-            $(info 📋 Found $(words $(ALL_SDK_PATHS)) SDK version(s): $(SDK_VERSIONS))
-            $(info 📌 Using latest: $(LATEST_VERSION))
-        endif
     endif
 endif
 
@@ -230,7 +192,7 @@ endif
 # Verify SDK Installation
 # ============================================
 
-# Full paths to libraries based on FULL_VARIANT
+# Full paths to libraries
 SDK_LIB_DIRETTA = $(SDK_PATH)/lib/$(DIRETTA_LIB_NAME)
 SDK_LIB_ACQUA   = $(SDK_PATH)/lib/$(ACQUA_LIB_NAME)
 
@@ -332,7 +294,8 @@ TARGET = $(BINDIR)/DirettaRendererUPnP
 all: $(TARGET)
 	@echo ""
 	@echo "✓ Build complete: $(TARGET)"
-	@echo "✓ Using: $(DIRETTA_LIB_NAME)"
+	@echo "✓ Using SDK version: $(SDK_VERSION)"
+	@echo "✓ Using library: $(DIRETTA_LIB_NAME)"
 
 $(TARGET): $(OBJECTS) | $(BINDIR)
 	@echo "Linking $(TARGET)..."
@@ -373,7 +336,7 @@ info:
 	@echo ""
 	@echo "SDK:"
 	@echo "  Path:         $(SDK_PATH)"
-	@echo "  Version:      $(if $(LATEST_VERSION),$(LATEST_VERSION),custom)"
+	@echo "  Version:      $(SDK_VERSION)"
 	@echo "  Diretta Lib:  $(SDK_LIB_DIRETTA)"
 	@echo "  ACQUA Lib:    $(SDK_LIB_ACQUA)"
 	@echo ""
@@ -388,11 +351,14 @@ list-sdks:
 	@echo " Installed Diretta SDK Versions"
 	@echo "════════════════════════════════════════════════════════"
 	@echo ""
-	@$(foreach dir,$(SDK_SEARCH_DIRS), \
-		$(foreach sdk,$(wildcard $(dir)/DirettaHostSDK_*), \
-			echo "  ✓ $(sdk) (version $(subst DirettaHostSDK_,,$(notdir $(sdk))))";))
+	@find $(HOME) . .. /opt $(HOME)/audio /usr/local \
+		-maxdepth 1 -type d -name 'DirettaHostSDK_*' 2>/dev/null | \
+		while read sdk; do \
+			version=$$(basename $$sdk | sed 's/DirettaHostSDK_//'); \
+			echo "  ✓ $$sdk (version $$version)"; \
+		done | sort -V || echo "  ❌ No SDK found"
 	@echo ""
-	@echo "Currently using: $(SDK_PATH)"
+	@echo "Currently using: $(SDK_PATH) (version $(SDK_VERSION))"
 	@echo ""
 	@echo "════════════════════════════════════════════════════════"
 
@@ -401,8 +367,12 @@ list-variants:
 	@echo " Available Libraries in SDK"
 	@echo "════════════════════════════════════════════════════════"
 	@echo ""
-	@echo "All available variants:"
-	@ls -1 $(SDK_PATH)/lib/libDirettaHost_*.a 2>/dev/null | sed 's|.*/libDirettaHost_||' | sed 's|\.a||' | sed 's|^|  ✓ |' || echo "  ❌ No libraries found"
+	@echo "SDK: $(SDK_PATH)"
+	@echo ""
+	@echo "Available variants:"
+	@ls -1 $(SDK_PATH)/lib/libDirettaHost_*.a 2>/dev/null | \
+		sed 's|.*/libDirettaHost_||' | sed 's|\.a||' | sed 's|^|  ✓ |' || \
+		echo "  ❌ No libraries found"
 	@echo ""
 	@echo "════════════════════════════════════════════════════════"
 
@@ -431,10 +401,6 @@ examples:
 	@echo "  make ARCH_NAME=x64-linux-15v3 NOLOG=1"
 	@echo "  make ARCH_NAME=aarch64-linux-15 NOLOG=1"
 	@echo ""
-	@echo "Musl libc variants (if needed):"
-	@echo "  make ARCH_NAME=x64-linux-musl15zen4"
-	@echo "  make ARCH_NAME=aarch64-linux-musl15"
-	@echo ""
 	@echo "Custom SDK location:"
 	@echo "  make DIRETTA_SDK_PATH=/custom/path/DirettaHostSDK_150"
 	@echo ""
@@ -444,11 +410,11 @@ help:
 	@echo "Diretta UPnP Renderer - Makefile"
 	@echo ""
 	@echo "Commands:"
-	@echo "  make              Auto-detect architecture and build"
+	@echo "  make              Auto-detect architecture and SDK version, then build"
 	@echo "  make clean        Remove build artifacts"
 	@echo "  make info         Show detailed configuration"
 	@echo "  make list-sdks    List all installed SDK versions"
-	@echo "  make list-variants List all SDK library variants"
+	@echo "  make list-variants List all library variants in current SDK"
 	@echo "  make examples     Show build command examples"
 	@echo "  make help         Show this help"
 	@echo ""
@@ -456,6 +422,10 @@ help:
 	@echo "  ARCH_NAME=<variant>  Manually specify library variant"
 	@echo "  NOLOG=1              Use -nolog version"
 	@echo "  DIRETTA_SDK_PATH=<path>  Custom SDK location"
+	@echo ""
+	@echo "SDK Auto-Detection:"
+	@echo "  The Makefile automatically finds the latest DirettaHostSDK_* version"
+	@echo "  Works with any version: 148, 149, 150, etc."
 	@echo ""
 	@echo "Common usage:"
 	@echo ""
@@ -465,9 +435,9 @@ help:
 	@echo "  x64 PC with AVX2:"
 	@echo "    make ARCH_NAME=x64-linux-15v3"
 	@echo ""
-	@echo "  Auto-detect (tries to find best match):"
+	@echo "  Auto-detect everything:"
 	@echo "    make"
 	@echo ""
-	@echo "For more examples: make examples"
+	@echo "For more: make examples"
 
 -include $(DEPENDS)
