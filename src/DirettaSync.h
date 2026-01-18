@@ -8,16 +8,18 @@
 
 #pragma once
 
-#include "DirettaRingBuffer.h"
-#include "DirettaConfig.h"
-#include "DirettaCycleCalculator.h"
-#include "AudioFormat.h"
-
+#include "DirettaRingBuffer.h"  // Needed for member variable
 #include <Host/Diretta/SyncBuffer>
 #include <atomic>
 #include <mutex>
 #include <memory>
 #include <vector>
+#include <iostream>
+
+// Forward declarations for other dependencies
+class DirettaCycleCalculator;
+struct DirettaConfig;
+struct AudioFormat;
 
 extern bool g_verbose;
 
