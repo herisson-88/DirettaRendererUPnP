@@ -1,25 +1,31 @@
 /**
  * @file DirettaSync.h
- * @brief Unified Diretta sync implementation - SDK 148 compatible
+ * @brief Unified Diretta sync adapter for UPnP Renderer - SDK 148 compatible
  *
+ * Merged from DirettaSyncAdapter and DirettaOutput for cleaner architecture.
  * Based on MPD Diretta Output Plugin v0.4.0
  * Modified for SDK 148 diretta_stream buffer management
  */
 
-#pragma once
+#ifndef DIRETTA_SYNC_H
+#define DIRETTA_SYNC_H
 
-#include "DirettaRingBuffer.h"  // Needed for member variable
-#include <Host/Diretta/SyncBuffer>
-#include <atomic>
-#include <mutex>
+#include "DirettaRingBuffer.h"
+#include <Sync.hpp>
+#include <Find.hpp>
+#include <Stream.hpp>
+#include <Format.hpp>
+#include <Profile.hpp>
+#include <ACQUA/IPAddress.hpp>
+#include <ACQUA/Clock.hpp>
 #include <memory>
-#include <vector>
+#include <string>
+#include <mutex>
+#include <atomic>
+#include <thread>
 #include <iostream>
-
-// Forward declarations for other dependencies
-class DirettaCycleCalculator;
-struct DirettaConfig;
-struct AudioFormat;
+#include <cmath>
+#include <vector>
 
 extern bool g_verbose;
 
@@ -230,3 +236,5 @@ public:
 private:
     DirettaSync& sync_;
 };
+
+#endif // DIRETTA_SYNC_H
