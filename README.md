@@ -292,7 +292,7 @@ sudo pacman -S base-devel ffmpeg libupnp
 
 ### 2. Download Diretta Host SDK
 
-1. Visit [diretta.link](https://www.diretta.link/hostsdk.htmlk)
+1. Visit [diretta.link](https://www.diretta.link/hostsdk.html)
 2. Navigate to "Download Preview" section
 3. Download **DirettaHostSDK_147** (or latest version)
 4. Extract to one of these locations:
