@@ -1,5 +1,57 @@
 # Changelog
 
+## 2026-01-18 (Session 7) - SDK 148 Compatibility & PCM Timing Fix
+
+### SDK 148 Compatibility
+
+**Updated `getNewStream()` signature for SDK 148+:**
+- Changed from internal buffer management to SDK-provided `DIRETTA::Stream` object
+- Uses `static_cast<DIRETTA::Stream&>(baseStream)` to access SDK 148 API
+- Uses `stream.resize()` and `stream.get_16()` instead of manual buffer allocation
+- Removed internal `m_streamBuffer` / `m_streamBufferMutex` (no longer needed)
+
+### PCM Buffer Rounding Drift Fix
+
+**Problem:** For 44.1kHz family sample rates, integer division causes cumulative timing drift.
+
+**Root cause:** `rate / 1000` truncates:
+- 44100 / 1000 = 44 frames/ms (loses 0.1 frames/ms)
+- Over 1 second: 44 × 1000 = 44000 frames (should be 44100)
+- Drift: 100 frames/second = 2.27ms/second
+
+**Solution:** Accumulator-based correction:
+```cpp
+int framesBase = rate / 1000;        // 44 for 44.1kHz
+int framesRemainder = rate % 1000;   // 100 for 44.1kHz
+
+// In getNewStream():
+if (m_cachedFramesPerBufferRemainder != 0) {
+    acc += m_cachedFramesPerBufferRemainder;
+    if (acc >= 1000) {
+        acc -= 1000;
+        currentBytesPerBuffer += m_cachedBytesPerFrame;  // Extra frame
+    }
+}
+```
+
+**New atomic members:**
+- `m_bytesPerFrame` - Bytes per audio frame (channels × bytesPerSample)
+- `m_framesPerBufferRemainder` - Fractional frames per ms (e.g., 100 for 44.1kHz)
+- `m_framesPerBufferAccumulator` - Running accumulator for drift correction
+
+### EXPERIMENTAL: Force Full Reopen Flag
+
+**Re-added `setForceFullReopen()` for user-initiated track changes:**
+- When set, bypasses quick-reconnect path even for same-format tracks
+- Cleared after use in `open()`
+- Use case: Distinguish user interaction (SetAVTransportURI) from gapless playback
+
+**Files changed:**
+- `src/DirettaSync.h` - SDK 148 stream handling, PCM timing members, force reopen flag
+- `src/DirettaSync.cpp` - `getNewStream()` rewrite, `configureRingPCM()` timing fix, force reopen check
+
+---
+
 ## 2026-01-18 (Session 6) - Fix Redundant Stop Processing
 
 ### Bug Fix
