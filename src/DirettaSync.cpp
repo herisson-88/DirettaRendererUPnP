@@ -9,8 +9,48 @@
 #include "DirettaSync.h"
 #include <stdexcept>
 #include <iomanip>
+#include <pthread.h>
+#include <sched.h>
 
 namespace {
+
+// G1: Interruptible wait helper for format transitions
+// Uses condition variable instead of sleep_for to allow shutdown interruption
+// Returns true if wait completed, false if interrupted by wakeup signal
+bool interruptibleWait(std::mutex& mutex, std::condition_variable& cv,
+                       std::atomic<bool>& wakeupFlag, int timeoutMs) {
+    std::unique_lock<std::mutex> lock(mutex);
+    bool interrupted = cv.wait_for(lock, std::chrono::milliseconds(timeoutMs),
+                                   [&wakeupFlag]() { return wakeupFlag.load(std::memory_order_acquire); });
+    if (interrupted) {
+        wakeupFlag.store(false, std::memory_order_release);  // Reset for next use
+    }
+    return !interrupted;  // Return true if timeout (normal), false if interrupted
+}
+
+// F1: Worker thread priority elevation for reduced jitter
+// Sets SCHED_FIFO real-time priority (requires root on Linux)
+// Returns true on success, false on failure (logs warning but continues)
+bool setRealtimePriority(int priority = 50) {
+    struct sched_param param;
+    param.sched_priority = priority;
+
+    int ret = pthread_setschedparam(pthread_self(), SCHED_FIFO, &param);
+    if (ret != 0) {
+        // Not fatal - may not have CAP_SYS_NICE or running as non-root
+        if (g_verbose) {
+            std::cerr << "[DirettaSync] Warning: Could not set SCHED_FIFO priority "
+                      << priority << " (error " << ret << ")" << std::endl;
+        }
+        return false;
+    }
+
+    if (g_verbose) {
+        std::cout << "[DirettaSync] Worker thread set to SCHED_FIFO priority " << priority << std::endl;
+    }
+    return true;
+}
+
 class RingAccessGuard {
 public:
     RingAccessGuard(std::atomic<int>& users, const std::atomic<bool>& reconfiguring)
@@ -93,6 +133,13 @@ bool DirettaSync::enable(const DirettaConfig& config) {
 
 void DirettaSync::disable() {
     DIRETTA_LOG("Disabling...");
+
+    // G1: Signal any pending format transition waits to wake up immediately
+    {
+        std::lock_guard<std::mutex> lock(m_transitionMutex);
+        m_transitionWakeup.store(true, std::memory_order_release);
+    }
+    m_transitionCv.notify_all();
 
     if (m_open) {
         close();
@@ -306,6 +353,21 @@ void DirettaSync::logSinkCapabilities() {
     std::cout << "[DirettaSync]   DSD: " << (info.checkSinkSupportDSD() ? "YES" : "NO") << std::endl;
     std::cout << "[DirettaSync]   DSD LSB: " << (info.checkSinkSupportDSDlsb() ? "YES" : "NO") << std::endl;
     std::cout << "[DirettaSync]   DSD MSB: " << (info.checkSinkSupportDSDmsb() ? "YES" : "NO") << std::endl;
+
+    // SDK 148: Log supported multi-stream modes
+    // supportMSmode is a bitmask: bit0=MS1, bit1=MS2, bit2=MS3
+    uint16_t msmode = info.supportMSmode;
+    std::cout << "[DirettaSync]   MS modes: "
+              << ((msmode & 0x01) ? "MS1 " : "")
+              << ((msmode & 0x02) ? "MS2 " : "")
+              << ((msmode & 0x04) ? "MS3 " : "")
+              << (msmode == 0 ? "(none)" : "")
+              << std::endl;
+
+    // Warn if MS3 (our default) is not supported
+    if (!(msmode & 0x04) && msmode != 0) {
+        std::cerr << "[DirettaSync] WARNING: Target does not support MS3 mode (using MS3 anyway)" << std::endl;
+    }
 }
 
 //=============================================================================
@@ -352,20 +414,7 @@ bool DirettaSync::open(const AudioFormat& format) {
                   << format.bitDepth << "bit/" << format.channels << "ch"
                   << (format.isDSD ? " DSD" : " PCM") << std::endl;
 
-        // EXPERIMENTAL: Check force full reopen flag (user-initiated track change)
-        // When set, bypass quick path even for same format
-        if (m_forceFullReopen) {
-            std::cout << "[DirettaSync] EXPERIMENTAL: Force full reopen requested (user interaction)" << std::endl;
-            m_forceFullReopen = false;  // Clear flag after use
-
-            // Use standard reopen sequence for clean transition
-            if (!reopenForFormatChange()) {
-                std::cerr << "[DirettaSync] Failed to reopen for user-initiated change" << std::endl;
-                return false;
-            }
-            needFullConnect = true;
-            // Skip to full connect path (after the if-else block)
-        } else if (sameFormat) {
+        if (sameFormat) {
             std::cout << "[DirettaSync] Same format - quick resume (no setSink)" << std::endl;
 
             // Send silence before transition to flush Diretta pipeline
@@ -379,9 +428,12 @@ bool DirettaSync::open(const AudioFormat& format) {
             }
 
             // Clear buffer and reset flags
+            // NOTE: Do NOT reset m_postOnlineDelayDone for quick resume!
+            // The DAC is already stable from the previous track - no need
+            // to send additional silence after prefill completes.
             m_ringBuffer.clear();
             m_prefillComplete = false;
-            m_postOnlineDelayDone = false;
+            // m_postOnlineDelayDone stays true - DAC already stable
             m_stabilizationCount = 0;
             m_stopRequested = false;
             m_draining = false;
@@ -420,8 +472,8 @@ bool DirettaSync::open(const AudioFormat& format) {
                               << (newMultiplier * 64) << " rate change - full close/reopen" << std::endl;
                 }
 
-                int dsdMultiplier = m_previousFormat.sampleRate / 44100;
-                std::cout << "[DirettaSync] Previous format was DSD" << dsdMultiplier << std::endl;
+                int dsdMultiplier = m_previousFormat.sampleRate / 2822400;  // DSD64=1, DSD512=8
+                std::cout << "[DirettaSync] Previous format was DSD" << (dsdMultiplier * 64) << std::endl;
 
                 // Clear any pending silence requests (playback is stopped, can't send anyway)
                 m_silenceBuffersRemaining = 0;
@@ -430,10 +482,7 @@ bool DirettaSync::open(const AudioFormat& format) {
                 stop();
                 disconnect(true);
 
-                // Close DIRETTA::Sync completely (critical for buffer flush)
-                DIRETTA::Sync::close();
-
-                // Shutdown worker thread
+                // CRITICAL: Stop worker thread BEFORE closing SDK to prevent use-after-free
                 m_running = false;
                 {
                     std::lock_guard<std::mutex> lock(m_workerMutex);
@@ -442,17 +491,22 @@ bool DirettaSync::open(const AudioFormat& format) {
                     }
                 }
 
+                // Now safe to close SDK - worker thread is stopped
+                DIRETTA::Sync::close();
+
                 m_open = false;
                 m_playing = false;
                 m_paused = false;
 
                 // Extended delay for target to fully reset
-                // DSD→PCM needs delay for clock domain switch (TEST: reduced from 800 to 400)
-                // DSD rate downgrade needs 400ms to flush internal buffers
-                int resetDelayMs = nowPCM ? 400 : 400;
+                // DSD→PCM needs delay for clock domain switch
+                // DSD rate downgrade needs time to flush internal buffers
+                // G4: Scale delay with DSD rate - higher rates have deeper pipelines
+                // G1: Use interruptible wait for responsive shutdown
+                int resetDelayMs = 200 * std::max(1, dsdMultiplier);  // 200ms (DSD64) to 1600ms (DSD512)
                 std::cout << "[DirettaSync] Waiting " << resetDelayMs
                           << "ms for target to reset..." << std::endl;
-                std::this_thread::sleep_for(std::chrono::milliseconds(resetDelayMs));
+                interruptibleWait(m_transitionMutex, m_transitionCv, m_transitionWakeup, resetDelayMs);
 
                 // Reopen DIRETTA::Sync fresh
                 ACQUA::Clock cycleTime = ACQUA::Clock::MicroSeconds(m_config.cycleTime);
@@ -479,10 +533,7 @@ bool DirettaSync::open(const AudioFormat& format) {
                 stop();
                 disconnect(true);
 
-                // Close DIRETTA::Sync completely (critical for buffer flush)
-                DIRETTA::Sync::close();
-
-                // Shutdown worker thread
+                // CRITICAL: Stop worker thread BEFORE closing SDK to prevent use-after-free
                 m_running = false;
                 {
                     std::lock_guard<std::mutex> lock(m_workerMutex);
@@ -491,15 +542,19 @@ bool DirettaSync::open(const AudioFormat& format) {
                     }
                 }
 
+                // Now safe to close SDK - worker thread is stopped
+                DIRETTA::Sync::close();
+
                 m_open = false;
                 m_playing = false;
                 m_paused = false;
 
                 // Shorter delay for PCM rate change (TEST: reduced from 200 to 100)
+                // G1: Use interruptible wait for responsive shutdown
                 int resetDelayMs = 100;
                 std::cout << "[DirettaSync] Waiting " << resetDelayMs
                           << "ms for target to reset..." << std::endl;
-                std::this_thread::sleep_for(std::chrono::milliseconds(resetDelayMs));
+                interruptibleWait(m_transitionMutex, m_transitionCv, m_transitionWakeup, resetDelayMs);
 
                 // Reopen DIRETTA::Sync fresh
                 ACQUA::Clock cycleTime = ACQUA::Clock::MicroSeconds(m_config.cycleTime);
@@ -582,6 +637,12 @@ bool DirettaSync::open(const AudioFormat& format) {
     if (!sinkSet) {
         std::cerr << "[DirettaSync] Failed to set sink after " << maxAttempts << " attempts" << std::endl;
         return false;
+    }
+
+    // SDK 148: Query format support after setSink to initialize internal structures
+    // This may be required for stream objects to be properly allocated
+    if (needFullConnect) {
+        inquirySupportFormat(m_targetAddress);
     }
 
     applyTransferMode(m_config.transferMode, cycleTime);
@@ -740,8 +801,9 @@ bool DirettaSync::reopenForFormatChange() {
 
     stop();
     disconnect(true);
-    DIRETTA::Sync::close();
 
+    // CRITICAL: Stop worker thread BEFORE closing SDK to prevent use-after-free
+    // The worker thread calls getNewStream() which accesses SDK structures
     m_running = false;
     {
         std::lock_guard<std::mutex> lock(m_workerMutex);
@@ -750,8 +812,13 @@ bool DirettaSync::reopenForFormatChange() {
         }
     }
 
+    // Now safe to close SDK - worker thread is stopped
+    DIRETTA::Sync::close();
+
+    // G1: Use interruptible wait for responsive shutdown
     DIRETTA_LOG("Waiting " << m_config.formatSwitchDelayMs << "ms...");
-    std::this_thread::sleep_for(std::chrono::milliseconds(m_config.formatSwitchDelayMs));
+    interruptibleWait(m_transitionMutex, m_transitionCv, m_transitionWakeup,
+                      static_cast<int>(m_config.formatSwitchDelayMs));
 
     ACQUA::Clock cycleTime = ACQUA::Clock::MicroSeconds(m_config.cycleTime);
 
@@ -763,24 +830,12 @@ bool DirettaSync::reopenForFormatChange() {
         return false;
     }
 
-    // Re-discover sink with retry
-    bool sinkFound = false;
-    for (int attempt = 0; attempt < DirettaRetry::REOPEN_SINK_RETRIES && !sinkFound; attempt++) {
-        if (attempt > 0) {
-            DIRETTA_LOG("setSink retry #" << attempt);
-            std::this_thread::sleep_for(std::chrono::milliseconds(DirettaRetry::REOPEN_SINK_DELAY_MS));
-        }
-        sinkFound = setSink(m_targetAddress, cycleTime, false, m_effectiveMTU);
-    }
+    // NOTE: Do NOT call setSink() or inquirySupportFormat() here!
+    // The caller will handle all configuration with the proper cycleTime
+    // calculated from the new format. Calling setSink() twice with different
+    // parameters corrupts SDK 148's internal stream state.
 
-    if (!sinkFound) {
-        std::cerr << "[DirettaSync] Failed to re-discover sink" << std::endl;
-        return false;
-    }
-
-    inquirySupportFormat(m_targetAddress);
-
-    DIRETTA_LOG("reopenForFormatChange complete");
+    DIRETTA_LOG("reopenForFormatChange complete (SDK reopened, awaiting caller config)");
     return true;
 }
 
@@ -892,12 +947,12 @@ void DirettaSync::configureSinkDSD(uint32_t dsdBitRate, int channels, const Audi
         m_needDsdBitReversal.store(!sourceIsLSB, std::memory_order_release);  // Reverse if source is MSB (DFF)
         m_needDsdByteSwap.store(false, std::memory_order_release);  // BIG endian = no swap
         // Set cached conversion mode: no swap, maybe bit reverse
-        m_dsdConversionMode = m_needDsdBitReversal.load(std::memory_order_acquire)
+        m_dsdConversionMode.store(m_needDsdBitReversal.load(std::memory_order_acquire)
             ? DirettaRingBuffer::DSDConversionMode::BitReverseOnly
-            : DirettaRingBuffer::DSDConversionMode::Passthrough;
+            : DirettaRingBuffer::DSDConversionMode::Passthrough, std::memory_order_release);
         DIRETTA_LOG("Sink DSD: LSB | BIG"
                     << (m_needDsdBitReversal.load(std::memory_order_acquire) ? " (bit reversal)" : "")
-                    << " mode=" << static_cast<int>(m_dsdConversionMode));
+                    << " mode=" << static_cast<int>(m_dsdConversionMode.load(std::memory_order_relaxed)));
         return;
     }
 
@@ -911,12 +966,12 @@ void DirettaSync::configureSinkDSD(uint32_t dsdBitRate, int channels, const Audi
         m_needDsdBitReversal.store(sourceIsLSB, std::memory_order_release);  // Reverse if source is LSB (DSF)
         m_needDsdByteSwap.store(false, std::memory_order_release);  // BIG endian = no swap
         // Set cached conversion mode: no swap, maybe bit reverse
-        m_dsdConversionMode = m_needDsdBitReversal.load(std::memory_order_acquire)
+        m_dsdConversionMode.store(m_needDsdBitReversal.load(std::memory_order_acquire)
             ? DirettaRingBuffer::DSDConversionMode::BitReverseOnly
-            : DirettaRingBuffer::DSDConversionMode::Passthrough;
+            : DirettaRingBuffer::DSDConversionMode::Passthrough, std::memory_order_release);
         DIRETTA_LOG("Sink DSD: MSB | BIG"
                     << (m_needDsdBitReversal.load(std::memory_order_acquire) ? " (bit reversal)" : "")
-                    << " mode=" << static_cast<int>(m_dsdConversionMode));
+                    << " mode=" << static_cast<int>(m_dsdConversionMode.load(std::memory_order_relaxed)));
         return;
     }
 
@@ -930,12 +985,12 @@ void DirettaSync::configureSinkDSD(uint32_t dsdBitRate, int channels, const Audi
         m_needDsdBitReversal.store(!sourceIsLSB, std::memory_order_release);
         m_needDsdByteSwap.store(true, std::memory_order_release);  // LITTLE endian = swap bytes
         // Set cached conversion mode: always swap, maybe bit reverse
-        m_dsdConversionMode = m_needDsdBitReversal.load(std::memory_order_acquire)
+        m_dsdConversionMode.store(m_needDsdBitReversal.load(std::memory_order_acquire)
             ? DirettaRingBuffer::DSDConversionMode::BitReverseAndSwap
-            : DirettaRingBuffer::DSDConversionMode::ByteSwapOnly;
+            : DirettaRingBuffer::DSDConversionMode::ByteSwapOnly, std::memory_order_release);
         DIRETTA_LOG("Sink DSD: LSB | LITTLE"
                     << (m_needDsdBitReversal.load(std::memory_order_acquire) ? " (bit reversal)" : "")
-                    << " (byte swap) mode=" << static_cast<int>(m_dsdConversionMode));
+                    << " (byte swap) mode=" << static_cast<int>(m_dsdConversionMode.load(std::memory_order_relaxed)));
         return;
     }
 
@@ -949,12 +1004,12 @@ void DirettaSync::configureSinkDSD(uint32_t dsdBitRate, int channels, const Audi
         m_needDsdBitReversal.store(sourceIsLSB, std::memory_order_release);
         m_needDsdByteSwap.store(true, std::memory_order_release);  // LITTLE endian = swap bytes
         // Set cached conversion mode: always swap, maybe bit reverse
-        m_dsdConversionMode = m_needDsdBitReversal.load(std::memory_order_acquire)
+        m_dsdConversionMode.store(m_needDsdBitReversal.load(std::memory_order_acquire)
             ? DirettaRingBuffer::DSDConversionMode::BitReverseAndSwap
-            : DirettaRingBuffer::DSDConversionMode::ByteSwapOnly;
+            : DirettaRingBuffer::DSDConversionMode::ByteSwapOnly, std::memory_order_release);
         DIRETTA_LOG("Sink DSD: MSB | LITTLE"
                     << (m_needDsdBitReversal.load(std::memory_order_acquire) ? " (bit reversal)" : "")
-                    << " (byte swap) mode=" << static_cast<int>(m_dsdConversionMode));
+                    << " (byte swap) mode=" << static_cast<int>(m_dsdConversionMode.load(std::memory_order_relaxed)));
         return;
     }
 
@@ -971,15 +1026,15 @@ void DirettaSync::configureSinkDSD(uint32_t dsdBitRate, int channels, const Audi
         bool needReverse = m_needDsdBitReversal.load(std::memory_order_acquire);
         bool needSwap = m_needDsdByteSwap.load(std::memory_order_acquire);
         if (needReverse && needSwap) {
-            m_dsdConversionMode = DirettaRingBuffer::DSDConversionMode::BitReverseAndSwap;
+            m_dsdConversionMode.store(DirettaRingBuffer::DSDConversionMode::BitReverseAndSwap, std::memory_order_release);
         } else if (needReverse) {
-            m_dsdConversionMode = DirettaRingBuffer::DSDConversionMode::BitReverseOnly;
+            m_dsdConversionMode.store(DirettaRingBuffer::DSDConversionMode::BitReverseOnly, std::memory_order_release);
         } else if (needSwap) {
-            m_dsdConversionMode = DirettaRingBuffer::DSDConversionMode::ByteSwapOnly;
+            m_dsdConversionMode.store(DirettaRingBuffer::DSDConversionMode::ByteSwapOnly, std::memory_order_release);
         } else {
-            m_dsdConversionMode = DirettaRingBuffer::DSDConversionMode::Passthrough;
+            m_dsdConversionMode.store(DirettaRingBuffer::DSDConversionMode::Passthrough, std::memory_order_release);
         }
-        DIRETTA_LOG("DSD conversion mode: " << static_cast<int>(m_dsdConversionMode));
+        DIRETTA_LOG("DSD conversion mode: " << static_cast<int>(m_dsdConversionMode.load(std::memory_order_relaxed)));
         return;
     }
 
@@ -1004,7 +1059,7 @@ void DirettaSync::configureRingPCM(int rate, int channels, int direttaBps, int i
     m_needDsdBitReversal.store(false, std::memory_order_release);
     m_needDsdByteSwap.store(false, std::memory_order_release);
     m_isLowBitrate.store(direttaBps <= 2 && rate <= 48000, std::memory_order_release);
-    m_dsdConversionMode = DirettaRingBuffer::DSDConversionMode::Passthrough;
+    m_dsdConversionMode.store(DirettaRingBuffer::DSDConversionMode::Passthrough, std::memory_order_release);
 
     // Increment format generation to invalidate cached values in sendAudio
     m_formatGeneration.fetch_add(1, std::memory_order_release);
@@ -1178,7 +1233,7 @@ size_t DirettaSync::sendAudio(const uint8_t* data, size_t numSamples) {
         m_cachedUpsample16to32 = m_need16To32Upsample.load(std::memory_order_acquire);
         m_cachedChannels = m_channels.load(std::memory_order_acquire);
         m_cachedBytesPerSample = m_bytesPerSample.load(std::memory_order_acquire);
-        m_cachedDsdConversionMode = m_dsdConversionMode;
+        m_cachedDsdConversionMode = m_dsdConversionMode.load(std::memory_order_acquire);
         m_cachedFormatGen = gen;
     }
 
@@ -1241,9 +1296,10 @@ size_t DirettaSync::sendAudio(const uint8_t* data, size_t numSamples) {
         if (g_verbose) {
             int count = m_pushCount.fetch_add(1, std::memory_order_relaxed) + 1;
             if (count <= 3 || count % 500 == 0) {
-                DIRETTA_LOG("sendAudio #" << count << " in=" << totalBytes
-                            << " out=" << written << " avail=" << m_ringBuffer.getAvailable()
-                            << " [" << formatLabel << "]");
+                // A3: Async logging in hot path - avoids cout blocking
+                DIRETTA_LOG_ASYNC("sendAudio #" << count << " in=" << totalBytes
+                                  << " out=" << written << " avail=" << m_ringBuffer.getAvailable()
+                                  << " [" << formatLabel << "]");
             }
         }
     }
@@ -1264,9 +1320,10 @@ float DirettaSync::getBufferLevel() const {
 //=============================================================================
 
 bool DirettaSync::getNewStream(diretta_stream& baseStream) {
-    // v2.0.1 FIX for SDK 148: Use our own buffer, bypass Stream methods entirely
-    // SDK 148's Stream methods may crash on corrupted stream after reconnect
-    // Solution: Allocate our own buffer and point baseStream.Data.P directly to it
+    // SDK 148 WORKAROUND: Do NOT use DIRETTA::Stream class methods!
+    // After Stop→Play (track change), SDK 148's Stream objects are corrupted.
+    // Any method call (resize, get_16, etc.) causes segfault.
+    // Solution: Use our own persistent buffer and directly set diretta_stream fields.
 
     m_workerActive = true;
 
@@ -1301,28 +1358,18 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
         m_framesPerBufferAccumulator.store(acc, std::memory_order_relaxed);
     }
 
-    // v2.0.1 FIX: Use our own persistent buffer instead of SDK's Stream
-    // This completely avoids SDK 148's Stream methods that may crash after reconnect
-    if (g_verbose && m_streamCount.load(std::memory_order_relaxed) < 10) {
-        std::cout << "[getNewStream] bpb=" << currentBytesPerBuffer
-                  << " m_streamData.size=" << m_streamData.size() << std::endl;
-    }
-
-    // Ensure our buffer is large enough (grow only, never shrink for efficiency)
-    if (m_streamData.size() < static_cast<size_t>(currentBytesPerBuffer)) {
+    // SDK 148 WORKAROUND: Use our own buffer instead of Stream::resize()
+    // Resize our persistent buffer if needed
+    if (m_streamData.size() != static_cast<size_t>(currentBytesPerBuffer)) {
         m_streamData.resize(currentBytesPerBuffer);
     }
 
-    // Point SDK's baseStream to our buffer
-    uint8_t* dest = m_streamData.data();
-    baseStream.Data.P = dest;
+    // Directly set the diretta_stream C structure fields
+    // The SDK only reads Data.P (pointer) and Size fields
+    baseStream.Data.P = m_streamData.data();
     baseStream.Size = currentBytesPerBuffer;
 
-    if (!dest) {
-        std::cerr << "[getNewStream] ERROR: m_streamData.data() returned null!" << std::endl;
-        m_workerActive = false;
-        return false;
-    }
+    uint8_t* dest = m_streamData.data();
 
     RingAccessGuard ringGuard(m_ringUsers, m_reconfiguring);
     if (!ringGuard.active()) {
@@ -1388,10 +1435,10 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
             stabilizationTarget = std::max(50, std::min(stabilizationTarget, 3000));
         }
 
-        int count = m_stabilizationCount.fetch_add(1, std::memory_order_acq_rel) + 1;
+        int count = m_stabilizationCount.fetch_add(1, std::memory_order_relaxed) + 1;
         if (count >= stabilizationTarget) {
             m_postOnlineDelayDone = true;
-            m_stabilizationCount = 0;
+            m_stabilizationCount.store(0, std::memory_order_relaxed);
             DIRETTA_LOG("Post-online stabilization complete (" << count << " buffers)");
         }
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
@@ -1404,9 +1451,10 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
 
     if (g_verbose && (count <= 5 || count % 5000 == 0)) {
         float fillPct = (currentRingSize > 0) ? (100.0f * avail / currentRingSize) : 0.0f;
-        DIRETTA_LOG("getNewStream #" << count << " bpb=" << currentBytesPerBuffer
-                    << " avail=" << avail << " (" << std::fixed << std::setprecision(1)
-                    << fillPct << "%) " << (currentIsDsd ? "[DSD]" : "[PCM]"));
+        // A3: Async logging in hot path - avoids cout blocking in Diretta callback
+        DIRETTA_LOG_ASYNC("getNewStream #" << count << " bpb=" << currentBytesPerBuffer
+                          << " avail=" << avail << " (" << std::fixed << std::setprecision(1)
+                          << fillPct << "%) " << (currentIsDsd ? "[DSD]" : "[PCM]"));
     }
 
     // Underrun - count silently, log at session end
@@ -1419,6 +1467,14 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
 
     // Pop from ring buffer directly into SDK stream
     m_ringBuffer.pop(dest, currentBytesPerBuffer);
+
+    // G1: Signal producer that space is now available
+    // Use try_lock to avoid blocking the time-critical consumer thread
+    // If producer isn't waiting, this is a no-op (harmless notification)
+    if (m_flowMutex.try_lock()) {
+        m_flowMutex.unlock();
+        m_spaceAvailable.notify_one();
+    }
 
     m_workerActive = false;
     return true;
@@ -1442,6 +1498,10 @@ bool DirettaSync::startSyncWorker() {
     m_stopRequested = false;
 
     m_workerThread = std::thread([this]() {
+        // F1: Elevate worker thread priority for reduced jitter
+        // SCHED_FIFO priority 50 (mid-range real-time) - requires root/CAP_SYS_NICE
+        setRealtimePriority(50);
+
         while (m_running.load(std::memory_order_acquire)) {
             if (!syncWorker()) {
                 std::this_thread::sleep_for(std::chrono::microseconds(100));
@@ -1484,9 +1544,19 @@ void DirettaSync::shutdownWorker() {
 }
 
 void DirettaSync::requestShutdownSilence(int buffers) {
-    m_silenceBuffersRemaining = buffers;
+    // N7: Scale silence buffers with DSD rate for consistent flush timing
+    // Higher DSD rates have deeper pipelines requiring more buffers
+    int scaledBuffers = buffers;
+    if (m_isDsdMode.load(std::memory_order_relaxed)) {
+        int sampleRate = m_sampleRate.load(std::memory_order_relaxed);
+        int dsdMultiplier = sampleRate / 2822400;  // DSD64=1, DSD512=8
+        scaledBuffers = buffers * std::max(1, dsdMultiplier);
+    }
+
+    m_silenceBuffersRemaining = scaledBuffers;
     m_draining = true;
-    DIRETTA_LOG("Requested " << buffers << " shutdown silence buffers");
+    DIRETTA_LOG("Requested " << scaledBuffers << " shutdown silence buffers"
+                << (scaledBuffers != buffers ? " (scaled from " + std::to_string(buffers) + ")" : ""));
 }
 
 bool DirettaSync::waitForOnline(unsigned int timeoutMs) {
