@@ -730,7 +730,9 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
     }
 
     // Initialize resampler if needed (not for DSD)
-    if (!m_trackInfo.isDSD && !m_swrContext) {
+    // Check m_resamplerInitialized instead of m_swrContext because
+    // bypass mode doesn't use swrContext but still counts as initialized
+    if (!m_trackInfo.isDSD && !m_resamplerInitialized) {
         if (!initResampler(outputRate, outputBits)) {
             return 0;
         }
@@ -879,6 +881,29 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
                 // PCM: Resample if needed, or bypass for bit-perfect playback
                 size_t samplesNeeded = numSamples - totalSamplesRead;
 
+                // Check for bypass format mismatch (canBypass checked codec context,
+                // but actual frame format could differ at runtime)
+                if (m_bypassMode) {
+                    AVSampleFormat expectedFmt = (outputBits == 16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_S32;
+                    AVSampleFormat frameFmt = (AVSampleFormat)m_frame->format;
+                    bool formatMismatch = (frameFmt != expectedFmt);
+                    bool isPlanar = av_sample_fmt_is_planar(frameFmt);
+
+                    if (formatMismatch || isPlanar) {
+                        std::cerr << "[AudioDecoder] BYPASS MISMATCH: frame format "
+                                  << av_get_sample_fmt_name(frameFmt)
+                                  << (isPlanar ? " (PLANAR)" : "")
+                                  << " != expected " << av_get_sample_fmt_name(expectedFmt)
+                                  << " - falling back to resampler" << std::endl;
+                        // Disable bypass and reinitialize resampler
+                        m_bypassMode = false;
+                        m_resamplerInitialized = false;
+                        if (!initResampler(outputRate, outputBits)) {
+                            return totalSamplesRead;
+                        }
+                    }
+                }
+
                 if (m_bypassMode) {
                     // BYPASS PATH: Direct copy from decoded frame (bit-perfect)
                     size_t samplesToCopy = std::min(frameSamples, samplesNeeded);
@@ -1026,7 +1051,9 @@ bool AudioDecoder::initResampler(uint32_t outputRate, uint32_t outputBits) {
 
     // Check if we can bypass resampling entirely (bit-perfect path)
     if (canBypass(outputRate, outputBits)) {
-        std::cout << "[AudioDecoder] PCM BYPASS enabled - bit-perfect path" << std::endl;
+        std::cout << "[AudioDecoder] PCM BYPASS enabled - bit-perfect path ("
+                  << av_get_sample_fmt_name(m_codecContext->sample_fmt) << "/"
+                  << outputRate << "Hz/" << outputBits << "bit)" << std::endl;
 
         // Free existing resampler if any
         if (m_swrContext) {
@@ -1179,6 +1206,15 @@ bool AudioDecoder::canBypass(uint32_t outputRate, uint32_t outputBits) const {
 
     // Format must be packed integer (NOT planar, NOT float)
     AVSampleFormat fmt = m_codecContext->sample_fmt;
+
+    // Explicit planar check - planar formats would cause "accelerated" playback
+    // because data[0] would only contain one channel
+    if (av_sample_fmt_is_planar(fmt)) {
+        DEBUG_LOG("[AudioDecoder] canBypass: NO (planar format " << av_get_sample_fmt_name(fmt)
+                  << " requires interleaving)");
+        return false;
+    }
+
     bool isPackedInteger = (fmt == AV_SAMPLE_FMT_S16 || fmt == AV_SAMPLE_FMT_S32);
 
     if (!isPackedInteger) {

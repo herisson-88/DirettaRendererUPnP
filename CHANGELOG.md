@@ -239,6 +239,24 @@ make NOLOG=1    # Production build - zero logging overhead
 
 ---
 
+#### PCM Bypass Runtime Format Verification
+
+**Problem:** PCM bypass mode checked codec context format at initialization, but actual decoded frame format could differ at runtime, causing "accelerated garbage" audio at high sample rates (352.8kHz).
+
+**Root Cause:** The `canBypass()` function checked `m_codecContext->sample_fmt`, but `m_frame->format` could differ. If FFmpeg returned planar data when packed was expected, only one channel would be copied, causing "accelerated" playback.
+
+**Solution:**
+1. Added runtime verification in bypass path: checks `m_frame->format` matches expectations
+2. Added explicit `av_sample_fmt_is_planar()` check in both `canBypass()` and runtime verification
+3. If mismatch detected, automatically falls back to resampler path mid-stream
+4. Improved diagnostic logging showing actual format details
+
+**Files:** `src/AudioEngine.cpp:884-905` (runtime check), `src/AudioEngine.cpp:1208-1214` (canBypass planar check)
+
+**Impact:** PCM 8fs (352.8kHz/24-bit) files now play correctly; runtime fallback prevents audio corruption.
+
+---
+
 ## 2026-01-19 - FFmpeg Version Mismatch Detection
 
 ### Problem
