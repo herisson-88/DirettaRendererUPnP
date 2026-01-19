@@ -1421,6 +1421,14 @@ bool DirettaSync::getNewStream(DIRETTA::Stream& stream) {
     // Pop from ring buffer
     m_ringBuffer.pop(dest, currentBytesPerBuffer);
 
+    // G1: Signal producer that space is now available
+    // Use try_lock to avoid blocking the time-critical consumer thread
+    // If producer isn't waiting, this is a no-op (harmless notification)
+    if (m_flowMutex.try_lock()) {
+        m_flowMutex.unlock();
+        m_spaceAvailable.notify_one();
+    }
+
     m_workerActive = false;
     return true;
 }
