@@ -1,5 +1,40 @@
 # Changelog
 
+## 2026-01-19 - SDK 148 Critical Bug Fix: Use-After-Free in reopenForFormatChange
+
+### Root Cause
+
+**Bug:** Worker thread continued running while SDK was closed, causing use-after-free segfault.
+
+**Wrong ordering (caused crash):**
+```cpp
+DIRETTA::Sync::close();  // SDK freed
+m_running = false;       // Worker still running, accesses freed memory!
+m_workerThread.join();
+```
+
+**Fixed ordering:**
+```cpp
+m_running = false;       // Signal worker to stop
+m_workerThread.join();   // Wait for worker to finish
+DIRETTA::Sync::close();  // NOW safe to close SDK
+```
+
+### Impact
+
+Fixes segmentation fault during:
+- Track changes with format change (e.g., 44.1kHz → 48kHz)
+- DSD → PCM transitions
+- User-initiated track skip (EXPERIMENTAL: Force full reopen)
+
+### Files Changed
+
+- `src/DirettaSync.cpp:495-510` - DSD→PCM transition path
+- `src/DirettaSync.cpp:550-565` - DSD rate change path
+- `src/DirettaSync.cpp:787-804` - `reopenForFormatChange()`
+
+---
+
 ## 2026-01-19 - SDK 148 Specific Optimizations
 
 Optimizations leveraging new SDK 148 features.

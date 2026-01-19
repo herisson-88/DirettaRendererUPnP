@@ -495,10 +495,7 @@ bool DirettaSync::open(const AudioFormat& format) {
                 stop();
                 disconnect(true);
 
-                // Close DIRETTA::Sync completely (critical for buffer flush)
-                DIRETTA::Sync::close();
-
-                // Shutdown worker thread
+                // CRITICAL: Stop worker thread BEFORE closing SDK to prevent use-after-free
                 m_running = false;
                 {
                     std::lock_guard<std::mutex> lock(m_workerMutex);
@@ -506,6 +503,9 @@ bool DirettaSync::open(const AudioFormat& format) {
                         m_workerThread.join();
                     }
                 }
+
+                // Now safe to close SDK - worker thread is stopped
+                DIRETTA::Sync::close();
 
                 m_open = false;
                 m_playing = false;
@@ -546,10 +546,7 @@ bool DirettaSync::open(const AudioFormat& format) {
                 stop();
                 disconnect(true);
 
-                // Close DIRETTA::Sync completely (critical for buffer flush)
-                DIRETTA::Sync::close();
-
-                // Shutdown worker thread
+                // CRITICAL: Stop worker thread BEFORE closing SDK to prevent use-after-free
                 m_running = false;
                 {
                     std::lock_guard<std::mutex> lock(m_workerMutex);
@@ -557,6 +554,9 @@ bool DirettaSync::open(const AudioFormat& format) {
                         m_workerThread.join();
                     }
                 }
+
+                // Now safe to close SDK - worker thread is stopped
+                DIRETTA::Sync::close();
 
                 m_open = false;
                 m_playing = false;
@@ -789,8 +789,9 @@ bool DirettaSync::reopenForFormatChange() {
 
     stop();
     disconnect(true);
-    DIRETTA::Sync::close();
 
+    // CRITICAL: Stop worker thread BEFORE closing SDK to prevent use-after-free
+    // The worker thread calls getNewStream() which accesses SDK structures
     m_running = false;
     {
         std::lock_guard<std::mutex> lock(m_workerMutex);
@@ -798,6 +799,9 @@ bool DirettaSync::reopenForFormatChange() {
             m_workerThread.join();
         }
     }
+
+    // Now safe to close SDK - worker thread is stopped
+    DIRETTA::Sync::close();
 
     // G1: Use interruptible wait for responsive shutdown
     DIRETTA_LOG("Waiting " << m_config.formatSwitchDelayMs << "ms...");
