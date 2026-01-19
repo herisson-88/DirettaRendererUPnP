@@ -413,9 +413,12 @@ bool DirettaSync::open(const AudioFormat& format) {
             }
 
             // Clear buffer and reset flags
+            // NOTE: Do NOT reset m_postOnlineDelayDone for quick resume!
+            // The DAC is already stable from the previous track - no need
+            // to send additional silence after prefill completes.
             m_ringBuffer.clear();
             m_prefillComplete = false;
-            m_postOnlineDelayDone = false;
+            // m_postOnlineDelayDone stays true - DAC already stable
             m_stabilizationCount = 0;
             m_stopRequested = false;
             m_draining = false;

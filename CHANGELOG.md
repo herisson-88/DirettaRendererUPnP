@@ -147,6 +147,48 @@ The following optimizations reduce audio jitter by eliminating hot-path allocati
 
 ---
 
+#### Production Build (NOLOG)
+
+**Problem:** Verbose logging (`-v` flag) still had runtime overhead even when disabled.
+
+**Solution:** Added compile-time `NOLOG` flag that completely removes all logging code.
+
+**Files changed:**
+- `Makefile`: Added `-DNOLOG` when `NOLOG=1` is set
+- `src/DirettaSync.h`: `DIRETTA_LOG` and `DIRETTA_LOG_ASYNC` compile to nothing
+- `src/DirettaRenderer.cpp`, `src/UPnPDevice.cpp`, `src/AudioEngine.cpp`: `DEBUG_LOG` compiles to nothing
+
+**Usage:**
+```bash
+make NOLOG=1    # Production build - zero logging overhead
+```
+
+---
+
+#### Quick Resume Stabilization Fix
+
+**Problem:** Track transitions within the same format caused unnecessary silence ("white") due to post-online stabilization being reset.
+
+**Solution:** Quick resume path no longer resets `m_postOnlineDelayDone` - DAC is already stable from previous track.
+
+**File:** `src/DirettaSync.cpp` (quick resume path in `open()`)
+
+**Impact:** Same-format track changes now start immediately after prefill (no stabilization silence).
+
+---
+
+#### Reduced PCM Stabilization Time
+
+**Problem:** `POST_ONLINE_SILENCE_BUFFERS` was set to 50 (~50ms), causing noticeable delay on fresh start.
+
+**Solution:** Reduced from 50 to 20 buffers (~20ms for PCM).
+
+**File:** `src/DirettaSync.h:198`
+
+**Impact:** Faster playback start on new albums.
+
+---
+
 ## 2026-01-19 - FFmpeg Version Mismatch Detection
 
 ### Problem

@@ -123,6 +123,8 @@ endif
 
 ifdef NOLOG
     NOLOG_SUFFIX = -nolog
+    CXXFLAGS += -DNOLOG
+    $(info Logging: DISABLED (production build))
 else
     NOLOG_SUFFIX =
 endif

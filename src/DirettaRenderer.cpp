@@ -18,7 +18,11 @@
 #include <cstring>
 
 extern bool g_verbose;
+#ifdef NOLOG
+#define DEBUG_LOG(x) do {} while(0)
+#else
 #define DEBUG_LOG(x) if (g_verbose) { std::cout << x << std::endl; }
+#endif
 
 //=============================================================================
 // Hybrid Flow Control Constants

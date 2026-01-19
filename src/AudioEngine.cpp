@@ -17,7 +17,11 @@ extern "C" {
 // Logging system - Variable globale définie dans main.cpp
 // ============================================================================
 extern bool g_verbose;
+#ifdef NOLOG
+#define DEBUG_LOG(x) do {} while(0)
+#else
 #define DEBUG_LOG(x) if (g_verbose) { std::cout << x << std::endl; }
+#endif
 #include <libavutil/opt.h>
 }
 
@@ -1875,7 +1879,7 @@ bool AudioEngine::seek(const std::string& timeStr) {
     double totalSeconds = hours * 3600.0 + minutes * 60.0 + seconds;
 
     DEBUG_LOG("[AudioEngine] Parsed time: " << timeStr
-              << " = " << totalSeconds << " seconds")
+              << " = " << totalSeconds << " seconds");
 
     return seek(totalSeconds);
 }

@@ -104,6 +104,12 @@ extern LogRing* g_logRing;
 
 extern bool g_verbose;
 
+#ifdef NOLOG
+// Production build: compile out all verbose logging for zero overhead
+#define DIRETTA_LOG(msg) do {} while(0)
+#define DIRETTA_LOG_ASYNC(msg) do {} while(0)
+#else
+// Debug build: check g_verbose at runtime
 #define DIRETTA_LOG(msg) do { \
     if (g_verbose) { \
         std::cout << "[DirettaSync] " << msg << std::endl; \
@@ -118,6 +124,7 @@ extern bool g_verbose;
         g_logRing->push(_oss.str().c_str()); \
     } \
 } while(0)
+#endif
 
 //=============================================================================
 // Audio Format
@@ -188,7 +195,7 @@ namespace DirettaBuffer {
     constexpr unsigned int DAC_STABILIZATION_MS = 100;
     constexpr unsigned int ONLINE_WAIT_MS = 2000;
     constexpr unsigned int FORMAT_SWITCH_DELAY_MS = 800;
-    constexpr unsigned int POST_ONLINE_SILENCE_BUFFERS = 50;
+    constexpr unsigned int POST_ONLINE_SILENCE_BUFFERS = 20;  // Was 50 - reduced for faster start
 
     // UPnP push model needs larger buffers than MPD's pull model
     // 64KB = ~370ms floor at 44.1kHz/16-bit, negligible at higher rates
