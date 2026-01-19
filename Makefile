@@ -150,33 +150,88 @@ $(info ════════════════════════�
 $(info )
 
 # ============================================
-# SDK Detection
+# Diretta SDK Auto-Detection - SIMPLIFIED VERSION
 # ============================================
 
 ifdef DIRETTA_SDK_PATH
     SDK_PATH = $(DIRETTA_SDK_PATH)
+    SDK_VERSION = custom
+    $(info ✓ Using SDK from environment: $(SDK_PATH))
 else
-    # Search for SDK in common locations (newest version first)
-    SDK_SEARCH_PATHS = \
-        ../DirettaHostSDK_148 \
-        ./DirettaHostSDK_148 \
-        $(HOME)/DirettaHostSDK_148 \
-        /opt/DirettaHostSDK_148
-
-    SDK_PATH = $(firstword $(foreach path,$(SDK_SEARCH_PATHS),$(wildcard $(path))))
-
-    ifeq ($(SDK_PATH),)
-        $(error Diretta SDK not found! Set DIRETTA_SDK_PATH or place SDK in one of: $(SDK_SEARCH_PATHS))
+    # Search for DirettaHostSDK_* in common locations
+    SDK_CANDIDATES := $(shell find $(HOME) . .. /opt $(HOME)/audio /usr/local \
+        -maxdepth 1 -type d -name 'DirettaHostSDK_*' 2>/dev/null | sort -V | tail -1)
+    
+    ifneq ($(SDK_CANDIDATES),)
+        SDK_PATH = $(SDK_CANDIDATES)
+        SDK_VERSION = $(subst DirettaHostSDK_,,$(notdir $(SDK_PATH)))
+        $(info ✓ SDK auto-detected: $(SDK_PATH))
+        $(info ✓ SDK version: $(SDK_VERSION))
+    else
+        $(info )
+        $(info ❌ Diretta SDK not found!)
+        $(info )
+        $(info 📁 Searched for DirettaHostSDK_* in:)
+        $(info    $(HOME)/)
+        $(info    ./)
+        $(info    ../)
+        $(info    /opt/)
+        $(info    $(HOME)/audio/)
+        $(info    /usr/local/)
+        $(info )
+        $(info 💡 Solutions:)
+        $(info    1. Download SDK to one of the locations above)
+        $(info    2. Or set: make DIRETTA_SDK_PATH=/your/path/DirettaHostSDK_XXX)
+        $(info )
+        $(error SDK not found)
     endif
 endif
 
+# ============================================
+# Verify SDK Installation
+# ============================================
+
+# Full paths to libraries
 SDK_LIB_DIRETTA = $(SDK_PATH)/lib/$(DIRETTA_LIB_NAME)
+SDK_LIB_ACQUA   = $(SDK_PATH)/lib/$(ACQUA_LIB_NAME)
 
 ifeq (,$(wildcard $(SDK_LIB_DIRETTA)))
-    $(error Required library not found: $(DIRETTA_LIB_NAME))
+    $(info )
+    $(info ❌ Required library not found: $(DIRETTA_LIB_NAME))
+    $(info    Path checked: $(SDK_LIB_DIRETTA))
+    $(info )
+    $(info 📝 Available libraries in SDK:)
+    $(info $(shell ls -1 $(SDK_PATH)/lib/libDirettaHost_*.a 2>/dev/null | sed 's|.*/libDirettaHost_||' | sed 's|\.a||' || echo "    No libraries found"))
+    $(info )
+    $(info 💡 Common solutions:)
+    $(info )
+    $(info   For Raspberry Pi:)
+    $(info     make ARCH_NAME=aarch64-linux-15)
+    $(info )
+    $(info   For x64 systems:)
+    $(info     make ARCH_NAME=x64-linux-15v2       # Baseline)
+    $(info     make ARCH_NAME=x64-linux-15v3       # AVX2 (most common))
+    $(info     make ARCH_NAME=x64-linux-15v4       # AVX512)
+    $(info     make ARCH_NAME=x64-linux-15zen4     # AMD Ryzen 7000+)
+    $(info )
+    $(info   For RISC-V:)
+    $(info     make ARCH_NAME=riscv64-linux-15)
+    $(info )
+    $(info   Or run: make list-variants)
+    $(info )
+    $(error Build failed: library not found)
 endif
 
-$(info SDK: $(SDK_PATH))
+ifeq (,$(wildcard $(SDK_LIB_ACQUA)))
+    $(warning ⚠️  ACQUA library not found: $(ACQUA_LIB_NAME))
+endif
+
+SDK_HEADER = $(SDK_PATH)/Host/Diretta/SyncBuffer
+ifeq (,$(wildcard $(SDK_HEADER)))
+    $(error ❌ SDK headers not found at: $(SDK_PATH)/Host/)
+endif
+
+$(info ✓ SDK validation passed)
 $(info )
 
 # ============================================

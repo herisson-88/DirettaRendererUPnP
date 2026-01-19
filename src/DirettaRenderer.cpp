@@ -229,12 +229,10 @@ bool DirettaRenderer::start() {
                                   << format.bitDepth << "bit "
                                   << (format.isDSD ? "DSD" : "PCM") << std::endl;
 
-                        // Send silence BEFORE stopping to flush Diretta pipeline
-                        // This prevents crackling on format transitions (gapless case)
-                        m_direttaSync->sendPreTransitionSilence();
-
-                        // Stop current playback to trigger full reopen
-                        m_direttaSync->stopPlayback(true);
+                        // v2.0.1 FIX: Use stopPlayback(false) to send silence before stopping
+                        // This flushes the Diretta pipeline and prevents crackling on format transitions
+                        // With immediate=true, no silence was sent, causing DAC sync issues
+                        m_direttaSync->stopPlayback(false);
                         needsOpen = true;
                     }
                 }
@@ -384,6 +382,10 @@ bool DirettaRenderer::start() {
 
                 std::cout << "[DirettaRenderer] Auto-STOP before URI change" << std::endl;
 
+                // v2.0.1 FIX: Record stop time for DAC stabilization delay in onPlay
+                // Without this, the stabilization delay is skipped after Auto-STOP
+                m_lastStopTime = std::chrono::steady_clock::now();
+
                 m_audioEngine->stop();
                 waitForCallbackComplete();
 
@@ -439,7 +441,13 @@ bool DirettaRenderer::start() {
                 std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
 
-            m_audioEngine->play();
+            // v2.0.1 FIX: Check play() return value before notifying PLAYING
+            // Without this check, control point shows PLAYING even when decoder failed to open
+            if (!m_audioEngine->play()) {
+                std::cerr << "[DirettaRenderer] AudioEngine::play() failed" << std::endl;
+                m_upnp->notifyStateChange("STOPPED");
+                return;
+            }
             m_upnp->notifyStateChange("PLAYING");
         };
 
@@ -458,6 +466,14 @@ bool DirettaRenderer::start() {
 
         callbacks.onStop = [this]() {
             std::lock_guard<std::mutex> lock(m_mutex);
+
+            // Guard against redundant stop calls from control point
+            // Control points often send multiple rapid Stop commands
+            if (m_direttaSync && !m_direttaSync->isOpen() && !m_direttaSync->isPlaying()) {
+                std::cout << "[DirettaRenderer] Stop ignored - already stopped" << std::endl;
+                return;
+            }
+
             std::cout << "[DirettaRenderer] Stop" << std::endl;
 
             m_lastStopTime = std::chrono::steady_clock::now();
@@ -469,14 +485,12 @@ bool DirettaRenderer::start() {
                 m_audioEngine->setCurrentURI(m_currentURI, m_currentMetadata, true);
             }
 
-            // Fully release Diretta target on Stop for proper resource cleanup
-            // This ensures:
-            // - Clean handoff when switching to a different renderer
-            // - Proper resource release on the Diretta target
-            // - Control point gets expected clean disconnection
-            // Trade-off: subsequent Play will need to reopen SDK (~300ms)
+            // v2.0.1 FIX: Use close() instead of release() on Stop
+            // SDK 148 has issues reopening after release() - causes segfault
+            // close() keeps SDK connection open for faster resume
+            // release() is still called on natural track end (TrackEndCallback)
             if (m_direttaSync) {
-                m_direttaSync->release();
+                m_direttaSync->close();
             }
 
             m_upnp->notifyStateChange("STOPPED");

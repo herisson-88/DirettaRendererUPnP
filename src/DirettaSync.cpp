@@ -729,17 +729,31 @@ void DirettaSync::close() {
     stop();
     disconnect(true);  // Wait for proper disconnection before returning
 
-    int waitCount = 0;
-    while (m_workerActive.load() && waitCount < 50) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        waitCount++;
+    // v2.0.1 FIX for SDK 148: Close SDK completely to reset internal Stream state
+    // SDK 148 leaves Stream in corrupted state after disconnect - must close/reopen
+    DIRETTA::Sync::close();
+    m_sdkOpen = false;
+
+    // Brief delay for target to process disconnect (like reopenForFormatChange)
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    // Stop worker thread
+    m_running = false;
+    {
+        std::lock_guard<std::mutex> lock(m_workerMutex);
+        if (m_workerThread.joinable()) {
+            m_workerThread.join();
+        }
     }
 
     m_open = false;
     m_playing = false;
     m_paused = false;
 
-    DIRETTA_LOG("Close() done");
+    // Reset cached consumer generation to force reload on next getNewStream()
+    m_cachedConsumerGen = UINT32_MAX;
+
+    DIRETTA_LOG("Close() done (SDK closed)");
 }
 
 void DirettaSync::release() {
@@ -775,6 +789,11 @@ void DirettaSync::release() {
 
     // Clear format state so next open() starts fresh
     m_hasPreviousFormat = false;
+
+    // v2.0.1 FIX: Reset cached consumer generation to force reload on next getNewStream()
+    // Without this, if m_consumerStateGen wraps around to match m_cachedConsumerGen,
+    // stale cached values could be used after SDK reopen
+    m_cachedConsumerGen = UINT32_MAX;  // Force mismatch on next getNewStream()
 }
 
 bool DirettaSync::reopenForFormatChange() {
@@ -854,6 +873,9 @@ void DirettaSync::fullReset() {
 
         m_ringBuffer.clear();
     }
+
+    // v2.0.1 FIX: Reset cached consumer generation to force reload on next getNewStream()
+    m_cachedConsumerGen = UINT32_MAX;
 
     m_stopRequested = false;
 }
@@ -1443,7 +1465,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
         return true;
     }
 
-    // Pop from ring buffer
+    // Pop from ring buffer directly into SDK stream
     m_ringBuffer.pop(dest, currentBytesPerBuffer);
 
     // G1: Signal producer that space is now available
