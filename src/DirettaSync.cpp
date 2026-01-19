@@ -818,24 +818,12 @@ bool DirettaSync::reopenForFormatChange() {
         return false;
     }
 
-    // Re-discover sink with retry
-    bool sinkFound = false;
-    for (int attempt = 0; attempt < DirettaRetry::REOPEN_SINK_RETRIES && !sinkFound; attempt++) {
-        if (attempt > 0) {
-            DIRETTA_LOG("setSink retry #" << attempt);
-            std::this_thread::sleep_for(std::chrono::milliseconds(DirettaRetry::REOPEN_SINK_DELAY_MS));
-        }
-        sinkFound = setSink(m_targetAddress, cycleTime, false, m_effectiveMTU);
-    }
+    // NOTE: Do NOT call setSink() or inquirySupportFormat() here!
+    // The caller will handle all configuration with the proper cycleTime
+    // calculated from the new format. Calling setSink() twice with different
+    // parameters corrupts SDK 148's internal stream state.
 
-    if (!sinkFound) {
-        std::cerr << "[DirettaSync] Failed to re-discover sink" << std::endl;
-        return false;
-    }
-
-    inquirySupportFormat(m_targetAddress);
-
-    DIRETTA_LOG("reopenForFormatChange complete");
+    DIRETTA_LOG("reopenForFormatChange complete (SDK reopened, awaiting caller config)");
     return true;
 }
 

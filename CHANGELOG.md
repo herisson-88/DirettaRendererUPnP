@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-01-19 - SDK 148 Critical Bug Fix: Double setSink Corruption
+
+### Root Cause
+
+**Bug:** `reopenForFormatChange()` called `setSink()` with old cached cycleTime, then caller called `setSink()` again with new format-specific cycleTime. SDK 148's internal stream objects became corrupted after this double initialization.
+
+**Symptom:** Segfault in `DIRETTA::Stream::resize()` immediately after `reopenForFormatChange()` when worker thread first accesses streams.
+
+**Fix:** Removed `setSink()` and `inquirySupportFormat()` from `reopenForFormatChange()`. The function now only does close/wait/open, letting the caller handle all configuration with proper parameters.
+
+### Files Changed
+
+- `src/DirettaSync.cpp:813-827` - Removed setSink()/inquirySupportFormat() from reopenForFormatChange()
+
+---
+
 ## 2026-01-19 - SDK 148 Critical Bug Fix: Use-After-Free in reopenForFormatChange
 
 ### Root Cause
