@@ -236,10 +236,21 @@ get_ffmpeg_configure_opts() {
 OPTS
 }
 
+# Detect library directory (lib vs lib64)
+get_libdir() {
+    if [ -d "/usr/lib64" ] && [ "$(uname -m)" = "x86_64" ]; then
+        echo "/usr/lib64"
+    else
+        echo "/usr/lib"
+    fi
+}
+
 # Minimal FFmpeg 8.x configure options - streamlined audio-only build
 get_ffmpeg_8_minimal_opts() {
-    cat <<'OPTS'
+    local libdir=$(get_libdir)
+    cat <<OPTS
 --prefix=/usr
+--libdir=$libdir
 --enable-shared
 --disable-static
 --enable-small
