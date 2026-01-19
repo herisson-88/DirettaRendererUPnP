@@ -398,6 +398,11 @@ private:
     bool m_forceFullReopen{false};
     std::atomic<bool> m_workerActive{false};
 
+    // v2.0.1 FIX: Own stream buffer to avoid SDK 148 corruption issue
+    // SDK 148 passes corrupted streams after disconnect/reconnect
+    // We fill our own buffer then swap() with SDK's stream
+    DIRETTA::Stream m_streamBuffer;
+
     std::thread m_workerThread;
     std::mutex m_workerMutex;
     std::mutex m_configMutex;

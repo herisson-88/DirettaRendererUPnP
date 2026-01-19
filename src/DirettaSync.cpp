@@ -1291,40 +1291,22 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
         m_framesPerBufferAccumulator.store(acc, std::memory_order_relaxed);
     }
 
-    // v2.0.1 DEBUG: Log stream operations to identify crash location
+    // v2.0.1 FIX: Use our own buffer to avoid SDK 148 corruption issue
+    // SDK 148 passes corrupted streams after disconnect/reconnect - resize() crashes
+    // Solution: resize our own m_streamBuffer, fill it, then swap() with SDK stream
     if (g_verbose && m_streamCount.load(std::memory_order_relaxed) < 10) {
         std::cout << "[getNewStream] bpb=" << currentBytesPerBuffer
-                  << " stream.size=" << stream.size() << std::flush;
+                  << " m_streamBuffer.size=" << m_streamBuffer.size() << std::endl;
     }
 
-    // v2.0.1 FIX: Always resize the output stream to ensure it's properly allocated
-    // SDK 148 may pass uninitialized/empty streams after reopen
-    try {
-        if (stream.size() != static_cast<size_t>(currentBytesPerBuffer)) {
-            if (g_verbose && m_streamCount.load(std::memory_order_relaxed) < 10) {
-                std::cout << " resizing..." << std::flush;
-            }
-            stream.resize(currentBytesPerBuffer);
-            if (g_verbose && m_streamCount.load(std::memory_order_relaxed) < 10) {
-                std::cout << " done" << std::flush;
-            }
-        }
-        if (g_verbose && m_streamCount.load(std::memory_order_relaxed) < 10) {
-            std::cout << std::endl;
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "[getNewStream] EXCEPTION in stream.resize(): " << e.what() << std::endl;
-        m_workerActive = false;
-        return false;
-    } catch (...) {
-        std::cerr << "[getNewStream] UNKNOWN EXCEPTION in stream.resize()" << std::endl;
-        m_workerActive = false;
-        return false;
+    // Resize our own buffer (safe - we control its state)
+    if (m_streamBuffer.size() != static_cast<size_t>(currentBytesPerBuffer)) {
+        m_streamBuffer.resize(currentBytesPerBuffer);
     }
 
-    uint8_t* dest = stream.get();
+    uint8_t* dest = m_streamBuffer.get();
     if (!dest) {
-        std::cerr << "[getNewStream] ERROR: stream.get() returned null after resize!" << std::endl;
+        std::cerr << "[getNewStream] ERROR: m_streamBuffer.get() returned null!" << std::endl;
         m_workerActive = false;
         return false;
     }
@@ -1332,7 +1314,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     RingAccessGuard ringGuard(m_ringUsers, m_reconfiguring);
     if (!ringGuard.active()) {
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
-        // v2.0.1: Data already in stream buffer, nothing more to do
+        stream.swap(m_streamBuffer);  // v2.0.1: Give our buffer to SDK
         m_workerActive = false;
         return true;
     }
@@ -1345,7 +1327,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     if (silenceRemaining > 0) {
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
         m_silenceBuffersRemaining.fetch_sub(1, std::memory_order_acq_rel);
-        // v2.0.1: Data already in stream buffer, nothing more to do
+        stream.swap(m_streamBuffer);  // v2.0.1: Give our buffer to SDK
         m_workerActive = false;
         return true;
     }
@@ -1353,7 +1335,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     // Stop requested
     if (m_stopRequested.load(std::memory_order_acquire)) {
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
-        // v2.0.1: Data already in stream buffer, nothing more to do
+        stream.swap(m_streamBuffer);  // v2.0.1: Give our buffer to SDK
         m_workerActive = false;
         return true;
     }
@@ -1361,7 +1343,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     // Prefill not complete
     if (!m_prefillComplete.load(std::memory_order_acquire)) {
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
-        // v2.0.1: Data already in stream buffer, nothing more to do
+        stream.swap(m_streamBuffer);  // v2.0.1: Give our buffer to SDK
         m_workerActive = false;
         return true;
     }
@@ -1404,7 +1386,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
             DIRETTA_LOG("Post-online stabilization complete (" << count << " buffers)");
         }
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
-        // v2.0.1: Data already in stream buffer, nothing more to do
+        stream.swap(m_streamBuffer);  // v2.0.1: Give our buffer to SDK
         m_workerActive = false;
         return true;
     }
@@ -1423,7 +1405,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     if (avail < static_cast<size_t>(currentBytesPerBuffer)) {
         m_underrunCount.fetch_add(1, std::memory_order_relaxed);
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
-        // v2.0.1: Data already in stream buffer, nothing more to do
+        stream.swap(m_streamBuffer);  // v2.0.1: Give our buffer to SDK
         m_workerActive = false;
         return true;
     }
@@ -1431,7 +1413,8 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     // Pop from ring buffer
     m_ringBuffer.pop(dest, currentBytesPerBuffer);
 
-    // v2.0.1: Data already in stream buffer, nothing more to do
+    // v2.0.1: Give our filled buffer to SDK, we get SDK's (possibly corrupted) buffer
+    stream.swap(m_streamBuffer);
     m_workerActive = false;
     return true;
 }
