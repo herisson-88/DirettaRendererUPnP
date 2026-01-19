@@ -156,13 +156,9 @@ ifdef DIRETTA_SDK_PATH
 else
     # Search for SDK in common locations (newest version first)
     SDK_SEARCH_PATHS = \
-        ../DirettaHostSDK_147_19 \
         ../DirettaHostSDK_147 \
-        ./DirettaHostSDK_147_19 \
         ./DirettaHostSDK_147 \
-        $(HOME)/DirettaHostSDK_147_19 \
         $(HOME)/DirettaHostSDK_147 \
-        /opt/DirettaHostSDK_147_19 \
         /opt/DirettaHostSDK_147
 
     SDK_PATH = $(firstword $(foreach path,$(SDK_SEARCH_PATHS),$(wildcard $(path))))
