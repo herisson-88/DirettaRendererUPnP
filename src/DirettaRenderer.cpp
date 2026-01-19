@@ -473,14 +473,12 @@ bool DirettaRenderer::start() {
                 m_audioEngine->setCurrentURI(m_currentURI, m_currentMetadata, true);
             }
 
-            // Fully release Diretta target on Stop for proper resource cleanup
-            // This ensures:
-            // - Clean handoff when switching to a different renderer
-            // - Proper resource release on the Diretta target
-            // - Control point gets expected clean disconnection
-            // Trade-off: subsequent Play will need to reopen SDK (~300ms)
+            // v2.0.1 FIX: Use close() instead of release() on Stop
+            // SDK 148 has issues reopening after release() - causes segfault
+            // close() keeps SDK connection open for faster resume
+            // release() is still called on natural track end (TrackEndCallback)
             if (m_direttaSync) {
-                m_direttaSync->release();
+                m_direttaSync->close();
             }
 
             m_upnp->notifyStateChange("STOPPED");

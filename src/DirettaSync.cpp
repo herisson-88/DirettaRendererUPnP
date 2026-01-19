@@ -668,10 +668,14 @@ void DirettaSync::close() {
     stop();
     disconnect(true);  // Wait for proper disconnection before returning
 
-    int waitCount = 0;
-    while (m_workerActive.load() && waitCount < 50) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        waitCount++;
+    // v2.0.1 FIX: Stop worker thread to prevent it from calling getNewStream()
+    // after disconnect. SDK 148 may corrupt the stream state after disconnect.
+    m_running = false;
+    {
+        std::lock_guard<std::mutex> lock(m_workerMutex);
+        if (m_workerThread.joinable()) {
+            m_workerThread.join();
+        }
     }
 
     m_open = false;
