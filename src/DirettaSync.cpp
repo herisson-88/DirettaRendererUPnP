@@ -1250,8 +1250,12 @@ float DirettaSync::getBufferLevel() const {
 //=============================================================================
 
 bool DirettaSync::getNewStream(diretta_stream& baseStream) {
-    // SDK 148+ passes DIRETTA::Stream objects through diretta_stream& interface
-    DIRETTA::Stream& stream = static_cast<DIRETTA::Stream&>(baseStream);
+    // v2.0.1 FIX: Use member buffer pattern from SDK example (SinHost.cpp)
+    // SDK 148+ can fail on direct resize of the output stream after SDK reopen.
+    // The correct pattern is:
+    //   1. Work on member buffer (m_streamBuffer)
+    //   2. Assign to output at the end: baseStream = m_streamBuffer
+    DIRETTA::Stream& outputStream = static_cast<DIRETTA::Stream&>(baseStream);
 
     m_workerActive = true;
 
@@ -1289,16 +1293,18 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     // v2.0.1 DEBUG: Log stream operations to identify crash location
     if (g_verbose && m_streamCount.load(std::memory_order_relaxed) < 5) {
         std::cout << "[getNewStream] bpb=" << currentBytesPerBuffer
-                  << " stream.size=" << stream.size() << std::endl;
+                  << " m_streamBuffer.size=" << m_streamBuffer.size() << std::endl;
     }
 
-    if (stream.size() != static_cast<size_t>(currentBytesPerBuffer)) {
-        stream.resize(currentBytesPerBuffer);
+    // v2.0.1 FIX: Work on member buffer, not output stream directly
+    // This avoids issues when SDK passes an uninitialized stream after reopen
+    if (m_streamBuffer.size() != static_cast<size_t>(currentBytesPerBuffer)) {
+        m_streamBuffer.resize(currentBytesPerBuffer);
     }
 
-    uint8_t* dest = stream.get();
+    uint8_t* dest = m_streamBuffer.get();
     if (!dest) {
-        std::cerr << "[getNewStream] ERROR: stream.get() returned null!" << std::endl;
+        std::cerr << "[getNewStream] ERROR: m_streamBuffer.get() returned null!" << std::endl;
         m_workerActive = false;
         return false;
     }
@@ -1306,6 +1312,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     RingAccessGuard ringGuard(m_ringUsers, m_reconfiguring);
     if (!ringGuard.active()) {
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
+        outputStream = m_streamBuffer;  // v2.0.1: Assign to output
         m_workerActive = false;
         return true;
     }
@@ -1318,6 +1325,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     if (silenceRemaining > 0) {
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
         m_silenceBuffersRemaining.fetch_sub(1, std::memory_order_acq_rel);
+        outputStream = m_streamBuffer;  // v2.0.1: Assign to output
         m_workerActive = false;
         return true;
     }
@@ -1325,6 +1333,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     // Stop requested
     if (m_stopRequested.load(std::memory_order_acquire)) {
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
+        outputStream = m_streamBuffer;  // v2.0.1: Assign to output
         m_workerActive = false;
         return true;
     }
@@ -1332,6 +1341,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     // Prefill not complete
     if (!m_prefillComplete.load(std::memory_order_acquire)) {
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
+        outputStream = m_streamBuffer;  // v2.0.1: Assign to output
         m_workerActive = false;
         return true;
     }
@@ -1374,6 +1384,7 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
             DIRETTA_LOG("Post-online stabilization complete (" << count << " buffers)");
         }
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
+        outputStream = m_streamBuffer;  // v2.0.1: Assign to output
         m_workerActive = false;
         return true;
     }
@@ -1392,12 +1403,16 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
     if (avail < static_cast<size_t>(currentBytesPerBuffer)) {
         m_underrunCount.fetch_add(1, std::memory_order_relaxed);
         std::memset(dest, currentSilenceByte, currentBytesPerBuffer);
+        outputStream = m_streamBuffer;  // v2.0.1: Assign to output
         m_workerActive = false;
         return true;
     }
 
     // Pop from ring buffer
     m_ringBuffer.pop(dest, currentBytesPerBuffer);
+
+    // v2.0.1: Assign member buffer to output (SDK pattern from SinHost.cpp)
+    outputStream = m_streamBuffer;
 
     m_workerActive = false;
     return true;

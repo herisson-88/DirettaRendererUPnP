@@ -397,6 +397,11 @@ private:
     // Cleared after use in open()
     bool m_forceFullReopen{false};
     std::atomic<bool> m_workerActive{false};
+
+    // v2.0.1 FIX: Persistent stream buffer for getNewStream()
+    // The SDK example uses a member Stream and assigns it to the output parameter
+    // Direct resize on the SDK-provided stream can fail after SDK reopen
+    DIRETTA::Stream m_streamBuffer;
     std::thread m_workerThread;
     std::mutex m_workerMutex;
     std::mutex m_configMutex;
