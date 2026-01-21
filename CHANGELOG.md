@@ -1,5 +1,67 @@
 # Changelog
 
+## 2026-01-21 (Session 10) - High Sample Rate Fix & Install Script Improvements
+
+### High Sample Rate Stuttering Fix
+
+**Problem:** Users reported stuttering and clicking when playing files above 96kHz (192kHz, 352.8kHz, 384kHz). The issue occurred because `bytesPerBuffer` was limited to MTU size but the SDK cycle time was calculated for 1ms buffers, creating a ~4% data deficit.
+
+**Root Cause Analysis:**
+- At 192kHz/32-bit/stereo: 1ms = 1536 bytes (exceeds MTU 1500)
+- Previous fix limited buffer to 1472 bytes but cycle time expected 1536 bytes
+- Result: Target consumed data faster than we supplied it
+
+**Solution:** Synchronized `bytesPerBuffer` with `DirettaCycleCalculator`:
+- **Low sample rates (≤96kHz):** Use 1ms buffers with drift correction for 44.1kHz family
+- **High sample rates (>96kHz):** Use MTU-sized buffers matching the cycle time calculation
+
+**Files Changed:**
+- `src/DirettaSync.cpp:configureRingPCM()` - New buffer sizing logic based on sample rate
+- `src/DirettaSync.cpp:configureRingDSD()` - Same logic applied to DSD
+
+### Installation Script Improvements
+
+**Merged `install.sh` and `systemd/install-systemd.sh`** into a single unified installer.
+
+**New Menu Options:**
+```
+1) Full installation (recommended)
+   - Dependencies, FFmpeg, build, systemd service
+
+2) Install dependencies only
+   - Base packages and FFmpeg
+
+3) Build only
+   - Compile the renderer (assumes dependencies installed)
+
+4) Install systemd service only
+   - Install renderer as system service (assumes built)
+
+5) Configure network only
+   - Network interface and firewall setup
+
+6) Aggressive Fedora optimization (Fedora only)
+   - For dedicated audio servers only
+
+q) Quit
+```
+
+**New Command-Line Options:**
+- `--service, -s` - Install systemd service only
+- `--network, -n` - Configure network only
+
+**Enhanced `setup_systemd_service()` Function:**
+- Copies binary to `/opt/diretta-renderer-upnp/`
+- Installs wrapper script `start-renderer.sh`
+- Creates configuration file `diretta-renderer.conf`
+- Uses files from `systemd/` directory if available
+- Creates default files if not found
+
+**Files Changed:**
+- `install.sh` - Complete menu restructure and systemd integration
+
+---
+
 ## 2026-01-20 (Session 9) - SDK 148 API Clarification
 
 ### Yu Harada's Response
