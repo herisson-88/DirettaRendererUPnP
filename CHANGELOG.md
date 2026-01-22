@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026-01-22 (Session 11) - Timestamped Logging
+
+### Human-Readable Timestamps
+
+Added timestamped logging with real clock time format `[HH:MM:SS.mmm]` for easier log analysis.
+
+**Before:**
+```
+[AudioDecoder] PCM: flac 192000Hz/24bit/2ch
+[Callback] Sending 8192 samples
+```
+
+**After:**
+```
+[14:01:17.662] [AudioDecoder] PCM: flac 192000Hz/24bit/2ch
+[14:01:17.667] [Callback] Sending 8192 samples
+```
+
+**Implementation:**
+- New `TimestampedStreambuf` class intercepts all `std::cout`/`std::cerr` output
+- Automatically prepends timestamp at the start of each line
+- Uses system clock with millisecond precision
+- Installed at the very beginning of `main()` before any other code
+
+**Files Added:**
+- `src/TimestampedLogger.h` - Timestamp streambuf implementation
+
+**Files Changed:**
+- `src/main.cpp` - Include and install timestamped logging
+
+**Benefit:** Logs now show actual wall-clock time, making it easy to correlate events and measure timing gaps (useful for diagnosing stuttering issues).
+
+---
+
 ## 2026-01-21 (Session 10) - High Sample Rate Fix & Install Script Improvements
 
 ### High Sample Rate Stuttering Fix

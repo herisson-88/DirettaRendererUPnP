@@ -5,11 +5,13 @@
 
 #include "DirettaRenderer.h"
 #include "DirettaSync.h"
+#include "TimestampedLogger.h"
 #include <iostream>
 #include <csignal>
 #include <memory>
 #include <thread>
 #include <chrono>
+#include <iomanip>
 
 #define RENDERER_VERSION "2.0-beta"
 #define RENDERER_BUILD_DATE __DATE__
@@ -140,6 +142,11 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
+    // Install timestamped logging (MUST BE FIRST!)
+    TimestampedStreambuf* coutBuf = nullptr;
+    TimestampedStreambuf* cerrBuf = nullptr;
+    installTimestampedLogging(coutBuf, cerrBuf);
+
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
 
