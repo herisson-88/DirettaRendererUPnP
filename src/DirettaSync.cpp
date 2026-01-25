@@ -1075,10 +1075,10 @@ void DirettaSync::configureRingPCM(int rate, int channels, int direttaBps, int i
 
     // Calculate bytesPerBuffer to match DirettaCycleCalculator
     // The cycle time is calculated as: cycleTimeUs = (efficientMTU / bytesPerSecond) * 1000000
-    // So bytesPerBuffer should equal efficientMTU (MTU - 24 bytes overhead)
-    constexpr int OVERHEAD = 24;
+    // Diretta uses IPv6: 40 bytes IPv6 header + 8 bytes UDP header = 48 bytes overhead
+    constexpr int OVERHEAD = 48;
     int efficientMTU = static_cast<int>(m_effectiveMTU) - OVERHEAD;
-    if (efficientMTU < 64) efficientMTU = 1476;  // Fallback
+    if (efficientMTU < 64) efficientMTU = 1452;  // Fallback (1500 - 48)
 
     // Align to frame boundary for clean audio
     int framesPerBuffer = efficientMTU / bytesPerFrame;
@@ -1143,10 +1143,10 @@ void DirettaSync::configureRingDSD(uint32_t byteRate, int channels) {
     ringSize = m_ringBuffer.size();
 
     // Calculate bytesPerBuffer to match DirettaCycleCalculator
-    // Use efficientMTU (MTU - 24 bytes overhead) aligned to DSD block boundary
-    constexpr int OVERHEAD = 24;
+    // Diretta uses IPv6: 40 bytes IPv6 header + 8 bytes UDP header = 48 bytes overhead
+    constexpr int OVERHEAD = 48;
     int efficientMTU = static_cast<int>(m_effectiveMTU) - OVERHEAD;
-    if (efficientMTU < 64) efficientMTU = 1476;  // Fallback
+    if (efficientMTU < 64) efficientMTU = 1452;  // Fallback (1500 - 48)
 
     size_t blockSize = 4 * channels;
     size_t bytesPerBuffer = (efficientMTU / blockSize) * blockSize;
@@ -1470,7 +1470,8 @@ bool DirettaSync::getNewStream(diretta_stream& baseStream) {
 
             // Calculate cycle time based on MTU and data rate
             // cycleTime = (efficientMTU / bytesPerSecond) in microseconds
-            int efficientMTU = static_cast<int>(m_effectiveMTU) - 24;  // Subtract overhead
+            // Diretta uses IPv6: 40 bytes IPv6 header + 8 bytes UDP header = 48 bytes
+            int efficientMTU = static_cast<int>(m_effectiveMTU) - 48;
             double bytesPerSecond = static_cast<double>(currentSampleRate) * 2 / 8.0;  // 2ch, 1bit
             double cycleTimeUs = (static_cast<double>(efficientMTU) / bytesPerSecond) * 1000000.0;
 
