@@ -93,25 +93,29 @@ ifeq ($(DIRETTA_ARCH),x64)
     ifneq (,$(findstring zen4,$(FULL_VARIANT)))
         CXXFLAGS += -march=znver4 -mtune=znver4
         CFLAGS += -march=znver4 -mtune=znver4
+        COMPILE_AVX2 = 1
         $(info Compiler: Zen4 microarchitecture optimization enabled)
 
     # AVX-512 (x86-64-v4): Intel/AMD with AVX-512
     else ifneq (,$(findstring v4,$(FULL_VARIANT)))
         CXXFLAGS += -march=x86-64-v4 -mavx512f -mavx512bw -mavx512vl -mavx512dq
         CFLAGS += -march=x86-64-v4 -mavx512f -mavx512bw -mavx512vl -mavx512dq
+        COMPILE_AVX2 = 1
         $(info Compiler: x86-64-v4 (AVX-512) optimization enabled)
 
     # AVX2 (x86-64-v3): Most modern x64 CPUs
     else ifneq (,$(findstring v3,$(FULL_VARIANT)))
         CXXFLAGS += -march=x86-64-v3 -mavx2 -mfma
         CFLAGS += -march=x86-64-v3 -mavx2 -mfma
+        COMPILE_AVX2 = 1
         $(info Compiler: x86-64-v3 (AVX2) optimization enabled)
 
-    # Baseline x64 (v2)
+    # Baseline x64 (v2) - no AVX2
     else
         CXXFLAGS += -march=x86-64-v2
         CFLAGS += -march=x86-64-v2
-        $(info Compiler: x86-64-v2 (baseline) optimization enabled)
+        COMPILE_AVX2 = 0
+        $(info Compiler: x86-64-v2 (baseline, no AVX2) optimization enabled)
     endif
 
 # ARM64: Use native tuning for best results
@@ -406,8 +410,9 @@ SOURCES = \
     $(SRCDIR)/DirettaSync.cpp \
     $(SRCDIR)/UPnPDevice.cpp
 
-# C sources (AVX optimized memcpy - x86 only)
-ifeq ($(BASE_ARCH),x64)
+# C sources (AVX optimized memcpy - x86 with AVX2 only)
+# Skip for baseline x86-64-v2 which doesn't have AVX2
+ifeq ($(COMPILE_AVX2),1)
     C_SOURCES = $(SRCDIR)/fastmemcpy-avx.c
 else
     C_SOURCES =

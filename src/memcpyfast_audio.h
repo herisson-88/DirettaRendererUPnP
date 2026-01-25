@@ -9,25 +9,30 @@
 
 //---------------------------------------------------------------------
 // Architecture detection
+// Use compiler-defined macros to detect actual SIMD capability
 //---------------------------------------------------------------------
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#if defined(__AVX2__)
+    #define MEMCPY_AUDIO_AVX2 1
     #define MEMCPY_AUDIO_X86 1
+#elif defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+    #define MEMCPY_AUDIO_X86 1
+    #define MEMCPY_AUDIO_X86_SCALAR 1
 #elif defined(__aarch64__) || defined(_M_ARM64)
     #define MEMCPY_AUDIO_ARM64 1
 #endif
 
-#ifdef MEMCPY_AUDIO_X86
+#ifdef MEMCPY_AUDIO_AVX2
 #include "FastMemcpy_Audio.h"
 #include <immintrin.h>
 
 #ifdef __AVX512F__
 #include "FastMemcpy_Audio_AVX512.h"
 #endif
-#endif // MEMCPY_AUDIO_X86
+#endif // MEMCPY_AUDIO_AVX2
 
-#ifdef MEMCPY_AUDIO_X86
+#ifdef MEMCPY_AUDIO_AVX2
 //---------------------------------------------------------------------
-// Runtime CPU feature detection (x86 only)
+// Runtime CPU feature detection (AVX2 x86 only)
 //---------------------------------------------------------------------
 static int g_avx512_checked = 0;
 static int g_has_avx512 = 0;
@@ -48,9 +53,9 @@ static inline int detect_avx512(void) {
     }
     return g_has_avx512;
 }
-#endif // MEMCPY_AUDIO_X86
+#endif // MEMCPY_AUDIO_AVX2
 
-#ifdef MEMCPY_AUDIO_X86
+#ifdef MEMCPY_AUDIO_AVX2
 /**
  * Consistent-timing memcpy for audio buffers (128-4096 bytes)
  * Uses overlapping stores for tail handling to eliminate timing variance
@@ -139,7 +144,7 @@ static inline void prefetch_audio_buffer(const void* src, size_t size) {
 #define AVX512_THRESHOLD (32 * 1024)
 
 //---------------------------------------------------------------------
-// Main dispatcher - selects optimal path based on size and CPU (x86)
+// Main dispatcher - selects optimal path based on size and CPU (AVX2)
 //---------------------------------------------------------------------
 static inline void* memcpy_audio(void *dst, const void *src, size_t len) {
 #ifndef NDEBUG
@@ -161,7 +166,43 @@ static inline void* memcpy_audio(void *dst, const void *src, size_t len) {
     return memcpy_audio_fast(dst, src, len);
 }
 
-#else // !MEMCPY_AUDIO_X86 (ARM64 and other platforms)
+#elif defined(MEMCPY_AUDIO_X86_SCALAR)
+//---------------------------------------------------------------------
+// x86 without AVX2 (Sandy Bridge, Ivy Bridge) - scalar fallback
+//---------------------------------------------------------------------
+
+/**
+ * Prefetch audio buffer (no-op for scalar x86)
+ */
+static inline void prefetch_audio_buffer(const void* src, size_t size) {
+    (void)src;
+    (void)size;
+}
+
+/**
+ * Audio memcpy - uses standard memcpy for x86 without AVX2
+ */
+static inline void* memcpy_audio(void *dst, const void *src, size_t len) {
+#ifndef NDEBUG
+    const char *s = (const char *)src;
+    const char *d = (const char *)dst;
+    if (len > 0 && ((s < d && s + len > d) || (d < s && d + len > s))) {
+        fprintf(stderr, "FATAL: memcpy_audio called with overlapping buffers!\n");
+        fprintf(stderr, "  src=%p, dst=%p, len=%zu\n", src, dst, len);
+        abort();
+    }
+#endif
+    return std::memcpy(dst, src, len);
+}
+
+/**
+ * Fixed-timing memcpy - uses standard memcpy for x86 without AVX2
+ */
+static inline void memcpy_audio_fixed(void* dst, const void* src, size_t size) {
+    std::memcpy(dst, src, size);
+}
+
+#else // !MEMCPY_AUDIO_AVX2 && !MEMCPY_AUDIO_X86_SCALAR (ARM64 and other platforms)
 
 //---------------------------------------------------------------------
 // ARM64 / Fallback implementation
@@ -201,6 +242,6 @@ static inline void memcpy_audio_fixed(void* dst, const void* src, size_t size) {
     std::memcpy(dst, src, size);
 }
 
-#endif // MEMCPY_AUDIO_X86
+#endif // MEMCPY_AUDIO_AVX2 / MEMCPY_AUDIO_X86_SCALAR / fallback
 
 #endif // __MEMCPYFAST_AUDIO_H__
