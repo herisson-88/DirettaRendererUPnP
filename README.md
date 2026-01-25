@@ -195,9 +195,11 @@ The renderer automatically detects and optimizes for your CPU:
 
 | Architecture | Variants | Notes |
 |--------------|----------|-------|
-| **x64 (Intel/AMD)** | v2 (baseline), v3 (AVX2), v4 (AVX-512), zen4 | AVX2 recommended |
+| **x64 (Intel/AMD)** | v2 (baseline), v3 (AVX2), v4 (AVX-512), zen4 | AVX2 recommended but not required |
 | **ARM64** | Standard (4KB pages), k16 (16KB pages) | Pi 4/5 supported |
 | **RISC-V** | Experimental | riscv64 |
+
+**Note on older x64 CPUs:** CPUs without AVX2 (Sandy Bridge, Ivy Bridge - 2011-2012) are fully supported. The build system automatically detects CPU capabilities and uses optimized scalar implementations when AVX2 is not available. Use the `x64-linux-15v2` SDK variant for these systems.
 
 ### Platform Support
 

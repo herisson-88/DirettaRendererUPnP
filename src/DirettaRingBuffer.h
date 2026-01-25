@@ -20,7 +20,9 @@
 #include <type_traits>
 
 // Architecture detection for SIMD support
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+// Use compiler-defined __AVX2__ to detect actual AVX2 availability
+// This respects -march= flags and works correctly on older CPUs (Sandy Bridge, Ivy Bridge)
+#if defined(__AVX2__)
     #define DIRETTA_HAS_AVX2 1
     #include <immintrin.h>
 #else

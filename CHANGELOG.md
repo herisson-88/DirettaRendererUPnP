@@ -74,6 +74,12 @@ Version 2.0.0 is a **complete rewrite** of DirettaRendererUPnP focused on low-la
 - Code calculated bytesPerFrame using sink's 3 bytes but input only had 2 bytes
 - Solution: Added `push16To24()` and `convert16To24()` conversion functions
 
+**AVX2 Detection Fix:**
+- Fixed crash on older CPUs without AVX2 (Sandy Bridge, Ivy Bridge)
+- Root cause: Code assumed all x86/x64 CPUs have AVX2
+- Solution: Use compiler-defined `__AVX2__` macro for proper detection
+- CPUs without AVX2 now correctly use scalar implementations
+
 **SDK 148 Track Change Fix:**
 - Application-managed memory pattern for `getNewStream(diretta_stream&)`
 - Persistent buffer with direct C structure field assignment
