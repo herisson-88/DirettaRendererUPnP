@@ -327,10 +327,14 @@ public:
      * @brief Push with 24-bit packing (4 bytes in -> 3 bytes out, S24_P32 format)
      * @return Input bytes consumed
      *
-     * Uses hybrid S24 detection:
-     * 1. Sample-based detection takes priority (checks actual byte values)
-     * 2. Hint from FFmpeg metadata used as fallback for silence
+     * S24 mode selection:
+     * 1. FFmpeg hint (from codec detection) takes priority - FLAC, ALAC, PCM_S24 are always LSB
+     * 2. Sample-based detection only runs when hint is Unknown
      * 3. Timeout defaults to LSB after ~1 second of silence
+     *
+     * v2.0.0 fix: Trust FFmpeg hint completely - don't let sample detection override it.
+     * Sample detection can incorrectly detect MsbAligned when byte 0 happens to be zero
+     * (quiet passages) and byte 3 has garbage/sign-extension bits.
      */
     size_t push24BitPacked(const uint8_t* data, size_t inputSize) {
         if (size_ == 0) return 0;
@@ -347,31 +351,32 @@ public:
 
         prefetch_audio_buffer(data, numSamples * 4);
 
-        // Hybrid S24 detection - sample detection can override hints
-        // Always run detection when Unknown/Deferred, or when hint was applied but not confirmed
-        if (m_s24PackMode == S24PackMode::Unknown || m_s24PackMode == S24PackMode::Deferred ||
-            (m_s24PackMode == m_s24Hint && !m_s24DetectionConfirmed)) {
+        // S24 mode selection - trust FFmpeg hint when available
+        // Only run sample detection when hint is Unknown (rare/exotic formats)
+        if (m_s24PackMode == S24PackMode::Unknown || m_s24PackMode == S24PackMode::Deferred) {
+            // No hint from FFmpeg - try sample-based detection
             S24PackMode detected = detectS24PackMode(data, numSamples);
             if (detected != S24PackMode::Deferred) {
-                // Sample detection found definitive result - use it
+                // Sample detection found result - use it
                 m_s24PackMode = detected;
                 m_s24DetectionConfirmed = true;
                 m_deferredSampleCount = 0;
             } else {
                 // Still silence - accumulate count for timeout
                 m_deferredSampleCount += numSamples;
-                // Timeout: if still silent after threshold, use hint or default to LSB
+                // Timeout: if still silent after threshold, default to LSB (most common)
                 if (m_deferredSampleCount > DEFERRED_TIMEOUT_SAMPLES) {
-                    m_s24PackMode = (m_s24Hint != S24PackMode::Unknown) ? m_s24Hint : S24PackMode::LsbAligned;
+                    m_s24PackMode = S24PackMode::LsbAligned;
                     m_s24DetectionConfirmed = true;
                 }
             }
         }
+        // When hint is set (LsbAligned/MsbAligned from FFmpeg), trust it completely
 
-        // Use effective mode for conversion (Deferred/Unknown use hint or LSB as fallback)
+        // Use effective mode for conversion (Deferred/Unknown use LSB as fallback)
         S24PackMode effectiveMode = m_s24PackMode;
         if (effectiveMode == S24PackMode::Deferred || effectiveMode == S24PackMode::Unknown) {
-            effectiveMode = (m_s24Hint != S24PackMode::Unknown) ? m_s24Hint : S24PackMode::LsbAligned;
+            effectiveMode = S24PackMode::LsbAligned;  // Safe default for standard formats
         }
 
         size_t stagedBytes = (effectiveMode == S24PackMode::MsbAligned)
@@ -1103,18 +1108,18 @@ public:
     /**
      * @brief Set S24 pack mode hint from FFmpeg metadata
      *
-     * Call this when track info indicates 24-bit content. The hint is used as fallback
-     * when sample-based detection sees all-zero data (silence at track start).
-     * Sample-based detection takes priority when non-zero samples are present.
+     * Call this when track info indicates 24-bit content. The hint from FFmpeg
+     * codec detection (FLAC, ALAC, PCM_S24) is authoritative - we trust it completely.
+     *
+     * v2.0.0 fix: Hint now takes full priority. Sample-based detection is only used
+     * when FFmpeg cannot determine the format (hint == Unknown).
      */
     void setS24PackModeHint(S24PackMode hint) {
-        // Store hint separately - sample detection can override
         m_s24Hint = hint;
-        // Reset confirmation so detection runs again with new hint
-        m_s24DetectionConfirmed = false;
-        // Apply hint immediately only if no mode detected yet
-        if (m_s24PackMode == S24PackMode::Unknown || m_s24PackMode == S24PackMode::Deferred) {
+        if (hint != S24PackMode::Unknown) {
+            // FFmpeg provided a definitive hint - use it directly, skip detection
             m_s24PackMode = hint;
+            m_s24DetectionConfirmed = true;  // Mark as confirmed so detection won't run
         }
     }
 
