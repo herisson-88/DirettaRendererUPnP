@@ -1113,6 +1113,11 @@ CMD="$RENDERER_BIN"
 # Basic options
 CMD="$CMD --target $TARGET"
 
+# UPnP port (if specified)
+if [ -n "$PORT" ]; then
+    CMD="$CMD --port $PORT"
+fi
+
 # Network interface option (CRITICAL for multi-homed systems)
 if [ -n "$NETWORK_INTERFACE" ]; then
     # Check if it looks like an IP address or interface name
