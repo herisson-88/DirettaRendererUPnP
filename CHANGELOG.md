@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.0.0] - 2026-01-23
+## [2.0.0] - 2026-01-28
 
 ### 🚀 Complete Architecture Rewrite
 
