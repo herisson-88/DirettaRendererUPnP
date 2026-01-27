@@ -71,6 +71,7 @@ This renderer uses the **Diretta Host SDK**, which is proprietary software by Yu
 - [Performance](#performance)
 - [Compatible Control Points](#compatible-control-points)
 - [System Optimization](#system-optimization)
+- [CPU Tuning](#cpu-isolation--tuning-advanced)
 - [Command Line Options](#command-line-options)
 - [Troubleshooting](#troubleshooting)
 - [Documentation](#documentation)
@@ -396,6 +397,71 @@ sudo sysctl -w net.core.rmem_max=16777216
 sudo sysctl -w net.core.wmem_max=16777216
 ```
 
+### CPU Isolation & Tuning (Advanced)
+
+For maximum audio quality, you can isolate CPU cores for the renderer using the included tuner scripts. This prevents system tasks from interrupting audio processing.
+
+**Features:**
+- Automatic CPU topology detection (AMD Ryzen, Intel Core)
+- CPU isolation via kernel parameters (isolcpus, nohz_full, rcu_nocbs)
+- IRQ affinity to housekeeping cores
+- Real-time FIFO scheduling
+- Thread distribution across isolated cores
+
+#### Quick Start
+
+```bash
+# 1. Preview detected CPU topology (no changes)
+sudo ./diretta-renderer-tuner.sh detect
+
+# Example output for Ryzen 9 5900X:
+#   Vendor:          AuthenticAMD
+#   Model:           AMD Ryzen 9 5900X
+#   Physical cores:  12
+#   Logical CPUs:    24
+#   SMT/HT:          true (2 threads/core)
+#   Housekeeping:    CPUs 0,12
+#   Renderer:        CPUs 1-11,13-23
+```
+
+#### Apply Tuning
+
+Choose one of two modes:
+
+**With SMT (Hyper-Threading enabled):**
+```bash
+sudo ./diretta-renderer-tuner.sh apply
+# Reboot required
+```
+
+**Without SMT (physical cores only, lower latency):**
+```bash
+sudo ./diretta-renderer-tuner-nosmt.sh apply
+# Reboot required
+```
+
+#### Check Status
+
+```bash
+sudo ./diretta-renderer-tuner.sh status
+```
+
+#### Revert Changes
+
+```bash
+sudo ./diretta-renderer-tuner.sh revert
+# Reboot required
+```
+
+#### Which Mode to Choose?
+
+| Mode | CPUs Available | Latency | Use Case |
+|------|----------------|---------|----------|
+| **With SMT** | All logical CPUs | Good | General use, multi-tasking |
+| **Without SMT** | Physical cores only | Best | Dedicated audio machine |
+
+For a dedicated audio server, **nosmt** mode provides more consistent latency because each core has no resource contention from SMT siblings.
+
 ---
 
 ## Command Line Options
@@ -521,4 +587,4 @@ This software is provided "as is" without warranty. While designed for high-qual
 
 **Enjoy bit-perfect, low-latency audio streaming!**
 
-*Last updated: 2026-01-23*
+*Last updated: 2026-01-27*
