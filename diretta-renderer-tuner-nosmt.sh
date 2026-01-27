@@ -2,10 +2,10 @@
 #
 # diretta-renderer-tuner-nosmt.sh
 # CPU isolation and real-time tuning for diretta-renderer.service
-# VERSION: NO-SMT (Hyper-Threading disabled)
+# VERSION: NO-SMT (Hyper-Threading/SMT disabled)
 #
-# This version disables SMT (Hyper-Threading) via kernel parameter.
-# On Ryzen 7 7700X, this gives 8 physical cores (0-7) instead of 16 logical CPUs.
+# Auto-detects CPU topology for AMD and Intel processors.
+# Disables SMT for maximum per-core performance.
 #
 # Benefits of nosmt for audio:
 #   - No SMT resource contention (ALUs, cache, etc.)
@@ -13,31 +13,85 @@
 #   - Simpler core topology
 #
 # Trade-offs:
-#   - Lose 8 logical CPUs (half the threads)
+#   - Lose half the logical CPUs
 #   - Less parallelism available
 #
-# Usage: sudo ./diretta-renderer-tuner-nosmt.sh [apply|revert|status|redistribute]
+# Usage: sudo ./diretta-renderer-tuner-nosmt.sh [apply|revert|status|detect]
 
 # --- Bash Best Practices ---
 set -euo pipefail
 
 # =============================================================================
-# CONFIGURATION - EDIT THESE VALUES TO MATCH YOUR SYSTEM
+# CPU TOPOLOGY DETECTION
 # =============================================================================
 
-# With nosmt on Ryzen 7 7700X: only cores 0-7 available
-# Adjust for your CPU. Use `lscpu -e` to see your layout.
+detect_cpu_topology() {
+    echo "INFO: Detecting CPU topology..."
 
-# Housekeeping core: System tasks, IRQs, kernel work
-# Use 1 physical core for housekeeping
-HOUSEKEEPING_CPUS="0"
+    # Get CPU info
+    CPU_VENDOR=$(grep -m1 "vendor_id" /proc/cpuinfo | awk '{print $3}')
+    CPU_MODEL=$(grep -m1 "model name" /proc/cpuinfo | cut -d: -f2 | sed 's/^ *//')
 
-# Diretta Renderer cores: Isolated for audio processing
-# Use remaining 7 physical cores
-RENDERER_CPUS="1-7"
+    # Total logical CPUs (current)
+    TOTAL_CPUS=$(nproc)
+
+    # Physical cores
+    PHYSICAL_CORES=$(grep "^cpu cores" /proc/cpuinfo | head -1 | awk '{print $4}')
+    if [[ -z "$PHYSICAL_CORES" ]]; then
+        PHYSICAL_CORES=$(cat /proc/cpuinfo | grep -E "^(physical id|core id)" | paste - - | sort -u | wc -l)
+    fi
+
+    # Detect if SMT is currently enabled
+    if [[ $TOTAL_CPUS -gt $PHYSICAL_CORES ]]; then
+        SMT_CURRENTLY_ENABLED=true
+        THREADS_PER_CORE=$((TOTAL_CPUS / PHYSICAL_CORES))
+    else
+        SMT_CURRENTLY_ENABLED=false
+        THREADS_PER_CORE=1
+    fi
+
+    # After nosmt, we'll have only physical cores
+    CPUS_AFTER_NOSMT=$PHYSICAL_CORES
+
+    echo "   Vendor:           $CPU_VENDOR"
+    echo "   Model:            $CPU_MODEL"
+    echo "   Physical cores:   $PHYSICAL_CORES"
+    echo "   Current CPUs:     $TOTAL_CPUS"
+    echo "   SMT currently:    $SMT_CURRENTLY_ENABLED"
+    echo "   CPUs after nosmt: $CPUS_AFTER_NOSMT (physical cores only)"
+}
+
+# Calculate optimal CPU allocation for nosmt mode
+# With nosmt, we only have physical cores (0 to PHYSICAL_CORES-1)
+calculate_cpu_allocation() {
+    echo "INFO: Calculating optimal CPU allocation (nosmt mode)..."
+
+    # With nosmt: use CPU 0 for housekeeping, rest for renderer
+    HOUSEKEEPING_CPUS="0"
+
+    if [[ $PHYSICAL_CORES -gt 1 ]]; then
+        RENDERER_CPUS="1-$((PHYSICAL_CORES - 1))"
+    else
+        echo "ERROR: Only 1 physical core detected. Cannot isolate CPUs."
+        exit 1
+    fi
+
+    local renderer_count=$((PHYSICAL_CORES - 1))
+
+    echo "   Housekeeping:     CPU 0 (1 physical core)"
+    echo "   Renderer:         CPUs $RENDERER_CPUS ($renderer_count physical cores)"
+}
 
 # =============================================================================
-# DERIVED VARIABLES (DO NOT EDIT)
+# MANUAL OVERRIDE (Optional - edit if auto-detection doesn't suit your needs)
+# =============================================================================
+
+# Uncomment and edit these to override auto-detection:
+# HOUSEKEEPING_CPUS="0"
+# RENDERER_CPUS="1-11"
+
+# =============================================================================
+# DERIVED VARIABLES
 # =============================================================================
 
 # System paths
@@ -49,7 +103,7 @@ LOCAL_BIN_DIR="/usr/local/bin"
 SERVICE_NAME="diretta-renderer.service"
 SLICE_NAME="diretta-renderer.slice"
 
-# Helper scripts/services (use different names to avoid conflicts with SMT version)
+# Helper scripts/services (different names to avoid conflicts with SMT version)
 GOVERNOR_SERVICE="cpu-performance-diretta-nosmt.service"
 IRQ_SCRIPT_NAME="set-irq-affinity-diretta-nosmt.sh"
 IRQ_SCRIPT_PATH="${LOCAL_BIN_DIR}/${IRQ_SCRIPT_NAME}"
@@ -69,25 +123,29 @@ check_root() {
 
 usage() {
     cat <<EOF
-Diretta Renderer CPU Tuner (NO-SMT VERSION)
-============================================
+Diretta Renderer CPU Tuner (NO-SMT Auto-Detection)
+===================================================
 
-Usage: sudo $0 [apply|revert|status|redistribute]
+Usage: sudo $0 [apply|revert|status|detect]
 
 Commands:
   apply        - Apply CPU isolation with SMT disabled
   revert       - Remove all tuning configurations
   status       - Check current tuning status
-  redistribute - Manually redistribute threads now (for testing)
-
-Configuration (edit script to change):
-  HOUSEKEEPING_CPUS = ${HOUSEKEEPING_CPUS}
-  RENDERER_CPUS     = ${RENDERER_CPUS}
+  detect       - Show detected CPU topology (no changes)
 
 This version DISABLES SMT (Hyper-Threading), leaving only physical cores.
-On Ryzen 7 7700X: 8 cores (0-7) instead of 16 logical CPUs.
+This provides more predictable latency at the cost of fewer total CPUs.
 
-Compare with diretta-renderer-tuner.sh (SMT enabled) to evaluate performance.
+Supported CPUs:
+  - AMD Ryzen (all generations)
+  - Intel Core (all generations)
+  - Any x86_64 CPU with SMT/Hyper-Threading
+
+Example results:
+  - Ryzen 9 5900X: 12 cores (instead of 24 logical CPUs)
+  - Ryzen 7 7700X: 8 cores (instead of 16 logical CPUs)
+  - Intel i9-13900K: 24 cores (instead of 32 logical CPUs)
 EOF
 }
 
@@ -96,7 +154,6 @@ expand_cpu_list() {
     local input="$1"
     local result=""
 
-    # Replace commas with spaces, then process ranges
     for part in ${input//,/ }; do
         if [[ "$part" == *-* ]]; then
             local start="${part%-*}"
@@ -142,7 +199,7 @@ apply_grub_config() {
     fi
 
     echo "SUCCESS: GRUB configuration updated (nosmt enabled)."
-    echo "         After reboot, only physical cores 0-7 will be available."
+    echo "         After reboot, only physical cores 0-$((PHYSICAL_CORES - 1)) will be available."
 }
 
 apply_systemd_slice() {
@@ -166,7 +223,6 @@ EOF
 apply_thread_distribution() {
     echo "INFO: Creating thread distribution script (nosmt version)..."
 
-    # Get the list of renderer CPUs as an array for round-robin
     local expanded_cpus
     expanded_cpus=$(expand_cpu_list "${RENDERER_CPUS}")
 
@@ -194,7 +250,7 @@ if [[ -z "$MAIN_PID" ]]; then
     exit 1
 fi
 
-# Wait for threads to spawn (the service needs a moment to initialize)
+# Wait for threads to spawn
 sleep 1.0
 
 # Check if process still exists
@@ -205,10 +261,8 @@ fi
 
 SCRIPT_HEADER
 
-    # Now add the CPU array (this part uses the expanded variable)
     cat << SCRIPT_CPUS >> "${THREAD_DIST_SCRIPT_PATH}"
-# Available renderer CPUs - physical cores only (nosmt)
-# With 11 threads and 7 cores, some cores will have 2 threads
+# Available renderer CPUs - physical cores only (auto-detected, nosmt)
 RENDERER_CPUS_ARRAY=(${expanded_cpus})
 NUM_CPUS=\${#RENDERER_CPUS_ARRAY[@]}
 
@@ -226,7 +280,6 @@ if [[ -z "$TIDS" ]]; then
     exit 0
 fi
 
-# Count threads
 THREAD_COUNT=$(echo "$TIDS" | wc -l)
 log "Found $THREAD_COUNT threads to distribute across $NUM_CPUS physical cores"
 
@@ -234,7 +287,7 @@ if [[ $THREAD_COUNT -gt $NUM_CPUS ]]; then
     log "NOTE: More threads ($THREAD_COUNT) than cores ($NUM_CPUS) - some cores will run multiple threads"
 fi
 
-# Distribute threads round-robin across available CPUs
+# Distribute threads round-robin
 i=0
 while read -r tid; do
     if [[ -n "$tid" ]]; then
@@ -244,7 +297,7 @@ while read -r tid; do
         if taskset -pc "$target_cpu" "$tid" > /dev/null 2>&1; then
             log "  Thread $tid -> Core $target_cpu (physical)"
         else
-            log "  Thread $tid -> Core $target_cpu (failed, may have exited)"
+            log "  Thread $tid -> Core $target_cpu (failed)"
         fi
 
         i=$(( i + 1 ))
@@ -278,7 +331,6 @@ apply_service_override() {
 Slice=${SLICE_NAME}
 
 # Real-time scheduling for audio hot path
-# FIFO is preferred for audio daemons (consistent latency)
 CPUSchedulingPolicy=fifo
 CPUSchedulingPriority=90
 
@@ -308,6 +360,7 @@ apply_irq_config() {
     cat << EOF > "${IRQ_SCRIPT_PATH}"
 #!/bin/bash
 # Set all IRQs to housekeeping core (nosmt version)
+# Auto-generated for: ${CPU_MODEL:-Unknown CPU}
 # With nosmt, we only have physical core 0 for housekeeping
 
 HOUSEKEEPING_CPUS="${HOUSEKEEPING_CPUS}"
@@ -386,7 +439,6 @@ revert_grub_config() {
     echo "INFO: Reverting GRUB kernel parameters..."
 
     sed -i -E 's/ (isolcpus|nohz|nohz_full|rcu_nocbs|irqaffinity|nosmt)=[^"]*//g' "${GRUB_FILE}"
-    # Also remove standalone nosmt
     sed -i -E 's/ nosmt([" ])/ \1/g' "${GRUB_FILE}"
 
     if command -v update-grub &> /dev/null; then
@@ -401,20 +453,11 @@ revert_grub_config() {
 revert_systemd_config() {
     echo "INFO: Removing systemd configurations..."
 
-    # Remove slice
     rm -f "${SYSTEMD_DIR}/${SLICE_NAME}"
-
-    # Remove service override
     rm -rf "${SYSTEMD_DIR}/${SERVICE_NAME}.d"
-
-    # Remove IRQ service and script
     rm -f "${SYSTEMD_DIR}/set-irq-affinity-diretta-nosmt.service"
     rm -f "${IRQ_SCRIPT_PATH}"
-
-    # Remove governor service
     rm -f "${SYSTEMD_DIR}/${GOVERNOR_SERVICE}"
-
-    # Remove thread distribution script
     rm -f "${THREAD_DIST_SCRIPT_PATH}"
 
     echo "SUCCESS: Systemd configurations removed."
@@ -428,6 +471,9 @@ check_status() {
     echo "=== Diretta Renderer Tuner Status (NO-SMT VERSION) ==="
     echo ""
 
+    detect_cpu_topology
+    echo ""
+
     local has_error=0
 
     # Check if nosmt is active
@@ -436,7 +482,7 @@ check_status() {
         echo "DISABLED (nosmt active)"
         local online_cpus
         online_cpus=$(nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo)
-        echo "   Online CPUs: $online_cpus"
+        echo "   Online CPUs: $online_cpus (physical cores only)"
     else
         echo "ENABLED (nosmt not in cmdline - reboot required)"
         has_error=1
@@ -446,7 +492,7 @@ check_status() {
     echo -n "1. GRUB CPU isolation: "
     if grep -q "isolcpus=" /proc/cmdline; then
         echo "ACTIVE"
-        echo "   Current: $(cat /proc/cmdline | grep -oE 'isolcpus=[^ ]+')"
+        echo "   Current: $(grep -oE 'isolcpus=[^ ]+' /proc/cmdline)"
     else
         echo "NOT ACTIVE (requires reboot after apply)"
         has_error=1
@@ -510,7 +556,6 @@ check_status() {
         echo "Service: RUNNING"
         systemctl show "${SERVICE_NAME}" -p Slice,CPUSchedulingPolicy,Nice 2>/dev/null | sed 's/^/  /'
 
-        # Show actual CPU affinity
         local main_pid
         main_pid=$(systemctl show "${SERVICE_NAME}" -p MainPID --value 2>/dev/null)
         if [[ -n "$main_pid" && "$main_pid" != "0" ]]; then
@@ -525,7 +570,6 @@ check_status() {
                 printf "    %-8s %-4s %s\n" "$tid" "$psr" "$comm"
             done
 
-            # Count threads per CPU
             echo ""
             echo "  Threads per physical core:"
             ps -T -o psr= -p "$main_pid" 2>/dev/null | sort | uniq -c | while read -r count cpu; do
@@ -538,7 +582,6 @@ check_status() {
 
     echo ""
 
-    # Summary
     if [[ $has_error -eq 0 ]]; then
         echo "=== All configurations in place (nosmt mode) ==="
         if ! grep -q "nosmt" /proc/cmdline; then
@@ -560,12 +603,9 @@ main() {
         apply)
             echo "=== Applying Diretta Renderer CPU Tuning (NO-SMT) ==="
             echo ""
-            echo "Configuration:"
-            echo "  Mode:             NO-SMT (Hyper-Threading disabled)"
-            echo "  Housekeeping CPU: ${HOUSEKEEPING_CPUS} (1 physical core)"
-            echo "  Renderer CPUs:    ${RENDERER_CPUS} (7 physical cores)"
-            echo ""
-            echo "After reboot, only cores 0-7 will be available."
+
+            detect_cpu_topology
+            calculate_cpu_allocation
             echo ""
 
             apply_grub_config
@@ -585,10 +625,15 @@ main() {
             echo ""
             echo "=== Configuration Applied (NO-SMT) ==="
             echo ""
+            echo "CPU Allocation (after reboot):"
+            echo "  Mode:         NO-SMT (Hyper-Threading disabled)"
+            echo "  Housekeeping: CPU ${HOUSEKEEPING_CPUS} (1 physical core)"
+            echo "  Renderer:     CPUs ${RENDERER_CPUS} ($((PHYSICAL_CORES - 1)) physical cores)"
+            echo ""
             echo "IMPORTANT: A REBOOT is required for nosmt and CPU isolation."
             echo ""
             echo "After reboot:"
-            echo "  - SMT will be disabled (8 physical cores only)"
+            echo "  - SMT will be disabled ($PHYSICAL_CORES physical cores only)"
             echo "  - Restart the service: sudo systemctl restart ${SERVICE_NAME}"
             echo "  - Check status: sudo $0 status"
             echo ""
@@ -598,7 +643,6 @@ main() {
             echo "=== Reverting Diretta Renderer CPU Tuning (NO-SMT) ==="
             echo ""
 
-            # Disable services first
             systemctl disable set-irq-affinity-diretta-nosmt.service "${GOVERNOR_SERVICE}" 2>/dev/null || true
 
             revert_grub_config
@@ -619,17 +663,24 @@ main() {
             check_status
             ;;
 
+        detect)
+            echo "=== CPU Topology Detection (NO-SMT mode) ==="
+            echo ""
+            detect_cpu_topology
+            calculate_cpu_allocation
+            echo ""
+            echo "To apply this configuration, run: sudo $0 apply"
+            ;;
+
         redistribute)
             echo "=== Manual Thread Redistribution (NO-SMT) ==="
             echo ""
 
-            # Check if service is running
             if ! systemctl is-active --quiet "${SERVICE_NAME}" 2>/dev/null; then
                 echo "ERROR: ${SERVICE_NAME} is not running"
                 exit 1
             fi
 
-            # Get main PID
             local main_pid
             main_pid=$(systemctl show "${SERVICE_NAME}" -p MainPID --value 2>/dev/null)
             if [[ -z "$main_pid" || "$main_pid" == "0" ]]; then
@@ -649,37 +700,12 @@ main() {
             fi
             echo ""
 
-            # Check if distribution script exists
             if [[ -f "${THREAD_DIST_SCRIPT_PATH}" ]]; then
                 echo "Running thread distribution script..."
                 "${THREAD_DIST_SCRIPT_PATH}" "$main_pid"
             else
-                echo "Thread distribution script not found at ${THREAD_DIST_SCRIPT_PATH}"
-                echo "Run 'apply' first to create it, or distributing manually..."
-                echo ""
-
-                # Manual distribution
-                local expanded_cpus
-                expanded_cpus=$(expand_cpu_list "${RENDERER_CPUS}")
-                local -a cpu_array=($expanded_cpus)
-                local num_cpus=${#cpu_array[@]}
-
-                echo "Distributing threads across physical cores: ${cpu_array[*]}"
-                echo ""
-
-                local i=0
-                ps -T -o tid= -p "$main_pid" 2>/dev/null | tr -d ' ' | while read -r tid; do
-                    if [[ -n "$tid" ]]; then
-                        local cpu_index=$(( i % num_cpus ))
-                        local target_cpu=${cpu_array[$cpu_index]}
-                        if taskset -pc "$target_cpu" "$tid" > /dev/null 2>&1; then
-                            echo "  Thread $tid -> Core $target_cpu"
-                        else
-                            echo "  Thread $tid -> Core $target_cpu (failed)"
-                        fi
-                        i=$(( i + 1 ))
-                    fi
-                done
+                echo "ERROR: Thread distribution script not found. Run 'apply' first."
+                exit 1
             fi
 
             echo ""
