@@ -127,6 +127,15 @@ Version 2.0.0 is a **complete rewrite** of DirettaRendererUPnP focused on low-la
 
 **UPnP Stop Handling:**
 - Diretta connection properly closed on UPnP Stop action
+
+### 🔧 Tools & Scripts
+
+**CPU Tuner Auto-Detection:**
+- Tuner scripts now auto-detect CPU topology (AMD and Intel)
+- Support for any number of cores with/without SMT
+- New `detect` command to preview configuration before applying
+- Dynamic allocation of housekeeping and renderer CPUs
+- Tested with Ryzen 5/7/9 and Intel Core processors
 - Clean handoff when switching renderers
 
 ### 📦 Installation
