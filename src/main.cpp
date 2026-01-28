@@ -13,7 +13,7 @@
 #include <chrono>
 #include <iomanip>
 
-#define RENDERER_VERSION "2.0.0"
+#define RENDERER_VERSION "2.0.1"
 #define RENDERER_BUILD_DATE __DATE__
 #define RENDERER_BUILD_TIME __TIME__
 
