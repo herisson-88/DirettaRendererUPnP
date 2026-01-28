@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.0.1] - 2026-01-28
+
+### 🐛 Bug Fixes
+
+**24-bit Audio White Noise Fix (TEAC UD-701N and similar DACs):**
+- Fixed white noise when playing 24-bit audio on DACs that only support 24-bit (not 32-bit)
+- Root cause: S24 alignment hint was incorrectly set to LSB-aligned instead of MSB-aligned
+- FFmpeg decodes 24-bit content into S32 format where audio data is in the upper 24 bits
+- The v2.0.0 ring buffer extracted the wrong bytes (lower 24 bits including padding)
+- Now correctly extracts bytes 1-3 (MSB-aligned) instead of bytes 0-2 (LSB-aligned)
+- Affected: x86/x64 platforms with 24-bit-only DACs (ARM64 had a workaround)
+- Thanks to the user who reported this issue with the TEAC UD-701N
+
+---
+
 ## [2.0.0] - 2026-01-28
 
 ### 🚀 Complete Architecture Rewrite

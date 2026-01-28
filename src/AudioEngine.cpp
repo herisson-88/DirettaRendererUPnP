@@ -513,26 +513,32 @@ bool AudioDecoder::open(const std::string& url) {
 
     // Detect S24 alignment hint for 24-bit content
     // This hint helps the ring buffer when track starts with silence
+    //
+    // IMPORTANT: FFmpeg decodes 24-bit audio into S32 format where the sample
+    // is left-shifted by 8 bits (scaled to fill 32 bits). This means:
+    // - Byte 0 = padding (zeros or sign extension)
+    // - Bytes 1-3 = actual 24-bit audio data (MSB-aligned)
+    // This was incorrectly set to LsbAligned in v2.0.0, causing white noise
+    // on DACs that only support 24-bit (e.g., TEAC UD-701N).
     m_trackInfo.s24Alignment = TrackInfo::S24Alignment::Unknown;
     if (realBitDepth == 24) {
-        // PCM_S24LE/BE codecs: data is truly 24-bit, packed LSB-aligned in 32-bit
+        // PCM_S24LE/BE codecs: decoded to S32, audio in upper 24 bits (MSB-aligned)
         if (codecpar->codec_id == AV_CODEC_ID_PCM_S24LE ||
             codecpar->codec_id == AV_CODEC_ID_PCM_S24BE) {
-            m_trackInfo.s24Alignment = TrackInfo::S24Alignment::LsbAligned;
-            DEBUG_LOG("[AudioDecoder] S24 hint: LSB-aligned (PCM_S24)");
+            m_trackInfo.s24Alignment = TrackInfo::S24Alignment::MsbAligned;
+            DEBUG_LOG("[AudioDecoder] S24 hint: MSB-aligned (PCM_S24 in S32)");
         }
-        // FLAC/ALAC with 24-bit: typically LSB-aligned in S32 container
+        // FLAC/ALAC with 24-bit: decoded to S32, audio in upper 24 bits (MSB-aligned)
         else if (codecpar->codec_id == AV_CODEC_ID_FLAC ||
                  codecpar->codec_id == AV_CODEC_ID_ALAC) {
-            m_trackInfo.s24Alignment = TrackInfo::S24Alignment::LsbAligned;
-            DEBUG_LOG("[AudioDecoder] S24 hint: LSB-aligned (FLAC/ALAC)");
+            m_trackInfo.s24Alignment = TrackInfo::S24Alignment::MsbAligned;
+            DEBUG_LOG("[AudioDecoder] S24 hint: MSB-aligned (FLAC/ALAC in S32)");
         }
-        // Other decoders: check sample format
+        // Other decoders with S32 format: audio in upper 24 bits (MSB-aligned)
         else if (m_codecContext->sample_fmt == AV_SAMPLE_FMT_S32 ||
                  m_codecContext->sample_fmt == AV_SAMPLE_FMT_S32P) {
-            // S32 format with 24-bit content is typically LSB-aligned
-            m_trackInfo.s24Alignment = TrackInfo::S24Alignment::LsbAligned;
-            DEBUG_LOG("[AudioDecoder] S24 hint: LSB-aligned (S32 format)");
+            m_trackInfo.s24Alignment = TrackInfo::S24Alignment::MsbAligned;
+            DEBUG_LOG("[AudioDecoder] S24 hint: MSB-aligned (S32 format)");
         }
     }
 
