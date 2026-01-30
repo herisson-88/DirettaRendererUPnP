@@ -392,13 +392,46 @@ DSD conversion mode is selected once per track for optimal performance:
 
 ### Network Requirements
 
-| Audio Format | Data Rate | Recommended MTU |
-|--------------|-----------|-----------------|
-| CD Quality (16/44.1) | ~172 KB/s | 1500 (standard) |
-| Hi-Res (24/96) | ~690 KB/s | 1500+ |
-| Hi-Res (24/192) | ~1.4 MB/s | 9000 (jumbo) |
-| DSD256 | ~1.4 MB/s | 9000 (jumbo) |
-| DSD512 | ~2.8 MB/s | 9000+ (jumbo) |
+#### PCM Formats
+
+| Audio Format | Data Rate | Cycle Time (MTU 1500) | MTU 1500 | MTU 9000 |
+|--------------|-----------|----------------------|----------|----------|
+| CD Quality (16/44.1) | ~172 KB/s | ~8.7 ms | ✅ OK | ✅ OK |
+| Hi-Res (24/96) | ~690 KB/s | ~2.2 ms | ✅ OK | ✅ OK |
+| Hi-Res (24/192) | ~1.4 MB/s | ~1.1 ms | ⚠️ Marginal | ✅ OK |
+| Hi-Res (32/384) | ~3.7 MB/s | ~0.4 ms | ❌ Not viable | ✅ OK |
+
+#### DSD Formats (Critical: Jumbo Frames Required for DSD128+)
+
+| DSD Format | Data Rate | Cycle Time (MTU 1500) | Packets/sec | MTU 1500 | MTU 9000 |
+|------------|-----------|----------------------|-------------|----------|----------|
+| **DSD64** | ~0.7 MB/s | ~2.1 ms | ~470 | ✅ OK | ✅ OK |
+| **DSD128** | ~1.4 MB/s | ~1.0 ms | ~940 | ⚠️ **Marginal** | ✅ OK |
+| **DSD256** | ~2.8 MB/s | ~0.5 ms | ~1,880 | ❌ Not viable | ✅ OK |
+| **DSD512** | ~5.6 MB/s | ~0.27 ms | ~3,770 | ❌ Not viable | ✅ OK |
+| **DSD1024** | ~11.3 MB/s | ~0.13 ms | ~7,540 | ❌ Not viable | ⚠️ Marginal |
+
+> **Why DSD128 is problematic with MTU 1500:** The Diretta protocol requires precise timing. With a ~1ms cycle time, there's almost no margin for network jitter or system latency. Even small delays cause audible dropouts. Jumbo frames (MTU 9000) increase the cycle time to ~6ms, providing 6× more tolerance.
+
+#### Checking Your MTU
+
+```bash
+# Check current MTU on your network interface
+ip link show eth0 | grep mtu
+
+# Test actual path MTU to your Diretta Target
+ping -M do -s 8972 <target_ip>   # Tests MTU 9000 (8972 + 28 bytes header)
+ping -M do -s 1472 <target_ip>   # Tests MTU 1500 (1472 + 28 bytes header)
+```
+
+#### Recommended MTU by Format
+
+| Usage | Minimum MTU |
+|-------|-------------|
+| PCM up to 96kHz, DSD64 only | 1500 (standard) |
+| PCM up to 192kHz, DSD64 | 1500 (standard) |
+| **DSD128** | **9000 (jumbo) recommended** |
+| **DSD256 and above** | **9000 (jumbo) required** |
 
 ---
 
