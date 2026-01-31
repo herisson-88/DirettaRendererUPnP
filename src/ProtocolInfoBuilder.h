@@ -175,27 +175,33 @@ private:
         }
     }
 
-    static void addDSDProtocols(std::vector<std::string>& protocols, 
+    static void addDSDProtocols(std::vector<std::string>& protocols,
                                 const AudioCapabilities& caps) {
+        // Add container format MIME types (for squeeze2UPnP/LMS compatibility)
+        protocols.push_back("http-get:*:audio/dsf:*");
+        protocols.push_back("http-get:*:audio/dff:*");
+        protocols.push_back("http-get:*:audio/x-dsf:*");
+        protocols.push_back("http-get:*:audio/x-dff:*");
+
         for (int rate : caps.dsdRates) {
             std::ostringstream oss;
-            
+
             // Native DSD format
-            oss << "http-get:*:audio/dsd;rate=" << rate 
+            oss << "http-get:*:audio/dsd;rate=" << rate
                 << ";channels=" << caps.dsdChannels << ":*";
             protocols.push_back(oss.str());
-            
+
             // Alternative DSD MIME types
             oss.str("");
-            oss << "http-get:*:audio/x-dsd;rate=" << rate 
+            oss << "http-get:*:audio/x-dsd;rate=" << rate
                 << ";channels=" << caps.dsdChannels << ":*";
             protocols.push_back(oss.str());
-            
+
             // DSD over PCM (DoP) - rate is doubled for DoP
             if (rate <= 11289600) { // DoP typically limited to DSD256
                 int dopRate = rate / 16; // DoP packs 16 DSD bits into PCM samples
                 oss.str("");
-                oss << "http-get:*:audio/L24;rate=" << dopRate 
+                oss << "http-get:*:audio/L24;rate=" << dopRate
                     << ";channels=" << caps.dsdChannels << ":DLNA.ORG_PN=DSD";
                 protocols.push_back(oss.str());
             }
