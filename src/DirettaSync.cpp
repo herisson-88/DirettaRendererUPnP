@@ -182,18 +182,6 @@ bool DirettaSync::openSyncConnection() {
     m_sdkOpen = true;
     inquirySupportFormat(m_targetAddress);
 
-    // Log the MS mode actually negotiated
-    const char* msModeStr = "UNKNOWN";
-    switch (MSmodeSet) {
-        case DIRETTA::Sync::MSMODE_NONE: msModeStr = "NONE"; break;
-        case DIRETTA::Sync::MSMODE_MS1:  msModeStr = "MS1"; break;
-        case DIRETTA::Sync::MSMODE_MS2:  msModeStr = "MS2"; break;
-        case DIRETTA::Sync::MSMODE_MS3:  msModeStr = "MS3"; break;
-        case DIRETTA::Sync::MSMODE_AUTO: msModeStr = "AUTO"; break;
-        default: break;
-    }
-    std::cout << "[DirettaSync] MS mode negotiated: " << msModeStr << std::endl;
-
     if (g_verbose) {
         logSinkCapabilities();
     }
