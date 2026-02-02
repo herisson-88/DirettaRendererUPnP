@@ -368,9 +368,9 @@ sudo systemctl status diretta-renderer
 ### 10.2 Tester avec votre contrôleur UPnP
 
 Sur votre réseau, utilisez un point de contrôle UPnP :
-- **Windows :** JPlay, foobar2000 avec plugin UPnP
-- **macOS/iOS :** mconnect, Audirvana
-- **Android :** BubbleUPnP
+- **Windows :** foobar2000 avec plugin UPnP
+- **macOS/iOS :** mconnect, JPLAY iOS
+- **Android :** BubbleUPnP, mconnect
 
 Le lecteur devrait apparaître dans la liste des appareils.
 
