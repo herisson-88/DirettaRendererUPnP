@@ -368,9 +368,9 @@ sudo systemctl status diretta-renderer
 ### 10.2 Test with Your UPnP Controller
 
 On your network, use a UPnP control point:
-- **Windows:** JPlay, foobar2000 with UPnP plugin
-- **macOS/iOS:** mconnect, Audirvana
-- **Android:** BubbleUPnP
+- **Windows:** foobar2000 with UPnP plugin
+- **macOS/iOS:** mconnect, JPLAY iOS
+- **Android:** BubbleUPnP, mconnect
 
 The renderer should appear in the device list.
 
