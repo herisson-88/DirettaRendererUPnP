@@ -343,7 +343,6 @@ int UPnPDevice::handleSubscriptionRequest(UpnpSubscriptionRequest* request) {
            << "<CurrentTrackURI val=\"" << xmlEscape(m_currentTrackURI) << "\"/>"
            << "<CurrentTrackDuration val=\"" << formatTime(m_trackDuration) << "\"/>"
            << "<CurrentTrackMetaData val=\"" << xmlEscape(m_currentTrackMetadata) << "\"/>"
-           << "<RelativeTimePosition val=\"" << formatTime(m_currentPosition) << "\"/>"
            << "</InstanceID>"
            << "</Event>";
         lastChange = ss.str();
@@ -810,13 +809,17 @@ std::string UPnPDevice::getArgumentValue(IXML_Document* actionDoc,
 }
 
 // Helper: Send AVTransport LastChange event to all subscribers
+// Per UPnP AVTransport spec: RelativeTimePosition MUST NOT be evented via LastChange.
+// Position is obtained by control points via GetPositionInfo polling.
 void UPnPDevice::sendAVTransportEvent() {
     if (m_deviceHandle < 0 || !m_running) return;
 
-    // Build LastChange XML with current state
+    // Build LastChange XML with current state (no position - spec forbids it)
     std::string lastChange;
+    std::string state;
     {
         std::lock_guard<std::mutex> lock(m_stateMutex);
+        state = m_transportState;
         std::stringstream ss;
         ss << "<Event xmlns=\"urn:schemas-upnp-org:metadata-1-0/AVT/\">"
            << "<InstanceID val=\"0\">"
@@ -824,7 +827,6 @@ void UPnPDevice::sendAVTransportEvent() {
            << "<CurrentTrackURI val=\"" << xmlEscape(m_currentTrackURI) << "\"/>"
            << "<CurrentTrackDuration val=\"" << formatTime(m_trackDuration) << "\"/>"
            << "<CurrentTrackMetaData val=\"" << xmlEscape(m_currentTrackMetadata) << "\"/>"
-           << "<RelativeTimePosition val=\"" << formatTime(m_currentPosition) << "\"/>"
            << "</InstanceID>"
            << "</Event>";
         lastChange = ss.str();
@@ -833,15 +835,18 @@ void UPnPDevice::sendAVTransportEvent() {
     const char* varNames[] = { "LastChange" };
     const char* varValues[] = { lastChange.c_str() };
 
+    std::string udn = "uuid:" + m_config.uuid;
     int ret = UpnpNotify(
         m_deviceHandle,
-        m_config.uuid.c_str(),
+        udn.c_str(),
         "urn:upnp-org:serviceId:AVTransport",
         varNames, varValues, 1
     );
 
     if (ret != UPNP_E_SUCCESS) {
-        DEBUG_LOG("[UPnPDevice] UpnpNotify failed: " << ret);
+        std::cerr << "[UPnPDevice] UpnpNotify failed: " << ret << std::endl;
+    } else {
+        DEBUG_LOG("[UPnPDevice] Event sent: state=" << state << " dur=" << m_trackDuration << "s");
     }
 }
 
@@ -1129,6 +1134,10 @@ std::string UPnPDevice::generateAVTransportSCPD() {
     </action>
   </actionList>
   <serviceStateTable>
+    <stateVariable sendEvents="yes">
+      <name>LastChange</name>
+      <dataType>string</dataType>
+    </stateVariable>
     <stateVariable sendEvents="no">
       <name>A_ARG_TYPE_InstanceID</name>
       <dataType>ui4</dataType>
@@ -1281,6 +1290,10 @@ std::string UPnPDevice::generateRenderingControlSCPD() {
     </action>
   </actionList>
   <serviceStateTable>
+    <stateVariable sendEvents="yes">
+      <name>LastChange</name>
+      <dataType>string</dataType>
+    </stateVariable>
     <stateVariable sendEvents="no">
       <name>A_ARG_TYPE_InstanceID</name>
       <dataType>ui4</dataType>
@@ -1411,18 +1424,21 @@ void UPnPDevice::notifyTrackChange(const std::string& uri, const std::string& me
         m_currentMetadata = metadata;
         m_currentTrackURI = uri;
         m_currentTrackMetadata = metadata;
+        // Reset position and duration on track change
+        m_currentPosition = 0;
+        m_trackDuration = 0;
+        // Clear next track (it became current)
+        m_nextURI.clear();
+        m_nextMetadata.clear();
     }
     // Send AVTransport event to notify subscribers
     sendAVTransportEvent();
 }
 
-// Notify position change (sends event to subscribers)
+// Notify position change (updates internal state for GetPositionInfo polling)
+// Per UPnP spec: position is NOT evented via LastChange - control points poll GetPositionInfo
 void UPnPDevice::notifyPositionChange(int seconds, int duration) {
-    {
-        std::lock_guard<std::mutex> lock(m_stateMutex);
-        m_currentPosition = seconds;
-        m_trackDuration = duration;
-    }
-    // Send AVTransport event to notify subscribers (mConnect, BubbleUPnP)
-    sendAVTransportEvent();
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+    m_currentPosition = seconds;
+    m_trackDuration = duration;
 }
