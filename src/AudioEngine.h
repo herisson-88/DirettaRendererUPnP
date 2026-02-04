@@ -135,6 +135,13 @@ private:
     AVPacket* m_packet;      // Reusable for raw packet reading (DSD and PCM)
     AVFrame* m_frame;        // Reusable for decoded frames (PCM) - eliminates per-call alloc
 
+    // DFF/DSDIFF direct mode (bypasses FFmpeg demuxer which lacks DSDIFF support)
+    // Uses FFmpeg's avio for HTTP I/O but parses DSDIFF container manually
+    bool m_dffMode = false;          // True when using custom DSDIFF parser
+    AVIOContext* m_dffIO = nullptr;  // FFmpeg I/O context for HTTP reading
+    int64_t m_dffDataRemaining = 0;  // Bytes of DSD audio data left to read
+    bool openDFF(const std::string& url);  // Custom DSDIFF parser
+
     // DSD packet remainder ring buffer (O(1) push/pop, replaces O(n) memmove)
     // Stores leftover bytes when DSD packets don't align with request size
     // Layout: [leftChannel bytes][rightChannel bytes] - each channel has same count

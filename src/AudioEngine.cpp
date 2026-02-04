@@ -107,6 +107,16 @@ bool AudioDecoder::open(const std::string& url) {
         return false;
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // DFF/DSDIFF: Use custom parser (FFmpeg has no DSDIFF demuxer)
+    // ═══════════════════════════════════════════════════════════
+    if (url.find(".dff") != std::string::npos || url.find(".DFF") != std::string::npos) {
+        std::cout << "[AudioDecoder] DFF/DSDIFF detected - using built-in parser" << std::endl;
+        avformat_free_context(m_formatContext);
+        m_formatContext = nullptr;
+        return openDFF(url);
+    }
+
     // Detect format from URL extension (helps FFmpeg when Content-Type is missing/wrong)
     const AVInputFormat* inputFormat = nullptr;
     bool isLocalServer = (url.find("://192.168.") != std::string::npos ||
@@ -115,25 +125,7 @@ bool AudioDecoder::open(const std::string& url) {
                           url.find("://localhost") != std::string::npos ||
                           url.find("://127.") != std::string::npos);
 
-    if (url.find(".dff") != std::string::npos || url.find(".DFF") != std::string::npos) {
-        // DSDIFF (.dff) is handled by the IFF demuxer in FFmpeg
-        // Try multiple names: "iff" (FFmpeg 8.x), "dff" (if future versions add it)
-        inputFormat = av_find_input_format("iff");
-        if (!inputFormat) {
-            inputFormat = av_find_input_format("dff");
-        }
-        if (!inputFormat) {
-            inputFormat = av_find_input_format("dsdiff");
-        }
-        if (inputFormat) {
-            std::cout << "[AudioDecoder] Format hint: DFF/DSDIFF (demuxer: " << inputFormat->name << ")" << std::endl;
-        } else {
-            std::cerr << "[AudioDecoder] WARNING: IFF/DSDIFF demuxer not found in FFmpeg!" << std::endl;
-            std::cerr << "[AudioDecoder] DFF playback will fail." << std::endl;
-            std::cerr << "[AudioDecoder] Please rebuild FFmpeg with: --enable-demuxer=iff" << std::endl;
-            std::cerr << "[AudioDecoder] Check with: ffmpeg -demuxers | grep iff" << std::endl;
-        }
-    } else if (url.find(".dsf") != std::string::npos || url.find(".DSF") != std::string::npos) {
+    if (url.find(".dsf") != std::string::npos || url.find(".DSF") != std::string::npos) {
         inputFormat = av_find_input_format("dsf");
         if (inputFormat) {
             std::cout << "[AudioDecoder] Format hint: DSF (demuxer: " << inputFormat->name << ")" << std::endl;
@@ -606,6 +598,201 @@ bool AudioDecoder::open(const std::string& url) {
     return true;
 }
 
+// ============================================================================
+// DSDIFF/DFF Parser - Bypasses FFmpeg demuxer (which has no DSDIFF support)
+// Uses FFmpeg's avio for HTTP I/O, parses DSDIFF container manually.
+//
+// DSDIFF format (big-endian throughout):
+//   FRM8 <8-byte size> DSD        <- Main container
+//     FVER <8-byte size> <version> <- Format version
+//     PROP <8-byte size> SND       <- Properties
+//       FS   <8-byte size> <4B sample rate>
+//       CHNL <8-byte size> <2B channels> [names]
+//       CMPR <8-byte size> <4B type>     ("DSD " = uncompressed)
+//     DSD  <8-byte size> <data>    <- Audio data (MSB first, interleaved L R L R)
+// ============================================================================
+
+// Helper: read 4-byte big-endian tag from avio
+static uint32_t dff_read_tag(AVIOContext* io) {
+    uint8_t buf[4];
+    if (avio_read(io, buf, 4) != 4) return 0;
+    return ((uint32_t)buf[0] << 24) | ((uint32_t)buf[1] << 16) |
+           ((uint32_t)buf[2] << 8)  | (uint32_t)buf[3];
+}
+
+// Helper: read 8-byte big-endian size from avio
+static int64_t dff_read_size(AVIOContext* io) {
+    uint8_t buf[8];
+    if (avio_read(io, buf, 8) != 8) return -1;
+    int64_t size = 0;
+    for (int i = 0; i < 8; i++) {
+        size = (size << 8) | buf[i];
+    }
+    return size;
+}
+
+// Helper: read 4-byte big-endian uint32
+static uint32_t dff_read_u32(AVIOContext* io) {
+    uint8_t buf[4];
+    if (avio_read(io, buf, 4) != 4) return 0;
+    return ((uint32_t)buf[0] << 24) | ((uint32_t)buf[1] << 16) |
+           ((uint32_t)buf[2] << 8)  | (uint32_t)buf[3];
+}
+
+// Helper: read 2-byte big-endian uint16
+static uint16_t dff_read_u16(AVIOContext* io) {
+    uint8_t buf[2];
+    if (avio_read(io, buf, 2) != 2) return 0;
+    return ((uint16_t)buf[0] << 8) | (uint16_t)buf[1];
+}
+
+bool AudioDecoder::openDFF(const std::string& url) {
+    // Open HTTP stream using FFmpeg's avio (reuses FFmpeg's HTTP stack)
+    AVDictionary* options = nullptr;
+    av_dict_set(&options, "timeout", "10000000", 0);
+    av_dict_set(&options, "user_agent", "DirettaRenderer/1.0", 0);
+
+    int ret = avio_open2(&m_dffIO, url.c_str(), AVIO_FLAG_READ, nullptr, &options);
+    av_dict_free(&options);
+
+    if (ret < 0) {
+        char errbuf[AV_ERROR_MAX_STRING_SIZE];
+        av_strerror(ret, errbuf, sizeof(errbuf));
+        std::cerr << "[AudioDecoder] DFF: Failed to open URL: " << errbuf << std::endl;
+        return false;
+    }
+
+    // ── Parse FRM8 header ──
+    uint32_t frm8Tag = dff_read_tag(m_dffIO);
+    int64_t frm8Size = dff_read_size(m_dffIO);
+    uint32_t dsdTag = dff_read_tag(m_dffIO);
+
+    if (frm8Tag != 0x46524D38 || dsdTag != 0x44534420) {  // "FRM8", "DSD "
+        std::cerr << "[AudioDecoder] DFF: Invalid DSDIFF header (not FRM8/DSD)" << std::endl;
+        avio_closep(&m_dffIO);
+        return false;
+    }
+
+    std::cout << "[AudioDecoder] DFF: Valid DSDIFF container, size=" << frm8Size << std::endl;
+
+    // ── Parse chunks within FRM8 ──
+    uint32_t sampleRate = 0;
+    uint16_t channels = 0;
+    bool foundData = false;
+    int64_t dataSize = 0;
+
+    // Read position after FRM8 header (16 bytes: tag4 + size8 + formtype4)
+    int64_t containerEnd = 16 + frm8Size - 4;  // -4 because formtype is inside size
+
+    while (avio_tell(m_dffIO) < containerEnd && !avio_feof(m_dffIO)) {
+        uint32_t chunkTag = dff_read_tag(m_dffIO);
+        int64_t chunkSize = dff_read_size(m_dffIO);
+
+        if (chunkSize < 0) {
+            std::cerr << "[AudioDecoder] DFF: Invalid chunk size" << std::endl;
+            break;
+        }
+
+        int64_t chunkStart = avio_tell(m_dffIO);
+
+        if (chunkTag == 0x50524F50) {  // "PROP"
+            // Property chunk - contains sub-chunks FS, CHNL, CMPR
+            uint32_t propType = dff_read_tag(m_dffIO);  // Should be "SND "
+            if (propType != 0x534E4420) {  // "SND "
+                std::cerr << "[AudioDecoder] DFF: PROP chunk is not SND" << std::endl;
+                avio_skip(m_dffIO, chunkSize - 4);
+                continue;
+            }
+
+            int64_t propEnd = chunkStart + chunkSize;
+            while (avio_tell(m_dffIO) < propEnd && !avio_feof(m_dffIO)) {
+                uint32_t subTag = dff_read_tag(m_dffIO);
+                int64_t subSize = dff_read_size(m_dffIO);
+                int64_t subStart = avio_tell(m_dffIO);
+
+                if (subTag == 0x46532020) {  // "FS  "
+                    sampleRate = dff_read_u32(m_dffIO);
+                    std::cout << "[AudioDecoder] DFF: Sample rate = " << sampleRate << " Hz" << std::endl;
+                } else if (subTag == 0x43484E4C) {  // "CHNL"
+                    channels = dff_read_u16(m_dffIO);
+                    std::cout << "[AudioDecoder] DFF: Channels = " << channels << std::endl;
+                } else if (subTag == 0x434D5052) {  // "CMPR"
+                    uint32_t cmpr = dff_read_tag(m_dffIO);
+                    if (cmpr != 0x44534420) {  // "DSD "
+                        std::cerr << "[AudioDecoder] DFF: Compressed DSDIFF (DST) not supported" << std::endl;
+                        avio_closep(&m_dffIO);
+                        return false;
+                    }
+                    DEBUG_LOG("[AudioDecoder] DFF: Compression = DSD (uncompressed)");
+                }
+
+                // Skip to end of sub-chunk
+                int64_t skipBytes = subStart + subSize - avio_tell(m_dffIO);
+                if (skipBytes > 0) avio_skip(m_dffIO, skipBytes);
+            }
+
+        } else if (chunkTag == 0x44534420) {  // "DSD " (data chunk)
+            dataSize = chunkSize;
+            foundData = true;
+            std::cout << "[AudioDecoder] DFF: DSD data chunk, size=" << dataSize << " bytes" << std::endl;
+            break;  // Stop here - data follows immediately
+
+        } else {
+            // Skip unknown chunks (FVER, DIIN, etc.)
+            DEBUG_LOG("[AudioDecoder] DFF: Skipping chunk 0x" << std::hex << chunkTag
+                      << std::dec << " (" << chunkSize << " bytes)");
+            avio_skip(m_dffIO, chunkSize);
+        }
+    }
+
+    // ── Validate parsed data ──
+    if (sampleRate == 0 || channels == 0 || !foundData) {
+        std::cerr << "[AudioDecoder] DFF: Missing required chunks"
+                  << " (rate=" << sampleRate << " ch=" << channels
+                  << " data=" << foundData << ")" << std::endl;
+        avio_closep(&m_dffIO);
+        return false;
+    }
+
+    // ── Fill TrackInfo ──
+    m_trackInfo.isDSD = true;
+    m_trackInfo.bitDepth = 1;
+    m_trackInfo.sampleRate = sampleRate;  // DFF stores true DSD rate (e.g., 2822400)
+    m_trackInfo.channels = channels;
+    m_trackInfo.codec = "dsd_msbf";  // DFF is MSB-first
+    m_trackInfo.dsdSourceFormat = TrackInfo::DSDSourceFormat::DFF;
+    m_trackInfo.dsdRate = sampleRate / 44100;  // DSD64=64, DSD128=128, etc.
+
+    // Duration from data size: bytes / (channels * rate / 8)
+    if (channels > 0 && sampleRate > 0) {
+        m_trackInfo.duration = (dataSize * 8) / channels;  // Total DSD samples
+    }
+
+    // ── Activate DFF mode ──
+    m_rawDSD = true;
+    m_dffMode = true;
+    m_dffDataRemaining = dataSize;
+    m_eof = false;
+
+    // Pre-allocate DSD buffers
+    static constexpr size_t DSD_BUFFER_PREALLOC = 32768;
+    if (m_dsdBufferCapacity < DSD_BUFFER_PREALLOC) {
+        m_dsdLeftBuffer.resize(DSD_BUFFER_PREALLOC);
+        m_dsdRightBuffer.resize(DSD_BUFFER_PREALLOC);
+        m_dsdBufferCapacity = DSD_BUFFER_PREALLOC;
+    }
+
+    std::cout << "[AudioDecoder] ════════════════════════════════════════" << std::endl;
+    std::cout << "[AudioDecoder] DSD NATIVE MODE (DFF/DSDIFF parser)" << std::endl;
+    std::cout << "[AudioDecoder]   DSD" << m_trackInfo.dsdRate
+              << " " << sampleRate << "Hz " << channels << "ch" << std::endl;
+    std::cout << "[AudioDecoder]   Data: " << dataSize << " bytes"
+              << " (" << (dataSize / (channels * sampleRate / 8)) << "s)" << std::endl;
+    std::cout << "[AudioDecoder] ════════════════════════════════════════" << std::endl;
+
+    return true;
+}
+
 void AudioDecoder::close() {
     if (m_swrContext) {
         swr_free(&m_swrContext);
@@ -623,12 +810,17 @@ void AudioDecoder::close() {
         av_audio_fifo_free(m_pcmFifo);
         m_pcmFifo = nullptr;
     }
+    if (m_dffIO) {  // Close DFF/DSDIFF I/O context
+        avio_closep(&m_dffIO);
+    }
     if (m_formatContext) {
         avformat_close_input(&m_formatContext);
     }
     m_audioStreamIndex = -1;
     m_eof = false;
     m_rawDSD = false;
+    m_dffMode = false;
+    m_dffDataRemaining = 0;
     m_resampleBufferCapacity = 0;  // Reset capacity tracking
     m_dsdBufferCapacity = 0;       // Reset DSD buffer capacity tracking
     dsdRemainderClear();           // Reset DSD packet remainder ring
@@ -668,74 +860,180 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
         uint8_t* rightData = m_dsdRightBuffer.data();
 
         // Ensure output buffer is large enough
-        if (buffer.size() < totalBytesNeeded) {
-            buffer.resize(totalBytesNeeded);
+        // DFF mode needs extra space for interleaved read + excess de-interleave
+        static constexpr size_t DFF_READ_CHUNK = 32768;
+        size_t bufferNeeded = m_dffMode ? totalBytesNeeded + DFF_READ_CHUNK : totalBytesNeeded;
+        if (buffer.size() < bufferNeeded) {
+            buffer.resize(bufferNeeded);
         }
 
-        // Use remaining data from previous DSD packet reads (O(1) ring buffer)
-        size_t remainderAvail = dsdRemainderAvailable();
-        if (remainderAvail > 0) {
-            size_t toUse = std::min(remainderAvail, bytesPerChannelNeeded);
-            size_t popped = dsdRemainderPop(leftData + leftOffset,
-                                            rightData + rightOffset,
-                                            toUse);
-            leftOffset += popped;
-            rightOffset += popped;
-        }
+        if (m_dffMode) {
+            // ── DFF/DSDIFF: Read interleaved bytes from avio, de-interleave ──
+            // DFF data layout: L0 R0 L1 R1 L2 R2 ... (byte-interleaved per channel)
+            // Output needed: [all L][all R] (planar)
 
-        // Read packets until we have enough data
-        // DSF layout: each packet is [blockSize L][blockSize R]
-        while (leftOffset < bytesPerChannelNeeded && !m_eof) {
-            int ret = av_read_frame(m_formatContext, m_packet);
-            if (ret < 0) {
-                if (ret == AVERROR_EOF) {
-                    m_eof = true;
+            // Use remainder from previous reads
+            size_t remainderAvail = dsdRemainderAvailable();
+            if (remainderAvail > 0) {
+                size_t toUse = std::min(remainderAvail, bytesPerChannelNeeded);
+                size_t popped = dsdRemainderPop(leftData + leftOffset,
+                                                rightData + rightOffset, toUse);
+                leftOffset += popped;
+                rightOffset += popped;
+            }
+
+            // Read interleaved bytes from HTTP stream and de-interleave
+            // For stereo: read 2 bytes at a time (L, R)
+            size_t channels = m_trackInfo.channels;
+            while (leftOffset < bytesPerChannelNeeded && !m_eof && m_dffDataRemaining > 0) {
+                // Read a chunk of interleaved data
+                size_t stillNeedPerCh = bytesPerChannelNeeded - leftOffset;
+                size_t interleavedToRead = stillNeedPerCh * channels;
+
+                // Cap to remaining data in stream
+                if ((int64_t)interleavedToRead > m_dffDataRemaining) {
+                    interleavedToRead = (size_t)m_dffDataRemaining;
+                    interleavedToRead -= interleavedToRead % channels;
                 }
-                break;
+
+                if (interleavedToRead == 0) {
+                    m_eof = true;
+                    break;
+                }
+
+                // Cap chunk size (32KB interleaved = 16KB per channel for stereo)
+                if (interleavedToRead > DFF_READ_CHUNK) {
+                    interleavedToRead = DFF_READ_CHUNK;
+                    interleavedToRead -= interleavedToRead % channels;
+                }
+
+                // Read interleaved data into temp area at end of output buffer
+                uint8_t* tmpBuf = buffer.data() + totalBytesNeeded;
+                int bytesRead = avio_read(m_dffIO, tmpBuf, (int)interleavedToRead);
+
+                if (bytesRead <= 0) {
+                    m_eof = true;
+                    break;
+                }
+
+                m_dffDataRemaining -= bytesRead;
+                m_packetCount++;
+
+                // Ensure we have complete channel groups
+                size_t usableBytes = (size_t)bytesRead - ((size_t)bytesRead % channels);
+                size_t samplesPerCh = usableBytes / channels;
+
+                // De-interleave: L R L R → separate L and R buffers
+                size_t canTake = std::min(samplesPerCh, bytesPerChannelNeeded - leftOffset);
+
+                if (channels == 2) {
+                    // Fast path for stereo (most common)
+                    for (size_t i = 0; i < canTake; i++) {
+                        leftData[leftOffset + i] = tmpBuf[i * 2];
+                        rightData[rightOffset + i] = tmpBuf[i * 2 + 1];
+                    }
+                } else {
+                    // Generic multi-channel (take first 2 channels)
+                    for (size_t i = 0; i < canTake; i++) {
+                        leftData[leftOffset + i] = tmpBuf[i * channels];
+                        rightData[rightOffset + i] = tmpBuf[i * channels + 1];
+                    }
+                }
+
+                leftOffset += canTake;
+                rightOffset += canTake;
+
+                // Save excess to remainder ring (de-interleave directly)
+                if (canTake < samplesPerCh) {
+                    size_t excess = samplesPerCh - canTake;
+                    // De-interleave excess into DSD left/right buffer tails temporarily
+                    // These areas won't be overwritten since leftOffset == bytesPerChannelNeeded
+                    uint8_t* exL = leftData + leftOffset;
+                    uint8_t* exR = rightData + rightOffset;
+                    for (size_t i = 0; i < excess; i++) {
+                        exL[i] = tmpBuf[(canTake + i) * channels];
+                        exR[i] = tmpBuf[(canTake + i) * channels + 1];
+                    }
+                    dsdRemainderPush(exL, exR, excess);
+                }
+
+                // Debug first few reads
+                if (m_packetCount <= 3) {
+                    std::cout << "[DFF READ] Chunk " << m_packetCount
+                              << ": read=" << bytesRead
+                              << " deinterleaved=" << canTake
+                              << " remaining=" << m_dffDataRemaining << std::endl;
+                }
             }
 
-            if (m_packet->stream_index != m_audioStreamIndex) {
+        } else {
+            // ── DSF: Read block-based packets from FFmpeg demuxer ──
+
+            // Use remaining data from previous DSD packet reads (O(1) ring buffer)
+            size_t remainderAvail = dsdRemainderAvailable();
+            if (remainderAvail > 0) {
+                size_t toUse = std::min(remainderAvail, bytesPerChannelNeeded);
+                size_t popped = dsdRemainderPop(leftData + leftOffset,
+                                                rightData + rightOffset,
+                                                toUse);
+                leftOffset += popped;
+                rightOffset += popped;
+            }
+
+            // Read packets until we have enough data
+            // DSF layout: each packet is [blockSize L][blockSize R]
+            while (leftOffset < bytesPerChannelNeeded && !m_eof) {
+                int ret = av_read_frame(m_formatContext, m_packet);
+                if (ret < 0) {
+                    if (ret == AVERROR_EOF) {
+                        m_eof = true;
+                    }
+                    break;
+                }
+
+                if (m_packet->stream_index != m_audioStreamIndex) {
+                    av_packet_unref(m_packet);
+                    continue;
+                }
+
+                m_packetCount++;
+                size_t packetSize = m_packet->size;
+                size_t blockSize = packetSize / 2;  // Each channel gets half
+
+                // L is first half, R is second half
+                const uint8_t* pktL = m_packet->data;
+                const uint8_t* pktR = m_packet->data + blockSize;
+
+                size_t stillNeed = bytesPerChannelNeeded - leftOffset;
+                size_t toTake = std::min(blockSize, stillNeed);
+
+                memcpy(leftData + leftOffset, pktL, toTake);
+                leftOffset += toTake;
+                memcpy(rightData + rightOffset, pktR, toTake);
+                rightOffset += toTake;
+
+                // Debug first few packets
+                if (m_packetCount <= 3) {
+                    std::cout << "[DSD READ] Packet " << m_packetCount
+                              << ": size=" << packetSize
+                              << " block=" << blockSize
+                              << " took=" << toTake << std::endl;
+                    std::cout << "[DSD READ]   L[0..7]: ";
+                    for (size_t i = 0; i < 8 && i < blockSize; i++) printf("%02X ", pktL[i]);
+                    printf("\n");
+                    std::cout << "[DSD READ]   R[0..7]: ";
+                    for (size_t i = 0; i < 8 && i < blockSize; i++) printf("%02X ", pktR[i]);
+                    printf("\n");
+                }
+
+                // Save DSD packet excess (O(1) ring buffer push)
+                if (toTake < blockSize) {
+                    size_t excess = blockSize - toTake;
+                    dsdRemainderPush(pktL + toTake, pktR + toTake, excess);
+                }
+
                 av_packet_unref(m_packet);
-                continue;
             }
-
-            m_packetCount++;
-            size_t packetSize = m_packet->size;
-            size_t blockSize = packetSize / 2;  // Each channel gets half
-
-            // L is first half, R is second half
-            const uint8_t* pktL = m_packet->data;
-            const uint8_t* pktR = m_packet->data + blockSize;
-
-            size_t stillNeed = bytesPerChannelNeeded - leftOffset;
-            size_t toTake = std::min(blockSize, stillNeed);
-
-            memcpy(leftData + leftOffset, pktL, toTake);
-            leftOffset += toTake;
-            memcpy(rightData + rightOffset, pktR, toTake);
-            rightOffset += toTake;
-
-            // Debug first few packets
-            if (m_packetCount <= 3) {
-                std::cout << "[DSD READ] Packet " << m_packetCount
-                          << ": size=" << packetSize
-                          << " block=" << blockSize
-                          << " took=" << toTake << std::endl;
-                std::cout << "[DSD READ]   L[0..7]: ";
-                for (size_t i = 0; i < 8 && i < blockSize; i++) printf("%02X ", pktL[i]);
-                printf("\n");
-                std::cout << "[DSD READ]   R[0..7]: ";
-                for (size_t i = 0; i < 8 && i < blockSize; i++) printf("%02X ", pktR[i]);
-                printf("\n");
-            }
-
-            // Save DSD packet excess (O(1) ring buffer push)
-            if (toTake < blockSize) {
-                size_t excess = blockSize - toTake;
-                dsdRemainderPush(pktL + toTake, pktR + toTake, excess);
-            }
-
-            av_packet_unref(m_packet);
         }
 
         // Build output: [all L][all R]
@@ -758,14 +1056,9 @@ size_t AudioDecoder::readSamples(AudioBuffer& buffer, size_t numSamples,
             printf("\n");
         }
 
-        // Bit reversal for DFF (MSB) files - DSF is LSB, no reversal needed
-        if (m_trackInfo.codec.find("msbf") != std::string::npos) {
-            // Use shared LUT from DirettaRingBuffer (cache-friendly, single copy in memory)
-            const uint8_t* rev = DirettaRingBuffer::kBitReverseLUT;
-            for (size_t i = 0; i < totalBytes; i++) {
-                buffer.data()[i] = rev[buffer.data()[i]];
-            }
-        }
+        // Note: DFF data is MSB-first and stays MSB - DirettaRingBuffer handles
+        // bit reversal via DSD conversion modes based on dsdSourceFormat.
+        // DSF data is LSB-first and stays LSB. No reversal needed here.
 
         return (totalBytes * 8) / m_trackInfo.channels;
     }
