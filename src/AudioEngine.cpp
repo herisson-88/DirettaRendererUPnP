@@ -107,34 +107,61 @@ bool AudioDecoder::open(const std::string& url) {
         return false;
     }
 
-    // Configure FFmpeg options for robust HTTP streaming (Qobuz)
-    AVDictionary* options = nullptr;
+    // Detect format from URL extension (helps FFmpeg when Content-Type is missing/wrong)
+    const AVInputFormat* inputFormat = nullptr;
+    bool isLocalServer = (url.find("://192.168.") != std::string::npos ||
+                          url.find("://10.") != std::string::npos ||
+                          url.find("://172.") != std::string::npos ||
+                          url.find("://localhost") != std::string::npos ||
+                          url.find("://127.") != std::string::npos);
 
-    // Automatic reconnection on connection loss
-    av_dict_set(&options, "reconnect", "1", 0);
-    av_dict_set(&options, "reconnect_streamed", "1", 0);
-    av_dict_set(&options, "reconnect_delay_max", "5", 0);  // Max 5 seconds between retries
+    if (url.find(".dff") != std::string::npos || url.find(".DFF") != std::string::npos) {
+        inputFormat = av_find_input_format("dff");
+        if (inputFormat) {
+            DEBUG_LOG("[AudioDecoder] Format hint: DFF (from URL extension)");
+        }
+    } else if (url.find(".dsf") != std::string::npos || url.find(".DSF") != std::string::npos) {
+        inputFormat = av_find_input_format("dsf");
+        if (inputFormat) {
+            DEBUG_LOG("[AudioDecoder] Format hint: DSF (from URL extension)");
+        }
+    }
+
+    // Configure FFmpeg options based on source type
+    AVDictionary* options = nullptr;
 
     // Timeout to avoid blocking indefinitely
     av_dict_set(&options, "timeout", "10000000", 0);  // 10 seconds in microseconds
 
-    // Improved network buffering
-    av_dict_set(&options, "buffer_size", "32768", 0);  // 32KB buffer
-
-    // HTTP persistent connections
-    av_dict_set(&options, "http_persistent", "1", 0);
-    av_dict_set(&options, "multiple_requests", "1", 0);
-
     // User-Agent (some servers check it)
     av_dict_set(&options, "user_agent", "DirettaRenderer/1.0", 0);
 
-    // IMPORTANT: Ignore file size to avoid premature EOF
-    av_dict_set(&options, "ignore_eof", "1", 0);
+    if (isLocalServer) {
+        // Local servers (Audirvana, JRiver, etc.) - use simple HTTP options
+        // These servers often don't support persistent connections or reconnection
+        DEBUG_LOG("[AudioDecoder] Local server detected - using simple HTTP options");
+        av_dict_set(&options, "buffer_size", "32768", 0);
+    } else {
+        // Remote servers (Qobuz, Tidal, etc.) - use robust streaming options
+        DEBUG_LOG("[AudioDecoder] Remote server - using streaming options (reconnect enabled)");
+        av_dict_set(&options, "reconnect", "1", 0);
+        av_dict_set(&options, "reconnect_streamed", "1", 0);
+        av_dict_set(&options, "reconnect_delay_max", "5", 0);
+        av_dict_set(&options, "buffer_size", "32768", 0);
+        av_dict_set(&options, "http_persistent", "1", 0);
+        av_dict_set(&options, "multiple_requests", "1", 0);
+        av_dict_set(&options, "ignore_eof", "1", 0);
+    }
 
-    DEBUG_LOG("[AudioDecoder] Opening with streaming options (reconnect enabled)");
-
-    if (avformat_open_input(&m_formatContext, url.c_str(), nullptr, &options) < 0) {
+    int ret = avformat_open_input(&m_formatContext, url.c_str(), inputFormat, &options);
+    if (ret < 0) {
+        char errbuf[AV_ERROR_MAX_STRING_SIZE];
+        av_strerror(ret, errbuf, sizeof(errbuf));
         std::cerr << "[AudioDecoder] Failed to open input: " << url << std::endl;
+        std::cerr << "[AudioDecoder] FFmpeg error (" << ret << "): " << errbuf << std::endl;
+        if (inputFormat) {
+            std::cerr << "[AudioDecoder] Format hint was: " << inputFormat->name << std::endl;
+        }
         av_dict_free(&options);
         avformat_free_context(m_formatContext);
         m_formatContext = nullptr;

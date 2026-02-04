@@ -471,7 +471,7 @@ test_ffmpeg_installation() {
     local demuxers
     demuxers=$("$ffmpeg_bin" -demuxers 2>&1)
 
-    local required_demuxers="flac wav dsf mov"
+    local required_demuxers="flac wav dsf dff mov"
     for dem in $required_demuxers; do
         if echo "$demuxers" | grep -q " $dem "; then
             echo "  [OK] $dem"
