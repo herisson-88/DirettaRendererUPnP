@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.0.2] - 2026-02-04
+
+### ✨ New Features
+
+**DSDIFF/DFF Native Playback (Audirvana DSD support):**
+- Built-in DSDIFF container parser - FFmpeg has no DSDIFF demuxer, so DFF files were completely unplayable
+- Uses FFmpeg's `avio` for HTTP I/O while parsing the DSDIFF container manually
+- Parses FRM8 header, PROP chunk (sample rate, channels, compression type), and DSD data chunk
+- Supports uncompressed DSD (rejects DST-compressed DSDIFF)
+- Byte de-interleaves DFF data (L R L R...) to planar format ([all L][all R]) expected by the ring buffer
+- DFF data stays MSB-first; DirettaRingBuffer handles bit conversion for the target
+- Enables native DSD playback from Audirvana, which converts DSF files to DFF when streaming via UPnP
+- Tested with DSD64 from Audirvana
+
+**UPnP Event Notifications (progress bar fix):**
+- Implemented proper UPnP GENA eventing with `UpnpNotify()` and `LastChange` XML
+- Control points (Audirvana, BubbleUPnP, mConnect) now receive real-time notifications for:
+  - Transport state changes (PLAYING, STOPPED, PAUSED)
+  - Track changes (URI, duration, metadata)
+  - Position updates
+- Implemented `UpnpAcceptSubscription()` to send initial state on new subscriptions
+- XML-escaped metadata values to prevent malformed events
+- Fixes progress bar not updating on track transitions in control points
+
+### 🐛 Bug Fixes
+
+**Local vs Remote Server HTTP Options:**
+- Detect local servers (192.168.x, 10.x, 172.x, localhost) and use simplified HTTP options
+- Remote servers (Qobuz, Tidal) keep full reconnection/persistent options
+- Fixes connection issues with local UPnP servers (Audirvana, JRiver) that don't support advanced HTTP features
+
+---
+
 ## [2.0.1] - 2026-01-28
 
 ### 🐛 Bug Fixes

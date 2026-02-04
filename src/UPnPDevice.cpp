@@ -17,6 +17,22 @@ extern bool g_verbose;
 #define DEBUG_LOG(x) if (g_verbose) { std::cout << x << std::endl; }
 #endif
 
+// Helper: XML-escape a string for use in attribute values
+static std::string xmlEscape(const std::string& input) {
+    std::string output;
+    output.reserve(input.size() + 64);
+    for (char c : input) {
+        switch (c) {
+            case '&':  output += "&amp;"; break;
+            case '<':  output += "&lt;"; break;
+            case '>':  output += "&gt;"; break;
+            case '"':  output += "&quot;"; break;
+            default:   output += c; break;
+        }
+    }
+    return output;
+}
+
 UPnPDevice::UPnPDevice(const Config& config)
     : m_config(config)
     , m_deviceHandle(-1)
@@ -312,13 +328,44 @@ int UPnPDevice::handleSubscriptionRequest(UpnpSubscriptionRequest* request) {
     std::string serviceID = UpnpString_get_String(
         UpnpSubscriptionRequest_get_ServiceId(request)
     );
-    
+    const char* sid = UpnpSubscriptionRequest_get_SID_cstr(request);
+
     DEBUG_LOG("[UPnPDevice] Subscription request for: " << serviceID);
-    
-    // Accept all subscriptions
-    // UpnpSubscriptionRequest_set_ErrCode(request, UPNP_E_SUCCESS);
-    
-    return UPNP_E_SUCCESS;
+
+    // Build initial LastChange XML with current state
+    std::string lastChange;
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        std::stringstream ss;
+        ss << "<Event xmlns=\"urn:schemas-upnp-org:metadata-1-0/AVT/\">"
+           << "<InstanceID val=\"0\">"
+           << "<TransportState val=\"" << m_transportState << "\"/>"
+           << "<CurrentTrackURI val=\"" << xmlEscape(m_currentTrackURI) << "\"/>"
+           << "<CurrentTrackDuration val=\"" << formatTime(m_trackDuration) << "\"/>"
+           << "<CurrentTrackMetaData val=\"" << xmlEscape(m_currentTrackMetadata) << "\"/>"
+           << "<RelativeTimePosition val=\"" << formatTime(m_currentPosition) << "\"/>"
+           << "</InstanceID>"
+           << "</Event>";
+        lastChange = ss.str();
+    }
+
+    const char* varNames[] = { "LastChange" };
+    const char* varValues[] = { lastChange.c_str() };
+
+    int ret = UpnpAcceptSubscription(
+        m_deviceHandle,
+        UpnpSubscriptionRequest_get_UDN_cstr(request),
+        UpnpSubscriptionRequest_get_ServiceId_cstr(request),
+        varNames, varValues, 1, sid
+    );
+
+    if (ret != UPNP_E_SUCCESS) {
+        std::cerr << "[UPnPDevice] UpnpAcceptSubscription failed: " << ret << std::endl;
+    } else {
+        DEBUG_LOG("[UPnPDevice] Subscription accepted for: " << serviceID);
+    }
+
+    return ret;
 }
 
 int UPnPDevice::handleGetVarRequest(UpnpStateVarRequest* request) {
@@ -762,10 +809,40 @@ std::string UPnPDevice::getArgumentValue(IXML_Document* actionDoc,
     return result;
 }
 
-// Helper: Send AVTransport event
+// Helper: Send AVTransport LastChange event to all subscribers
 void UPnPDevice::sendAVTransportEvent() {
-    // Event notification would go here
-    // For now, we just track state changes
+    if (m_deviceHandle < 0 || !m_running) return;
+
+    // Build LastChange XML with current state
+    std::string lastChange;
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        std::stringstream ss;
+        ss << "<Event xmlns=\"urn:schemas-upnp-org:metadata-1-0/AVT/\">"
+           << "<InstanceID val=\"0\">"
+           << "<TransportState val=\"" << m_transportState << "\"/>"
+           << "<CurrentTrackURI val=\"" << xmlEscape(m_currentTrackURI) << "\"/>"
+           << "<CurrentTrackDuration val=\"" << formatTime(m_trackDuration) << "\"/>"
+           << "<CurrentTrackMetaData val=\"" << xmlEscape(m_currentTrackMetadata) << "\"/>"
+           << "<RelativeTimePosition val=\"" << formatTime(m_currentPosition) << "\"/>"
+           << "</InstanceID>"
+           << "</Event>";
+        lastChange = ss.str();
+    }
+
+    const char* varNames[] = { "LastChange" };
+    const char* varValues[] = { lastChange.c_str() };
+
+    int ret = UpnpNotify(
+        m_deviceHandle,
+        m_config.uuid.c_str(),
+        "urn:upnp-org:serviceId:AVTransport",
+        varNames, varValues, 1
+    );
+
+    if (ret != UPNP_E_SUCCESS) {
+        DEBUG_LOG("[UPnPDevice] UpnpNotify failed: " << ret);
+    }
 }
 
 // Helper: Send RenderingControl event
@@ -1274,7 +1351,10 @@ std::string UPnPDevice::generateConnectionManagerSCPD() {
 
 // Notify state change via events
 void UPnPDevice::notifyStateChange(const std::string& state) {
-    m_transportState = state;
+    {
+        std::lock_guard<std::mutex> lock(m_stateMutex);
+        m_transportState = state;
+    }
     sendAVTransportEvent();
 }
 
