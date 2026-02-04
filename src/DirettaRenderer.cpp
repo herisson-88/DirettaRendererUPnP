@@ -334,15 +334,12 @@ bool DirettaRenderer::start() {
                     std::cout << "/" << info.channels << "ch" << std::endl;
                 }
 
-                // Signal TRANSITIONING before updating track info
-                // Per UPnP spec: PLAYING → TRANSITIONING → PLAYING signals track change
-                m_upnp->notifyStateChange("TRANSITIONING");
-
-                m_upnp->setCurrentURI(uri);
-                m_upnp->setCurrentMetadata(metadata);
+                // Gapless transition: stay in PLAYING state, just update track data
+                // Control points detect track change via CurrentTrackURI change
+                // in GetPositionInfo polling and LastChange events.
+                // IMPORTANT: Do NOT send TRANSITIONING - it breaks gapless detection
+                // in Audirvana, BubbleUPnP, and other control points.
                 m_upnp->notifyTrackChange(uri, metadata);
-
-                // Back to PLAYING with new track info
                 m_upnp->notifyStateChange("PLAYING");
             }
         );
