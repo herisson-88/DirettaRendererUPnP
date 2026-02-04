@@ -116,14 +116,30 @@ bool AudioDecoder::open(const std::string& url) {
                           url.find("://127.") != std::string::npos);
 
     if (url.find(".dff") != std::string::npos || url.find(".DFF") != std::string::npos) {
-        inputFormat = av_find_input_format("dff");
+        // DSDIFF (.dff) is handled by the IFF demuxer in FFmpeg
+        // Try multiple names: "iff" (FFmpeg 8.x), "dff" (if future versions add it)
+        inputFormat = av_find_input_format("iff");
+        if (!inputFormat) {
+            inputFormat = av_find_input_format("dff");
+        }
+        if (!inputFormat) {
+            inputFormat = av_find_input_format("dsdiff");
+        }
         if (inputFormat) {
-            DEBUG_LOG("[AudioDecoder] Format hint: DFF (from URL extension)");
+            std::cout << "[AudioDecoder] Format hint: DFF/DSDIFF (demuxer: " << inputFormat->name << ")" << std::endl;
+        } else {
+            std::cerr << "[AudioDecoder] WARNING: IFF/DSDIFF demuxer not found in FFmpeg!" << std::endl;
+            std::cerr << "[AudioDecoder] DFF playback will fail." << std::endl;
+            std::cerr << "[AudioDecoder] Please rebuild FFmpeg with: --enable-demuxer=iff" << std::endl;
+            std::cerr << "[AudioDecoder] Check with: ffmpeg -demuxers | grep iff" << std::endl;
         }
     } else if (url.find(".dsf") != std::string::npos || url.find(".DSF") != std::string::npos) {
         inputFormat = av_find_input_format("dsf");
         if (inputFormat) {
-            DEBUG_LOG("[AudioDecoder] Format hint: DSF (from URL extension)");
+            std::cout << "[AudioDecoder] Format hint: DSF (demuxer: " << inputFormat->name << ")" << std::endl;
+        } else {
+            std::cerr << "[AudioDecoder] WARNING: DSF demuxer not found in FFmpeg!" << std::endl;
+            std::cerr << "[AudioDecoder] Please rebuild FFmpeg with: --enable-demuxer=dsf" << std::endl;
         }
     }
 
