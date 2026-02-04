@@ -332,19 +332,37 @@ int UPnPDevice::handleSubscriptionRequest(UpnpSubscriptionRequest* request) {
     );
     const char* sid = UpnpSubscriptionRequest_get_SID_cstr(request);
 
-    DEBUG_LOG("[UPnPDevice] Subscription request for: " << serviceID);
+    std::cout << "[UPnPDevice] Subscription request for: " << serviceID
+              << " SID: " << (sid ? sid : "null") << std::endl;
 
     // Build initial LastChange XML with current state
     std::string lastChange;
     {
         std::lock_guard<std::mutex> lock(m_stateMutex);
+
+        std::string actions;
+        if (m_transportState == "PLAYING") {
+            actions = "Play,Stop,Pause,Seek,Next,Previous";
+        } else if (m_transportState == "PAUSED_PLAYBACK") {
+            actions = "Play,Stop,Seek";
+        } else if (m_transportState == "STOPPED") {
+            actions = "Play,Seek";
+        } else {
+            actions = "Stop";
+        }
+
         std::stringstream ss;
         ss << "<Event xmlns=\"urn:schemas-upnp-org:metadata-1-0/AVT/\">"
            << "<InstanceID val=\"0\">"
            << "<TransportState val=\"" << m_transportState << "\"/>"
+           << "<AVTransportURI val=\"" << xmlEscape(m_currentURI) << "\"/>"
+           << "<AVTransportURIMetaData val=\"" << xmlEscape(m_currentMetadata) << "\"/>"
            << "<CurrentTrackURI val=\"" << xmlEscape(m_currentTrackURI) << "\"/>"
            << "<CurrentTrackDuration val=\"" << formatTime(m_trackDuration) << "\"/>"
            << "<CurrentTrackMetaData val=\"" << xmlEscape(m_currentTrackMetadata) << "\"/>"
+           << "<NextAVTransportURI val=\"" << xmlEscape(m_nextURI) << "\"/>"
+           << "<NextAVTransportURIMetaData val=\"" << xmlEscape(m_nextMetadata) << "\"/>"
+           << "<CurrentTransportActions val=\"" << actions << "\"/>"
            << "</InstanceID>"
            << "</Event>";
         lastChange = ss.str();
@@ -608,7 +626,13 @@ int UPnPDevice::actionGetTransportInfo(UpnpActionRequest* request) {
 
 int UPnPDevice::actionGetPositionInfo(UpnpActionRequest* request) {
     std::lock_guard<std::mutex> lock(m_stateMutex);
-    
+
+    // Log position info for debugging track transitions
+    std::string shortURI = m_currentTrackURI;
+    if (shortURI.size() > 50) shortURI = "..." + shortURI.substr(shortURI.size() - 50);
+    DEBUG_LOG("[UPnPDevice] GetPositionInfo: pos=" << formatTime(m_currentPosition)
+              << " dur=" << formatTime(m_trackDuration) << " URI=" << shortURI);
+
     IXML_Document* response = createActionResponse("GetPositionInfo");
     addResponseArg(response, "Track", "1");
     addResponseArg(response, "TrackDuration", formatTime(m_trackDuration));
@@ -618,9 +642,9 @@ int UPnPDevice::actionGetPositionInfo(UpnpActionRequest* request) {
     addResponseArg(response, "AbsTime", formatTime(m_currentPosition));
     addResponseArg(response, "RelCount", "2147483647");
     addResponseArg(response, "AbsCount", "2147483647");
-    
+
     UpnpActionRequest_set_ActionResult(request, response);
-    
+
     return UPNP_E_SUCCESS;
 }
 
@@ -844,13 +868,31 @@ void UPnPDevice::sendAVTransportEvent() {
     {
         std::lock_guard<std::mutex> lock(m_stateMutex);
         state = m_transportState;
+
+        // Determine available actions for current state
+        std::string actions;
+        if (m_transportState == "PLAYING") {
+            actions = "Play,Stop,Pause,Seek,Next,Previous";
+        } else if (m_transportState == "PAUSED_PLAYBACK") {
+            actions = "Play,Stop,Seek";
+        } else if (m_transportState == "STOPPED") {
+            actions = "Play,Seek";
+        } else {
+            actions = "Stop";
+        }
+
         std::stringstream ss;
         ss << "<Event xmlns=\"urn:schemas-upnp-org:metadata-1-0/AVT/\">"
            << "<InstanceID val=\"0\">"
            << "<TransportState val=\"" << m_transportState << "\"/>"
+           << "<AVTransportURI val=\"" << xmlEscape(m_currentURI) << "\"/>"
+           << "<AVTransportURIMetaData val=\"" << xmlEscape(m_currentMetadata) << "\"/>"
            << "<CurrentTrackURI val=\"" << xmlEscape(m_currentTrackURI) << "\"/>"
            << "<CurrentTrackDuration val=\"" << formatTime(m_trackDuration) << "\"/>"
            << "<CurrentTrackMetaData val=\"" << xmlEscape(m_currentTrackMetadata) << "\"/>"
+           << "<NextAVTransportURI val=\"" << xmlEscape(m_nextURI) << "\"/>"
+           << "<NextAVTransportURIMetaData val=\"" << xmlEscape(m_nextMetadata) << "\"/>"
+           << "<CurrentTransportActions val=\"" << actions << "\"/>"
            << "</InstanceID>"
            << "</Event>";
         lastChange = ss.str();
