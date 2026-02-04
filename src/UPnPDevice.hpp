@@ -116,6 +116,7 @@ private:
     int actionGetMediaInfo(UpnpActionRequest* request);
     int actionGetTransportSettings(UpnpActionRequest* request);
     int actionGetDeviceCapabilities(UpnpActionRequest* request);
+    int actionGetCurrentTransportActions(UpnpActionRequest* request);
     
     // RenderingControl Actions
     int actionGetVolume(UpnpActionRequest* request);

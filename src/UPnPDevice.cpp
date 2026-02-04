@@ -289,6 +289,8 @@ int UPnPDevice::handleActionRequest(UpnpActionRequest* request) {
             return actionGetTransportSettings(request);
         } else if (actionName == "GetDeviceCapabilities") {
             return actionGetDeviceCapabilities(request);
+        } else if (actionName == "GetCurrentTransportActions") {
+            return actionGetCurrentTransportActions(request);
         }
     }
     
@@ -659,6 +661,28 @@ int UPnPDevice::actionGetDeviceCapabilities(UpnpActionRequest* request) {
     
     UpnpActionRequest_set_ActionResult(request, response);
     
+    return UPNP_E_SUCCESS;
+}
+
+int UPnPDevice::actionGetCurrentTransportActions(UpnpActionRequest* request) {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
+    std::string actions;
+    if (m_transportState == "PLAYING") {
+        actions = "Play,Stop,Pause,Seek,Next,Previous";
+    } else if (m_transportState == "PAUSED_PLAYBACK") {
+        actions = "Play,Stop,Seek";
+    } else if (m_transportState == "STOPPED") {
+        actions = "Play,Seek";
+    } else {
+        actions = "Stop";
+    }
+
+    IXML_Document* response = createActionResponse("GetCurrentTransportActions");
+    addResponseArg(response, "Actions", actions);
+
+    UpnpActionRequest_set_ActionResult(request, response);
+
     return UPNP_E_SUCCESS;
 }
 
@@ -1132,6 +1156,66 @@ std::string UPnPDevice::generateAVTransportSCPD() {
         </argument>
       </argumentList>
     </action>
+    <action>
+      <name>GetTransportSettings</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_InstanceID</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>PlayMode</name>
+          <direction>out</direction>
+          <relatedStateVariable>CurrentPlayMode</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>RecQualityMode</name>
+          <direction>out</direction>
+          <relatedStateVariable>CurrentRecordQualityMode</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
+    <action>
+      <name>GetDeviceCapabilities</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_InstanceID</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>PlayMedia</name>
+          <direction>out</direction>
+          <relatedStateVariable>PossiblePlaybackStorageMedia</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>RecMedia</name>
+          <direction>out</direction>
+          <relatedStateVariable>PossibleRecordStorageMedia</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>RecQualityModes</name>
+          <direction>out</direction>
+          <relatedStateVariable>PossibleRecordQualityModes</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
+    <action>
+      <name>GetCurrentTransportActions</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_InstanceID</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>Actions</name>
+          <direction>out</direction>
+          <relatedStateVariable>CurrentTransportActions</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
   </actionList>
   <serviceStateTable>
     <stateVariable sendEvents="yes">
@@ -1233,6 +1317,36 @@ std::string UPnPDevice::generateAVTransportSCPD() {
       <allowedValueList>
         <allowedValue>NOT_IMPLEMENTED</allowedValue>
       </allowedValueList>
+    </stateVariable>
+    <stateVariable sendEvents="no">
+      <name>CurrentTransportActions</name>
+      <dataType>string</dataType>
+    </stateVariable>
+    <stateVariable sendEvents="no">
+      <name>CurrentPlayMode</name>
+      <dataType>string</dataType>
+      <allowedValueList>
+        <allowedValue>NORMAL</allowedValue>
+      </allowedValueList>
+    </stateVariable>
+    <stateVariable sendEvents="no">
+      <name>CurrentRecordQualityMode</name>
+      <dataType>string</dataType>
+      <allowedValueList>
+        <allowedValue>NOT_IMPLEMENTED</allowedValue>
+      </allowedValueList>
+    </stateVariable>
+    <stateVariable sendEvents="no">
+      <name>PossiblePlaybackStorageMedia</name>
+      <dataType>string</dataType>
+    </stateVariable>
+    <stateVariable sendEvents="no">
+      <name>PossibleRecordStorageMedia</name>
+      <dataType>string</dataType>
+    </stateVariable>
+    <stateVariable sendEvents="no">
+      <name>PossibleRecordQualityModes</name>
+      <dataType>string</dataType>
     </stateVariable>
   </serviceStateTable>
 </scpd>
