@@ -304,6 +304,10 @@ int UPnPDevice::handleActionRequest(UpnpActionRequest* request) {
             return actionGetMute(request);
         } else if (actionName == "SetMute") {
             return actionSetMute(request);
+        } else if (actionName == "GetVolumeDB") {
+            return actionGetVolumeDB(request);
+        } else if (actionName == "GetVolumeDBRange") {
+            return actionGetVolumeDBRange(request);
         }
     }
     
@@ -796,6 +800,31 @@ int UPnPDevice::actionSetMute(UpnpActionRequest* request) {
     IXML_Document* response = createActionResponse("SetMute");
     UpnpActionRequest_set_ActionResult(request, response);
     
+    return UPNP_E_SUCCESS;
+}
+
+int UPnPDevice::actionGetVolumeDB(UpnpActionRequest* request) {
+    std::lock_guard<std::mutex> lock(m_stateMutex);
+
+    // Map volume 0-100 to dB range -3600..0 (in 1/256 dB units per UPnP spec)
+    // volume 100 = 0 dB, volume 0 = -3600 (1/256 dB)
+    int volumeDB = (m_volume * 3600 / 100) - 3600;
+
+    IXML_Document* response = createActionResponse("GetVolumeDB");
+    addResponseArg(response, "CurrentVolume", std::to_string(volumeDB));
+
+    UpnpActionRequest_set_ActionResult(request, response);
+
+    return UPNP_E_SUCCESS;
+}
+
+int UPnPDevice::actionGetVolumeDBRange(UpnpActionRequest* request) {
+    IXML_Document* response = createActionResponse("GetVolumeDBRange");
+    addResponseArg(response, "MinValue", "-3600");
+    addResponseArg(response, "MaxValue", "0");
+
+    UpnpActionRequest_set_ActionResult(request, response);
+
     return UPNP_E_SUCCESS;
 }
 
@@ -1489,6 +1518,91 @@ std::string UPnPDevice::generateRenderingControlSCPD() {
         </argument>
       </argumentList>
     </action>
+    <action>
+      <name>GetMute</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_InstanceID</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>Channel</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_Channel</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>CurrentMute</name>
+          <direction>out</direction>
+          <relatedStateVariable>Mute</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
+    <action>
+      <name>SetMute</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_InstanceID</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>Channel</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_Channel</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>DesiredMute</name>
+          <direction>in</direction>
+          <relatedStateVariable>Mute</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
+    <action>
+      <name>GetVolumeDB</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_InstanceID</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>Channel</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_Channel</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>CurrentVolume</name>
+          <direction>out</direction>
+          <relatedStateVariable>VolumeDB</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
+    <action>
+      <name>GetVolumeDBRange</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_InstanceID</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>Channel</name>
+          <direction>in</direction>
+          <relatedStateVariable>A_ARG_TYPE_Channel</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>MinValue</name>
+          <direction>out</direction>
+          <relatedStateVariable>VolumeDB</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>MaxValue</name>
+          <direction>out</direction>
+          <relatedStateVariable>VolumeDB</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
   </actionList>
   <serviceStateTable>
     <stateVariable sendEvents="yes">
@@ -1512,6 +1626,18 @@ std::string UPnPDevice::generateRenderingControlSCPD() {
       <allowedValueRange>
         <minimum>0</minimum>
         <maximum>100</maximum>
+      </allowedValueRange>
+    </stateVariable>
+    <stateVariable sendEvents="yes">
+      <name>Mute</name>
+      <dataType>boolean</dataType>
+    </stateVariable>
+    <stateVariable sendEvents="yes">
+      <name>VolumeDB</name>
+      <dataType>i2</dataType>
+      <allowedValueRange>
+        <minimum>-3600</minimum>
+        <maximum>0</maximum>
       </allowedValueRange>
     </stateVariable>
   </serviceStateTable>

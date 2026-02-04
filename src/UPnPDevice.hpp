@@ -123,6 +123,8 @@ private:
     int actionSetVolume(UpnpActionRequest* request);
     int actionGetMute(UpnpActionRequest* request);
     int actionSetMute(UpnpActionRequest* request);
+    int actionGetVolumeDB(UpnpActionRequest* request);
+    int actionGetVolumeDBRange(UpnpActionRequest* request);
     
     // Helpers
     std::string generateDescriptionXML();
