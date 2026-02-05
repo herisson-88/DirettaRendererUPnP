@@ -24,6 +24,20 @@
 - XML-escaped metadata values to prevent malformed events
 - Fixes progress bar not updating on track transitions in control points
 
+### ⚡ Performance
+
+**Anticipated Gapless Preload (3-tier architecture fix):**
+- HTTP connection for the next track now opens immediately when `SetNextAVTransportURI` is received
+- Previously, the connection opened at EOF, causing buffer underruns (~0.2%) during the HTTP handshake
+- Preload runs in a background thread while the current track plays, giving several seconds of headroom
+- Fixes audio glitches during gapless transitions, especially on 3-tier Diretta setups (Host + Target on separate devices)
+- Thanks to the user who reported this issue with Pi-5 Host/Target configuration
+
+**Atomic Gapless Transition (Audirvana UI fix attempt):**
+- Added `notifyGaplessTransition()` for atomic track data update + event sending
+- Epoch counter prevents position thread from overwriting fresh track data with stale values
+- Addresses race condition between 1-second position polling and track change callback
+
 ### 🐛 Bug Fixes
 
 **Local vs Remote Server HTTP Options:**
