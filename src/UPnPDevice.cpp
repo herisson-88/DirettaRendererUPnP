@@ -507,15 +507,6 @@ int UPnPDevice::actionSetAVTransportURI(UpnpActionRequest* request) {
 }
 
 int UPnPDevice::actionSetNextAVTransportURI(UpnpActionRequest* request) {
-    // When gapless is disabled (--no-gapless), reject SetNextAVTransportURI
-    // so the control point manages track transitions itself (Stop→SetURI→Play).
-    // This fixes Audirvana UI not updating during gapless transitions.
-    if (!m_config.gaplessEnabled) {
-        DEBUG_LOG("[UPnPDevice] SetNextAVTransportURI rejected (--no-gapless mode)");
-        UpnpActionRequest_set_ErrCode(request, 602);
-        return UPNP_E_SUCCESS;
-    }
-
     IXML_Document* actionDoc = UpnpActionRequest_get_ActionRequest(request);
 
     std::string uri = getArgumentValue(actionDoc, "NextURI");
