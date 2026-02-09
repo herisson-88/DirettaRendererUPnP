@@ -6,6 +6,8 @@
 #include <fstream>
 #include <cstring>
 #include <cstdlib>
+#include <thread>
+#include <chrono>
 
 // ============================================================================
 // Logging system - Variable globale définie dans main.cpp
