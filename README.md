@@ -1,4 +1,4 @@
-# Diretta UPnP Renderer v2.0.2
+# Diretta UPnP Renderer v2.0.3
 
 **The world's first native UPnP/DLNA renderer with Diretta protocol support - Low-Latency Edition**
 
@@ -8,9 +8,20 @@
 
 ---
 
-![Version](https://img.shields.io/badge/version-2.0.2-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.3-blue.svg)
 ![Low Latency](https://img.shields.io/badge/Latency-Low-green.svg)
 ![SDK](https://img.shields.io/badge/SDK-DIRETTA::Sync-orange.svg)
+![Audirvana](https://img.shields.io/badge/Audirvana-Compatible-green.svg)
+
+---
+
+## What's New in v2.0.3
+
+**Audirvana fully compatible!** Fixed duplicate UPnP GENA events that caused progress bar hiccups on Audirvana. Each transport action (Play, Pause, Stop, SetNextAVTransportURI) now sends exactly one `LastChange` event, eliminating unwanted re-synchronizations during playback.
+
+> **Audirvana users:** The "Universal Gapless" option in Audirvana is **no longer needed** and should be **disabled**. DirettaRendererUPnP handles gapless transitions natively via `SetNextAVTransportURI`. Simply play your music — gapless works out of the box.
+
+See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ---
 
@@ -19,8 +30,6 @@
 **Native DSD playback from Audirvana!** FFmpeg has no DSDIFF/DFF demuxer, making DSD playback from Audirvana impossible. v2.0.2 adds a built-in DSDIFF parser that reads DFF containers directly via HTTP, enabling native DSD64-DSD512 playback from Audirvana and any other UPnP controller that streams DFF.
 
 **UPnP event notifications** are now fully implemented. Control points (Audirvana, BubbleUPnP, mConnect) receive real-time `LastChange` events for transport state, track changes, and position updates. This fixes the progress bar not updating on track transitions.
-
-> **Audirvana users:** The "Universal Gapless" option in Audirvana is no longer needed and should be **disabled**. DirettaRendererUPnP handles gapless playback natively, and enabling Universal Gapless in Audirvana can interfere with track transitions.
 
 See [CHANGELOG.md](CHANGELOG.md) for details.
 
@@ -474,7 +483,7 @@ ping -M do -s 1472 <target_ip>   # Tests MTU 1500 (1472 + 28 bytes header)
 
 | Control Point | Platform | Rating | Notes |
 |---------------|----------|--------|-------|
-| **Audirvana** | macOS/Windows | Excellent | DSD native (DFF), disable "Universal Gapless" |
+| **Audirvana** | macOS/Windows | Excellent | DSD native (DFF), gapless natively supported — disable "Universal Gapless" in Audirvana |
 | **JPlay iOS** | iOS | Excellent | Full feature support |
 | **BubbleUPnP** | Android | Excellent | Highly configurable |
 | **mConnect** | iOS/Android | Very Good | Clean interface |
@@ -705,4 +714,4 @@ This software is provided "as is" without warranty. While designed for high-qual
 
 **Enjoy bit-perfect, low-latency audio streaming!**
 
-*Last updated: 2026-02-09*
+*Last updated: 2026-02-09 (v2.0.3)*

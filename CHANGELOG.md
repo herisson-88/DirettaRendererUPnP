@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.0.3] - 2026-02-09
+
+### 🐛 Bug Fixes
+
+**UPnP Event Deduplication (Audirvana compatibility):**
+- Removed duplicate GENA events that caused progress bar hiccups on Audirvana
+- Each UPnP action (Play, Pause, Stop, SetNextAVTransportURI) now sends exactly one `LastChange` event
+- Root cause: action handlers called `sendAVTransportEvent()` redundantly — the DirettaRenderer callbacks already send the event via `notifyStateChange()`
+- **Play**: Fixed by **herisson-88** ([PR #53](https://github.com/cometdom/DirettaRendererUPnP/pull/53))
+- **SetNextAVTransportURI**: Removed spurious event that triggered re-synchronization during gapless queueing
+- **Pause**: Removed duplicate `PAUSED_PLAYBACK` event
+- **Stop**: Removed duplicate `STOPPED` event
+- Fixes progress bar stuttering/jumping in Audirvana and other control points that react to duplicate state notifications
+
+### ✅ Compatibility
+
+**Audirvana (macOS/Windows):**
+- Full compatibility confirmed with gapless PCM and DSD playback
+- The "Universal Gapless" option in Audirvana is **no longer needed** and should be disabled
+- DirettaRendererUPnP handles gapless transitions natively via `SetNextAVTransportURI`
+
+---
+
 ## [2.0.2] - 2026-02-09
 
 ### ✨ New Features
