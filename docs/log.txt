@@ -1,0 +1,1494 @@
+[21:29:24.520] ═══════════════════════════════════════════════════════
+[21:29:24.520]   Diretta UPnP Renderer v2.0.2
+[21:29:24.520] ═══════════════════════════════════════════════════════
+
+[21:29:24.520] Verbose mode enabled
+[21:29:24.520] Configuration:
+[21:29:24.520]   Name:     Diretta Renderer
+[21:29:24.520]   Port:     auto
+[21:29:24.520]   Gapless:  disabled
+[21:29:24.520]   UUID:     diretta-renderer-f7e7715580c727da
+
+[21:29:24.520] [DirettaRenderer] Created
+[21:29:24.520] Starting renderer...
+[21:29:24.520] [DirettaRenderer] Starting...
+[21:29:24.520] [DirettaRenderer] Checking Diretta Target...
+[21:29:24.520] [DirettaSync] Created
+[21:29:24.804] [DirettaSync] Enabling...
+[21:29:24.804] [DirettaSync] Discovering Diretta target...
+[21:29:25.089] [DirettaSync] Found 1 target(s)
+[21:29:25.089] [DirettaSync] Selected: DDC-0_8A60
+[21:29:25.089] [DirettaSync] Measuring MTU...
+[21:29:25.096] [DirettaSync] Measured MTU=16128
+[21:29:25.096] [DirettaSync] Opening DIRETTA::Sync with threadMode=1
+[21:29:25.099] [DirettaSync] Sink capabilities:
+[21:29:25.099] [DirettaSync]   PCM: YES
+[21:29:25.099] [DirettaSync]   DSD: YES
+[21:29:25.099] [DirettaSync]   DSD LSB: NO
+[21:29:25.099] [DirettaSync]   DSD MSB: YES
+[21:29:25.099] [DirettaSync]   MS modes supported: (not reported)
+[21:29:25.099] [DirettaSync]   MS mode configured: AUTO (prefers MS3 > MS1 > NONE)
+[21:29:25.099] [DirettaSync] Enabled, MTU=16128
+[21:29:25.099] [DirettaRenderer] Diretta Target ready
+[21:29:25.099] [UPnPDevice] Created: Diretta Renderer
+[21:29:25.099] [UPnPDevice] Generating ProtocolInfo...
+[21:29:25.099] [UPnPDevice] ProtocolInfo: 3281 chars, 76 formats
+[21:29:25.099] [AudioEngine] Created
+[21:29:25.099] [UPnPDevice] Callbacks set
+[21:29:25.099] [UPnPDevice] Starting...
+[21:29:25.099] 🌐 Using default interface for UPnP (auto-detect)
+[21:29:25.150] ✓ UPnP initialized on 192.168.1.104:49153
+[21:29:25.150] [UPnPDevice] Server started: http://192.168.1.104:49153
+[21:29:25.157] [UPnPDevice] ✓ SCPD files created and webserver configured
+[21:29:25.157] [UPnPDevice] ✓ Device registered (handle=1)
+[21:29:25.158] [UPnPDevice] Action: GetProtocolInfo (service: urn:upnp-org:serviceId:ConnectionManager)
+[21:29:25.159] [UPnPDevice] Action: SetAVTransportURI (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:25.159] [UPnPDevice] SetAVTransportURI: http://192.168.1.104:49152/audirvana/audioTest.pcm
+[21:29:25.259] [UPnPDevice] ✓ SSDP advertisements sent
+[21:29:25.259] [UPnPDevice] ✓ Device is now discoverable!
+[21:29:25.259] [UPnPDevice] Device URL: http://192.168.1.104:49153/description.xml
+[21:29:25.259] [DirettaRenderer] SetURI: http://192.168.1.104:49152/audirvana/audioTest.pcm
+[21:29:25.259] [AudioEngine] URI changed - closing decoders to load new track
+[21:29:25.259] [AudioEngine] Gapless queue cleared
+[21:29:25.259] [AudioEngine] Current URI set
+[21:29:25.259] [UPnPDevice] Event sent: state=STOPPED dur=0s
+[21:29:25.259] [DirettaRenderer] UPnP: http://192.168.1.104:49153
+[21:29:25.259] [UPnP Thread] Started
+[21:29:25.259] [DirettaRenderer] Started
+[21:29:25.259] Renderer started!
+
+[21:29:25.259] Waiting for UPnP control points...
+[21:29:25.259] (Press Ctrl+C to stop)
+
+[21:29:25.259] [UPnPDevice] Action: GetVolume (service: urn:upnp-org:serviceId:RenderingControl)
+[21:29:25.259] [Audio Thread] Started
+[21:29:25.259] [Position Thread] Started
+[21:29:25.259] [UPnPDevice] Action: GetVolumeDB (service: urn:upnp-org:serviceId:RenderingControl)
+[21:29:25.260] [UPnPDevice] Action: GetVolumeDBRange (service: urn:upnp-org:serviceId:RenderingControl)
+[21:29:25.260] [UPnPDevice] Action: GetMute (service: urn:upnp-org:serviceId:RenderingControl)
+[21:29:25.260] [UPnPDevice] Subscription request for: urn:upnp-org:serviceId:RenderingControl SID: uuid:06657f58-05f6-11f1-8b6e-f7f308d3656a
+[21:29:25.260] [UPnPDevice] Subscription accepted for: urn:upnp-org:serviceId:RenderingControl
+[21:29:26.253] [UPnPDevice] Action: GetProtocolInfo (service: urn:upnp-org:serviceId:ConnectionManager)
+[21:29:26.660] [UPnPDevice] Action: GetProtocolInfo (service: urn:upnp-org:serviceId:ConnectionManager)
+[21:29:30.075] [UPnPDevice] Action: GetProtocolInfo (service: urn:upnp-org:serviceId:ConnectionManager)
+[21:29:30.076] [UPnPDevice] Action: SetAVTransportURI (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:30.076] [UPnPDevice] SetAVTransportURI: http://192.168.1.104:49152/audirvana/audioTest.pcm
+[21:29:30.076] [DirettaRenderer] SetURI: http://192.168.1.104:49152/audirvana/audioTest.pcm
+[21:29:30.076] [AudioEngine] Current URI set
+[21:29:30.076] [UPnPDevice] Event sent: state=STOPPED dur=0s
+[21:29:30.654] [UPnPDevice] Subscription request for: urn:upnp-org:serviceId:AVTransport SID: uuid:099c7c44-05f6-11f1-8b6e-f7f308d3656a
+[21:29:30.654] [UPnPDevice] Subscription accepted for: urn:upnp-org:serviceId:AVTransport
+[21:29:30.654] [UPnPDevice] Action: GetMediaInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:30.654] [UPnPDevice] Action: SetPlayMode (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:30.654] [UPnPDevice] Action: GetCurrentTransportActions (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:30.655] [UPnPDevice] Action: GetTransportInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:31.231] [UPnPDevice] Action: SetAVTransportURI (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:31.231] [UPnPDevice] SetAVTransportURI: http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:31.231] [DirettaRenderer] SetURI: http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:31.231] [AudioEngine] URI changed - closing decoders to load new track
+[21:29:31.231] [AudioEngine] Gapless queue cleared
+[21:29:31.231] [AudioEngine] Current URI set
+[21:29:31.232] [UPnPDevice] Event sent: state=STOPPED dur=0s
+[21:29:31.232] [UPnPDevice] Action: Play (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:31.232] [UPnPDevice] Play
+[21:29:31.232] [DirettaRenderer] Play
+[21:29:31.232] [DirettaRenderer] Reopening track
+[21:29:31.232] [AudioEngine] Forced reopen - closing decoders to load new track
+[21:29:31.232] [AudioEngine] Gapless queue cleared
+[21:29:31.232] [AudioEngine] Current URI set
+[21:29:31.232] [AudioEngine] Play
+[21:29:31.232] [AudioEngine] Opening track (new or after EOF)
+[21:29:31.232] [AudioEngine] Opening track: http://192.168.1.104:49152/audirvana/audio_f_4.wav...
+[21:29:31.232] [AudioDecoder] Opening: http://192.168.1.104:49152/audirvana/audio_f_4.wav...
+[21:29:31.232] [AudioDecoder] Local server detected - using simple HTTP options
+[21:29:31.236] [AudioDecoder] Stream duration: 64.333 seconds
+
+[21:29:31.236] ════════════════════════════════════════════════════════
+[21:29:31.236] Audirvana detected - applying special handling
+[21:29:31.236] ════════════════════════════════════════════════════════
+[21:29:31.236] Stream analysis:
+[21:29:31.236]    Codec: pcm_s32le
+[21:29:31.236]    Sample rate: 768000 Hz
+[21:29:31.236]    Channels: 2
+[21:29:31.236]    Bit depth: 32 bits
+[21:29:31.236]    -> Already-decoded PCM detected
+[21:29:31.236]    -> Will use passthrough mode (no re-decoding)
+[21:29:31.236] ════════════════════════════════════════════════════════
+
+[21:29:31.236] [AudioDecoder] Uncompressed PCM (WAV/AIFF) - low latency path
+[21:29:31.236] [AudioDecoder] Real bit depth from bits_per_raw_sample: 32 bits
+[21:29:31.236] [AudioDecoder] PCM: pcm_s32le 768000Hz/32bit/2ch
+[21:29:31.236] [AudioDecoder] Opened successfully
+[21:29:31.236] [AudioEngine] Track opened: 768000Hz/32bit/2ch
+[21:29:31.236] [DirettaRenderer] Track 1: pcm_s32le 768000Hz/32bit/2ch
+[21:29:31.236] [UPnPDevice] Event sent: state=PLAYING dur=64s
+[21:29:31.236] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:31.236] [UPnPDevice] GetPositionInfo: pos=00:00:00 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:31.238] [Audio Thread] Format: 768000Hz PCM, samples/call=2048
+[21:29:31.238] [AudioDecoder] canBypass: YES (bit-perfect path enabled)
+[21:29:31.238] [AudioDecoder] PCM BYPASS enabled - bit-perfect path (s32/768000Hz/32bit)
+[21:29:31.239] [DirettaSync] ========== OPEN ==========
+[21:29:31.239] [DirettaSync] Format: 768000Hz/32bit/2ch PCM
+[21:29:31.239] [DirettaSync] fullReset()
+[21:29:31.239] [DirettaSync] Sink PCM: 768000Hz 2ch 32-bit
+[21:29:31.241] [DirettaSync] PCM buffer (1ms): 6144 bytes (768 frames)
+[21:29:31.241] [DirettaSync] Ring PCM: 768000Hz 2ch 4bps, buffer=4194304, bytesPerBuffer=6144, prefill=491520
+[21:29:31.753] [DirettaSync] Using VarMax
+[21:29:31.755] [DirettaSync] startSyncWorker (running=0)
+[21:29:31.755] [DirettaSync] Worker thread set to SCHED_FIFO priority 50
+[21:29:31.860] [DirettaSync] Online after 0ms
+[21:29:31.860] [DirettaSync] ========== OPEN COMPLETE ==========
+[21:29:31.860] [DirettaSync] PCM prefill complete: 491520 bytes
+[21:29:31.864] [25044070ms] sendAudio #1 in=16384 out=16384 avail=16384 [PCM]
+[21:29:31.864] [25044070ms] sendAudio #2 in=16384 out=16384 avail=32768 [PCM]
+[21:29:31.864] [25044070ms] sendAudio #3 in=16384 out=16384 avail=49152 [PCM]
+[21:29:31.886] [DirettaSync] Post-online stabilization complete (20 buffers)
+[21:29:31.894] [25044097ms] getNewStream #1 bpb=6144 avail=2113536 (50.4%) [PCM]
+[21:29:31.894] [25044102ms] getNewStream #2 bpb=6144 avail=2107392 (50.2%) [PCM]
+[21:29:31.894] [25044102ms] getNewStream #3 bpb=6144 avail=2101248 (50.1%) [PCM]
+[21:29:31.894] [25044102ms] getNewStream #4 bpb=6144 avail=2095104 (50.0%) [PCM]
+[21:29:31.894] [25044102ms] getNewStream #5 bpb=6144 avail=2088960 (49.8%) [PCM]
+[21:29:32.236] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:32.236] [UPnPDevice] GetPositionInfo: pos=00:00:00 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:32.237] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:32.237] [UPnPDevice] GetPositionInfo: pos=00:00:00 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:32.483] [UPnPDevice] Action: SetNextAVTransportURI (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:32.483] [UPnPDevice] SetNextAVTransportURI: http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:29:32.483] [DirettaRenderer] SetNextURI for gapless
+[21:29:32.483] [AudioEngine] Next URI queued (gapless)
+[21:29:32.487] [AudioEngine] Pending next URI applied (gapless)
+[21:29:32.487] [AudioEngine] Anticipated preload started
+[21:29:32.487] [AudioEngine] Preloading next track for gapless...
+[21:29:32.487] [AudioDecoder] Opening: http://192.168.1.104:49152/audirvana/audio_f_5.wav...
+[21:29:32.487] [AudioDecoder] Local server detected - using simple HTTP options
+[21:29:32.492] [AudioDecoder] Stream duration: 169.560 seconds
+
+[21:29:32.492] ════════════════════════════════════════════════════════
+[21:29:32.492] Audirvana detected - applying special handling
+[21:29:32.492] ════════════════════════════════════════════════════════
+[21:29:32.492] Stream analysis:
+[21:29:32.492]    Codec: pcm_s32le
+[21:29:32.492]    Sample rate: 768000 Hz
+[21:29:32.492]    Channels: 2
+[21:29:32.492]    Bit depth: 32 bits
+[21:29:32.492]    -> Already-decoded PCM detected
+[21:29:32.492]    -> Will use passthrough mode (no re-decoding)
+[21:29:32.492] ════════════════════════════════════════════════════════
+
+[21:29:32.492] [AudioDecoder] Uncompressed PCM (WAV/AIFF) - low latency path
+[21:29:32.492] [AudioDecoder] Real bit depth from bits_per_raw_sample: 32 bits
+[21:29:32.492] [AudioDecoder] PCM: pcm_s32le 768000Hz/32bit/2ch
+[21:29:32.492] [AudioDecoder] Opened successfully
+[21:29:32.492] [AudioEngine] Next track preloaded: pcm_s32le
+[21:29:32.917] [25045117ms] sendAudio #500 in=16384 out=16384 avail=2097152 [PCM]
+[21:29:33.237] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:33.237] [UPnPDevice] GetPositionInfo: pos=00:00:00 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:33.238] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:33.238] [UPnPDevice] GetPositionInfo: pos=00:00:00 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:34.238] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:34.238] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:34.238] [UPnPDevice] GetPositionInfo: pos=00:00:01 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:34.238] [UPnPDevice] GetPositionInfo: pos=00:00:01 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:34.243] [25046449ms] sendAudio #1000 in=16384 out=16384 avail=2062336 [PCM]
+[21:29:35.239] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:35.239] [UPnPDevice] GetPositionInfo: pos=00:00:02 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:35.239] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:35.239] [UPnPDevice] GetPositionInfo: pos=00:00:02 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:35.566] [25047774ms] sendAudio #1500 in=16384 out=16384 avail=2101248 [PCM]
+[21:29:36.240] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:36.240] [UPnPDevice] GetPositionInfo: pos=00:00:03 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:36.240] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:36.240] [UPnPDevice] GetPositionInfo: pos=00:00:03 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:36.912] [25049115ms] sendAudio #2000 in=16384 out=16384 avail=2072576 [PCM]
+[21:29:36.912] [25049116ms] getNewStream #5000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:29:37.240] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:37.240] [UPnPDevice] GetPositionInfo: pos=00:00:04 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:37.240] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:37.240] [UPnPDevice] GetPositionInfo: pos=00:00:04 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:38.241] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:38.241] [UPnPDevice] GetPositionInfo: pos=00:00:05 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:38.241] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:38.241] [UPnPDevice] GetPositionInfo: pos=00:00:05 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:38.244] [25050448ms] sendAudio #2500 in=16384 out=16384 avail=2074624 [PCM]
+[21:29:39.242] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:39.242] [UPnPDevice] GetPositionInfo: pos=00:00:06 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:39.242] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:39.242] [UPnPDevice] GetPositionInfo: pos=00:00:06 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:39.567] [25051773ms] sendAudio #3000 in=16384 out=16384 avail=2107392 [PCM]
+[21:29:40.242] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:40.242] [UPnPDevice] GetPositionInfo: pos=00:00:07 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:40.242] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:40.242] [UPnPDevice] GetPositionInfo: pos=00:00:07 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:40.907] [25053109ms] sendAudio #3500 in=16384 out=16384 avail=2109440 [PCM]
+[21:29:41.243] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:41.243] [UPnPDevice] GetPositionInfo: pos=00:00:08 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:41.243] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:41.243] [UPnPDevice] GetPositionInfo: pos=00:00:08 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:41.915] [25054116ms] getNewStream #10000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:29:42.237] [25054444ms] sendAudio #4000 in=16384 out=16384 avail=2080768 [PCM]
+[21:29:42.243] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:42.243] [UPnPDevice] GetPositionInfo: pos=00:00:09 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:42.244] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:42.244] [UPnPDevice] GetPositionInfo: pos=00:00:09 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:43.244] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:43.244] [UPnPDevice] GetPositionInfo: pos=00:00:10 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:43.244] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:43.244] [UPnPDevice] GetPositionInfo: pos=00:00:10 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:43.566] [25055776ms] sendAudio #4500 in=16384 out=16384 avail=2088960 [PCM]
+[21:29:44.245] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:44.245] [UPnPDevice] GetPositionInfo: pos=00:00:11 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:44.245] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:44.245] [UPnPDevice] GetPositionInfo: pos=00:00:11 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:44.911] [25057114ms] sendAudio #5000 in=16384 out=16384 avail=2054144 [PCM]
+[21:29:45.245] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:45.245] [UPnPDevice] GetPositionInfo: pos=00:00:12 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:45.246] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:45.246] [UPnPDevice] GetPositionInfo: pos=00:00:12 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:46.240] [25058442ms] sendAudio #5500 in=16384 out=16384 avail=2093056 [PCM]
+[21:29:46.246] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:46.246] [UPnPDevice] GetPositionInfo: pos=00:00:13 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:46.246] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:46.246] [UPnPDevice] GetPositionInfo: pos=00:00:13 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:46.907] [25059116ms] getNewStream #15000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:29:47.247] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:47.247] [UPnPDevice] GetPositionInfo: pos=00:00:14 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:47.247] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:47.247] [UPnPDevice] GetPositionInfo: pos=00:00:14 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:47.581] [25059782ms] sendAudio #6000 in=16384 out=16384 avail=2064384 [PCM]
+[21:29:48.247] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:48.247] [UPnPDevice] GetPositionInfo: pos=00:00:15 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:48.247] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:48.247] [UPnPDevice] GetPositionInfo: pos=00:00:15 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:48.911] [25061116ms] sendAudio #6500 in=16384 out=16384 avail=2066432 [PCM]
+[21:29:49.248] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:49.248] [UPnPDevice] GetPositionInfo: pos=00:00:16 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:49.248] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:49.248] [UPnPDevice] GetPositionInfo: pos=00:00:16 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:50.241] [25062449ms] sendAudio #7000 in=16384 out=16384 avail=2068480 [PCM]
+[21:29:50.249] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:50.249] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:50.249] [UPnPDevice] GetPositionInfo: pos=00:00:17 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:50.249] [UPnPDevice] GetPositionInfo: pos=00:00:17 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:51.249] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:51.249] [UPnPDevice] GetPositionInfo: pos=00:00:18 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:51.249] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:51.249] [UPnPDevice] GetPositionInfo: pos=00:00:18 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:51.575] [25063775ms] sendAudio #7500 in=16384 out=16384 avail=2107392 [PCM]
+[21:29:51.910] [25064120ms] getNewStream #20000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:29:52.250] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:52.250] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:52.250] [UPnPDevice] GetPositionInfo: pos=00:00:19 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:52.250] [UPnPDevice] GetPositionInfo: pos=00:00:19 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:52.907] [25065111ms] sendAudio #8000 in=16384 out=16384 avail=2072576 [PCM]
+[21:29:53.251] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:53.251] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:53.251] [UPnPDevice] GetPositionInfo: pos=00:00:20 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:53.251] [UPnPDevice] GetPositionInfo: pos=00:00:20 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:54.237] [25066444ms] sendAudio #8500 in=16384 out=16384 avail=2080768 [PCM]
+[21:29:54.252] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:54.252] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:54.252] [UPnPDevice] GetPositionInfo: pos=00:00:21 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:54.252] [UPnPDevice] GetPositionInfo: pos=00:00:21 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:55.252] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:55.252] [UPnPDevice] GetPositionInfo: pos=00:00:22 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:55.252] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:55.252] [UPnPDevice] GetPositionInfo: pos=00:00:22 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:55.567] [25067777ms] sendAudio #9000 in=16384 out=16384 avail=2082816 [PCM]
+[21:29:56.253] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:56.253] [UPnPDevice] GetPositionInfo: pos=00:00:23 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:56.253] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:56.253] [UPnPDevice] GetPositionInfo: pos=00:00:23 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:56.907] [25069111ms] sendAudio #9500 in=16384 out=16384 avail=2084864 [PCM]
+[21:29:56.917] [25069117ms] getNewStream #25000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:29:57.254] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:57.254] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:57.254] [UPnPDevice] GetPositionInfo: pos=00:00:24 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:57.254] [UPnPDevice] GetPositionInfo: pos=00:00:24 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:58.237] [25070447ms] sendAudio #10000 in=16384 out=16384 avail=2086912 [PCM]
+[21:29:58.254] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:58.254] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:58.254] [UPnPDevice] GetPositionInfo: pos=00:00:25 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:58.254] [UPnPDevice] GetPositionInfo: pos=00:00:25 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:59.255] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:59.255] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:29:59.255] [UPnPDevice] GetPositionInfo: pos=00:00:26 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:59.255] [UPnPDevice] GetPositionInfo: pos=00:00:26 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:29:59.580] [25071782ms] sendAudio #10500 in=16384 out=16384 avail=2058240 [PCM]
+[21:30:00.256] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:00.256] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:00.256] [UPnPDevice] GetPositionInfo: pos=00:00:27 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:00.256] [UPnPDevice] GetPositionInfo: pos=00:00:27 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:00.911] [25073115ms] sendAudio #11000 in=16384 out=16384 avail=2060288 [PCM]
+[21:30:01.256] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:01.256] [UPnPDevice] GetPositionInfo: pos=00:00:28 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:01.256] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:01.256] [UPnPDevice] GetPositionInfo: pos=00:00:28 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:01.906] [25074116ms] getNewStream #30000 bpb=6144 avail=2054144 (49.0%) [PCM]
+[21:30:02.245] [25074446ms] sendAudio #11500 in=16384 out=16384 avail=2062336 [PCM]
+[21:30:02.257] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:02.257] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:02.257] [UPnPDevice] GetPositionInfo: pos=00:00:29 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:02.257] [UPnPDevice] GetPositionInfo: pos=00:00:29 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:03.258] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:03.258] [UPnPDevice] GetPositionInfo: pos=00:00:30 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:03.258] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:03.258] [UPnPDevice] GetPositionInfo: pos=00:00:30 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:03.575] [25075779ms] sendAudio #12000 in=16384 out=16384 avail=2064384 [PCM]
+[21:30:04.258] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:04.258] [UPnPDevice] GetPositionInfo: pos=00:00:31 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:04.259] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:04.259] [UPnPDevice] GetPositionInfo: pos=00:00:31 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:04.905] [25077112ms] sendAudio #12500 in=16384 out=16384 avail=2103296 [PCM]
+[21:30:05.259] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:05.259] [UPnPDevice] GetPositionInfo: pos=00:00:32 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:05.259] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:05.259] [UPnPDevice] GetPositionInfo: pos=00:00:32 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:06.236] [25078445ms] sendAudio #13000 in=16384 out=16384 avail=2074624 [PCM]
+[21:30:06.260] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:06.260] [UPnPDevice] GetPositionInfo: pos=00:00:33 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:06.260] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:06.260] [UPnPDevice] GetPositionInfo: pos=00:00:33 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:06.912] [25079117ms] getNewStream #35000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:30:07.260] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:07.260] [UPnPDevice] GetPositionInfo: pos=00:00:34 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:07.261] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:07.261] [UPnPDevice] GetPositionInfo: pos=00:00:34 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:07.577] [25079778ms] sendAudio #13500 in=16384 out=16384 avail=2076672 [PCM]
+[21:30:08.261] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:08.261] [UPnPDevice] GetPositionInfo: pos=00:00:35 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:08.261] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:08.261] [UPnPDevice] GetPositionInfo: pos=00:00:35 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:08.909] [25081111ms] sendAudio #14000 in=16384 out=16384 avail=2078720 [PCM]
+[21:30:09.262] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:09.262] [UPnPDevice] GetPositionInfo: pos=00:00:36 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:09.262] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:09.262] [UPnPDevice] GetPositionInfo: pos=00:00:36 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:10.239] [25082446ms] sendAudio #14500 in=16384 out=16384 avail=2080768 [PCM]
+[21:30:10.262] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:10.262] [UPnPDevice] GetPositionInfo: pos=00:00:37 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:10.263] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:10.263] [UPnPDevice] GetPositionInfo: pos=00:00:38 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:11.263] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:11.263] [UPnPDevice] GetPositionInfo: pos=00:00:39 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:11.263] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:11.263] [UPnPDevice] GetPositionInfo: pos=00:00:39 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:11.569] [25083779ms] sendAudio #15000 in=16384 out=16384 avail=2082816 [PCM]
+[21:30:11.912] [25084116ms] getNewStream #40000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:30:12.264] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:12.264] [UPnPDevice] GetPositionInfo: pos=00:00:40 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:12.264] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:12.264] [UPnPDevice] GetPositionInfo: pos=00:00:40 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:12.908] [25085113ms] sendAudio #15500 in=16384 out=16384 avail=2091008 [PCM]
+[21:30:13.264] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:13.264] [UPnPDevice] GetPositionInfo: pos=00:00:41 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:13.264] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:13.264] [UPnPDevice] GetPositionInfo: pos=00:00:41 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:14.238] [25086447ms] sendAudio #16000 in=16384 out=16384 avail=2062336 [PCM]
+[21:30:14.265] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:14.265] [UPnPDevice] GetPositionInfo: pos=00:00:42 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:14.265] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:14.265] [UPnPDevice] GetPositionInfo: pos=00:00:42 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:15.265] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:15.265] [UPnPDevice] GetPositionInfo: pos=00:00:43 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:15.265] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:15.265] [UPnPDevice] GetPositionInfo: pos=00:00:43 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:15.574] [25087776ms] sendAudio #16500 in=16384 out=16384 avail=2095104 [PCM]
+[21:30:16.266] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:16.266] [UPnPDevice] GetPositionInfo: pos=00:00:44 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:16.266] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:16.266] [UPnPDevice] GetPositionInfo: pos=00:00:44 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:16.906] [25089111ms] sendAudio #17000 in=16384 out=16384 avail=2097152 [PCM]
+[21:30:16.916] [25089117ms] getNewStream #45000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:30:17.267] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:17.267] [UPnPDevice] GetPositionInfo: pos=00:00:45 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:17.267] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:17.267] [UPnPDevice] GetPositionInfo: pos=00:00:45 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:18.244] [25090449ms] sendAudio #17500 in=16384 out=16384 avail=2068480 [PCM]
+[21:30:18.267] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:18.267] [UPnPDevice] GetPositionInfo: pos=00:00:46 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:18.267] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:18.267] [UPnPDevice] GetPositionInfo: pos=00:00:46 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:19.268] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:19.268] [UPnPDevice] GetPositionInfo: pos=00:00:47 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:19.268] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:19.268] [UPnPDevice] GetPositionInfo: pos=00:00:47 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:19.565] [25091772ms] sendAudio #18000 in=16384 out=16384 avail=2101248 [PCM]
+[21:30:20.268] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:20.268] [UPnPDevice] GetPositionInfo: pos=00:00:48 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:20.269] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:20.269] [UPnPDevice] GetPositionInfo: pos=00:00:48 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:20.906] [25093115ms] sendAudio #18500 in=16384 out=16384 avail=2072576 [PCM]
+[21:30:21.269] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:21.269] [UPnPDevice] GetPositionInfo: pos=00:00:49 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:21.269] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:21.270] [UPnPDevice] GetPositionInfo: pos=00:00:49 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:21.914] [25094118ms] getNewStream #50000 bpb=6144 avail=2103296 (50.1%) [PCM]
+[21:30:22.237] [25094439ms] sendAudio #19000 in=16384 out=16384 avail=2111488 [PCM]
+[21:30:22.269] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:22.269] [UPnPDevice] GetPositionInfo: pos=00:00:50 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:22.270] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:22.270] [UPnPDevice] GetPositionInfo: pos=00:00:50 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:23.270] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:23.270] [UPnPDevice] GetPositionInfo: pos=00:00:51 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:23.270] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:23.270] [UPnPDevice] GetPositionInfo: pos=00:00:51 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:23.567] [25095772ms] sendAudio #19500 in=16384 out=16384 avail=2113536 [PCM]
+[21:30:24.271] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:24.271] [UPnPDevice] GetPositionInfo: pos=00:00:52 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:24.271] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:24.271] [UPnPDevice] GetPositionInfo: pos=00:00:52 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:24.907] [25097114ms] sendAudio #20000 in=16384 out=16384 avail=2084864 [PCM]
+[21:30:25.271] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:25.271] [UPnPDevice] GetPositionInfo: pos=00:00:53 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:25.272] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:25.272] [UPnPDevice] GetPositionInfo: pos=00:00:53 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:26.246] [25098448ms] sendAudio #20500 in=16384 out=16384 avail=2056192 [PCM]
+[21:30:26.272] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:26.272] [UPnPDevice] GetPositionInfo: pos=00:00:54 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:26.272] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:26.272] [UPnPDevice] GetPositionInfo: pos=00:00:54 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:26.915] [25099119ms] getNewStream #55000 bpb=6144 avail=2103296 (50.1%) [PCM]
+[21:30:27.272] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:27.272] [UPnPDevice] GetPositionInfo: pos=00:00:55 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:27.273] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:27.273] [UPnPDevice] GetPositionInfo: pos=00:00:55 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:27.570] [25099775ms] sendAudio #21000 in=16384 out=16384 avail=2088960 [PCM]
+[21:30:28.273] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:28.273] [UPnPDevice] GetPositionInfo: pos=00:00:56 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:28.274] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:28.274] [UPnPDevice] GetPositionInfo: pos=00:00:56 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:28.910] [25101111ms] sendAudio #21500 in=16384 out=16384 avail=2091008 [PCM]
+[21:30:29.274] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:29.274] [UPnPDevice] GetPositionInfo: pos=00:00:57 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:29.274] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:29.274] [UPnPDevice] GetPositionInfo: pos=00:00:57 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:30.245] [25102445ms] sendAudio #22000 in=16384 out=16384 avail=2093056 [PCM]
+[21:30:30.275] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:30.275] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:30.275] [UPnPDevice] GetPositionInfo: pos=00:00:58 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:30.275] [UPnPDevice] GetPositionInfo: pos=00:00:58 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:31.276] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:31.276] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:31.276] [UPnPDevice] GetPositionInfo: pos=00:00:59 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:31.276] [UPnPDevice] GetPositionInfo: pos=00:00:59 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:31.579] [25103779ms] sendAudio #22500 in=16384 out=16384 avail=2064384 [PCM]
+[21:30:31.919] [25104119ms] getNewStream #60000 bpb=6144 avail=2103296 (50.1%) [PCM]
+[21:30:32.276] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:32.276] [UPnPDevice] GetPositionInfo: pos=00:01:00 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:32.276] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:32.276] [UPnPDevice] GetPositionInfo: pos=00:01:00 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:32.914] [25105114ms] sendAudio #23000 in=16384 out=16384 avail=2072576 [PCM]
+[21:30:33.277] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:33.277] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:33.277] [UPnPDevice] GetPositionInfo: pos=00:01:01 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:33.277] [UPnPDevice] GetPositionInfo: pos=00:01:01 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:34.246] [25106446ms] sendAudio #23500 in=16384 out=16384 avail=2074624 [PCM]
+[21:30:34.278] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:34.278] [UPnPDevice] GetPositionInfo: pos=00:01:02 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:34.278] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:34.278] [UPnPDevice] GetPositionInfo: pos=00:01:02 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:35.279] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:35.279] [UPnPDevice] GetPositionInfo: pos=00:01:03 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:35.279] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:35.279] [UPnPDevice] GetPositionInfo: pos=00:01:03 dur=00:01:04 URI=http://192.168.1.104:49152/audirvana/audio_f_4.wav
+[21:30:35.577] [25107781ms] sendAudio #24000 in=16384 out=16384 avail=2076672 [PCM]
+[21:30:35.904] [AudioDecoder] Bytes read from stream: 395264044
+[21:30:35.904] [AudioDecoder] EOF reached
+[21:30:35.904] [AudioDecoder] Samples decoded: 0
+[21:30:35.904] [AudioEngine] No more samples available from decoder
+[21:30:35.904] [AudioEngine] Transitioning to next track (gapless)...
+[21:30:35.904] [AudioEngine] Transition to next track (gapless)
+[21:30:35.905] [DirettaRenderer] Track 2: pcm_s32le 768000Hz/32bit/2ch
+[21:30:35.905] [UPnPDevice] Event sent: state=PLAYING dur=169s
+[21:30:35.905] [AudioDecoder] canBypass: YES (bit-perfect path enabled)
+[21:30:35.905] [AudioDecoder] PCM BYPASS enabled - bit-perfect path (s32/768000Hz/32bit)
+[21:30:36.279] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:36.279] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:36.279] [UPnPDevice] GetPositionInfo: pos=00:00:00 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:36.279] [UPnPDevice] GetPositionInfo: pos=00:00:00 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:36.900] [25109110ms] sendAudio #24500 in=16384 out=16384 avail=2109440 [PCM]
+[21:30:36.910] [25109115ms] getNewStream #65000 bpb=6144 avail=2054144 (49.0%) [PCM]
+[21:30:37.057] [UPnPDevice] Action: SetNextAVTransportURI (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:37.057] [UPnPDevice] SetNextAVTransportURI: http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:30:37.057] [DirettaRenderer] SetNextURI for gapless
+[21:30:37.057] [AudioEngine] Next URI queued (gapless)
+[21:30:37.062] [AudioEngine] Pending next URI applied (gapless)
+[21:30:37.062] [AudioEngine] Anticipated preload started
+[21:30:37.062] [AudioEngine] Preloading next track for gapless...
+[21:30:37.063] [AudioDecoder] Opening: http://192.168.1.104:49152/audirvana/audio_f_6.wav...
+[21:30:37.063] [AudioDecoder] Local server detected - using simple HTTP options
+[21:30:37.067] [AudioDecoder] Stream duration: 216.106 seconds
+
+[21:30:37.067] ════════════════════════════════════════════════════════
+[21:30:37.067] Audirvana detected - applying special handling
+[21:30:37.067] ════════════════════════════════════════════════════════
+[21:30:37.067] Stream analysis:
+[21:30:37.067]    Codec: pcm_s32le
+[21:30:37.067]    Sample rate: 768000 Hz
+[21:30:37.067]    Channels: 2
+[21:30:37.067]    Bit depth: 32 bits
+[21:30:37.067]    -> Already-decoded PCM detected
+[21:30:37.067]    -> Will use passthrough mode (no re-decoding)
+[21:30:37.067] ════════════════════════════════════════════════════════
+
+[21:30:37.067] [AudioDecoder] Uncompressed PCM (WAV/AIFF) - low latency path
+[21:30:37.067] [AudioDecoder] Real bit depth from bits_per_raw_sample: 32 bits
+[21:30:37.067] [AudioDecoder] PCM: pcm_s32le 768000Hz/32bit/2ch
+[21:30:37.067] [AudioDecoder] Opened successfully
+[21:30:37.067] [AudioEngine] Next track preloaded: pcm_s32le
+[21:30:37.280] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:37.280] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:37.280] [UPnPDevice] GetPositionInfo: pos=00:00:01 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:37.280] [UPnPDevice] GetPositionInfo: pos=00:00:01 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:38.244] [25110447ms] sendAudio #25000 in=16384 out=16384 avail=2080768 [PCM]
+[21:30:38.281] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:38.281] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:38.281] [UPnPDevice] GetPositionInfo: pos=00:00:02 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:38.281] [UPnPDevice] GetPositionInfo: pos=00:00:02 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:39.282] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:39.282] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:39.282] [UPnPDevice] GetPositionInfo: pos=00:00:03 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:39.282] [UPnPDevice] GetPositionInfo: pos=00:00:03 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:39.578] [25111779ms] sendAudio #25500 in=16384 out=16384 avail=2082816 [PCM]
+[21:30:40.283] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:40.283] [UPnPDevice] GetPositionInfo: pos=00:00:04 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:40.283] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:40.283] [UPnPDevice] GetPositionInfo: pos=00:00:04 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:40.908] [25113115ms] sendAudio #26000 in=16384 out=16384 avail=2054144 [PCM]
+[21:30:41.283] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:41.283] [UPnPDevice] GetPositionInfo: pos=00:00:05 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:41.283] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:41.283] [UPnPDevice] GetPositionInfo: pos=00:00:05 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:41.909] [25114115ms] getNewStream #70000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:30:42.246] [25114447ms] sendAudio #26500 in=16384 out=16384 avail=2056192 [PCM]
+[21:30:42.284] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:42.284] [UPnPDevice] GetPositionInfo: pos=00:00:06 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:42.284] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:42.284] [UPnPDevice] GetPositionInfo: pos=00:00:06 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:43.284] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:43.284] [UPnPDevice] GetPositionInfo: pos=00:00:07 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:43.285] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:43.285] [UPnPDevice] GetPositionInfo: pos=00:00:07 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:43.566] [25115773ms] sendAudio #27000 in=16384 out=16384 avail=2095104 [PCM]
+[21:30:44.285] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:44.285] [UPnPDevice] GetPositionInfo: pos=00:00:08 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:44.285] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:44.285] [UPnPDevice] GetPositionInfo: pos=00:00:08 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:44.908] [25117109ms] sendAudio #27500 in=16384 out=16384 avail=2097152 [PCM]
+[21:30:45.285] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:45.285] [UPnPDevice] GetPositionInfo: pos=00:00:09 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:45.286] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:45.286] [UPnPDevice] GetPositionInfo: pos=00:00:09 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:46.237] [25118446ms] sendAudio #28000 in=16384 out=16384 avail=2068480 [PCM]
+[21:30:46.286] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:46.286] [UPnPDevice] GetPositionInfo: pos=00:00:10 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:46.287] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:46.287] [UPnPDevice] GetPositionInfo: pos=00:00:10 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:46.912] [25119117ms] getNewStream #75000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:30:47.287] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:47.287] [UPnPDevice] GetPositionInfo: pos=00:00:11 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:47.287] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:47.287] [UPnPDevice] GetPositionInfo: pos=00:00:11 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:47.566] [25119772ms] sendAudio #28500 in=16384 out=16384 avail=2101248 [PCM]
+[21:30:48.287] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:48.287] [UPnPDevice] GetPositionInfo: pos=00:00:12 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:48.288] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:48.288] [UPnPDevice] GetPositionInfo: pos=00:00:12 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:48.896] [25121106ms] sendAudio #29000 in=16384 out=16384 avail=2103296 [PCM]
+[21:30:49.288] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:49.288] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:s[21:30:49.288] [UPnPDevice] GeetrviceId:AVTransport)
+[21:30:49.288] PositionInfo: pos=00:00:13 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:49.288] [UPnPDevice] GetPositionInfo: pos=00:00:13 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:50.238] [25122438ms] sendAudio #29500 in=16384 out=16384 avail=2111488 [PCM]
+[21:30:50.289] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:50.289] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:50.289] [UPnPDevice] GetPositionInfo: pos=00:00:14 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:50.289] [UPnPDevice] GetPositionInfo: pos=00:00:14 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:51.290] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:51.290] [UPnPDevice] GetPositionInfo: pos=00:00:15 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:51.290] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:51.290] [UPnPDevice] GetPositionInfo: pos=00:00:15 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:51.579] [25123781ms] sendAudio #30000 in=16384 out=16384 avail=2082816 [PCM]
+[21:30:51.911] [25124118ms] getNewStream #80000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:30:52.291] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:52.291] [UPnPDevice] GetPositionInfo: pos=00:00:16 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:52.291] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:52.291] [UPnPDevice] GetPositionInfo: pos=00:00:16 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:52.908] [25125117ms] sendAudio #30500 in=16384 out=16384 avail=2048000 [PCM]
+[21:30:53.291] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:53.291] [UPnPDevice] GetPositionInfo: pos=00:00:17 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:53.291] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:53.291] [UPnPDevice] GetPositionInfo: pos=00:00:17 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:54.238] [25126443ms] sendAudio #31000 in=16384 out=16384 avail=2086912 [PCM]
+[21:30:54.292] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:54.292] [UPnPDevice] Action: [21:30:54.292] G[etPositionInfo (seUrPnPDevice] GetvPice: urosnitionInfo: pos=:upnp-org:serviceId:AVTransport)
+[21:30:54.292] 00:00:18 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:54.292] [UPnPDevice] GetPositionInfo: pos=00:00:18 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:55.293] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:55.293] [UPnPDevice] GetPositionInfo: pos=00:00:19 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:55.293] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:55.293] [UPnPDevice] GetPositionInfo: pos=00:00:19 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:55.579] [25127780ms] sendAudio #31500 in=16384 out=16384 avail=2058240 [PCM]
+[21:30:56.294] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:56.294] [UPnPDevice] GetPositionInfo: pos=00:00:20 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:56.294] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:56.294] [UPnPDevice] GetPositionInfo: pos=00:00:20 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:56.911] [25129116ms] sendAudio #32000 in=16384 out=16384 avail=2060288 [PCM]
+[21:30:56.911] [25129119ms] getNewStream #85000 bpb=6144 avail=2103296 (50.1%) [PCM]
+[21:30:57.294] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:57.294] [UPnPDevice] GetPositionInfo: pos=00:00:21 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:57.294] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:57.294] [UPnPDevice] GetPositionInfo: pos=00:00:21 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:58.241] [25130444ms] sendAudio #32500 in=16384 out=16384 avail=2093056 [PCM]
+[21:30:58.295] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:58.295] [UPnPDevice] GetPositionInfo: pos=00:00:22 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:58.295] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:58.295] [UPnPDevice] GetPositionInfo: pos=00:00:22 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:59.295] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:59.295] [UPnPDevice] GetPositionInfo: pos=00:00:23 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:59.296] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:30:59.296] [UPnPDevice] GetPositionInfo: pos=00:00:23 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:30:59.570] [25131775ms] sendAudio #33000 in=16384 out=16384 avail=2101248 [PCM]
+[21:31:00.296] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:00.296] [UPnPDevice] GetPositionInfo: pos=00:00:24 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:00.296] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:00.296] [UPnPDevice] GetPositionInfo: pos=00:00:24 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:00.901] [25133110ms] sendAudio #33500 in=16384 out=16384 avail=2103296 [PCM]
+[21:31:01.297] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:01.297] [UPnPDevice] GetPositionInfo: pos=00:00:25 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:01.297] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:01.297] [UPnPDevice] GetPositionInfo: pos=00:00:25 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:01.910] [25134118ms] getNewStream #90000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:31:02.243] [25134447ms] sendAudio #34000 in=16384 out=16384 avail=2074624 [PCM]
+[21:31:02.297] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:02.297] [UPnPDevice] GetPositionInfo: pos=00:00:26 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:02.297] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:02.297] [UPnPDevice] GetPositionInfo: pos=00:00:26 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:03.298] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:03.298] [UPnPDevice] GetPositionInfo: pos=00:00:27 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:03.298] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:03.298] [UPnPDevice] GetPositionInfo: pos=00:00:27 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:03.563] [25135773ms] sendAudio #34500 in=16384 out=16384 avail=2107392 [PCM]
+[21:31:04.299] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:04.299] [UPnPDevice] GetPositionInfo: pos=00:00:28 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:04.299] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:04.299] [UPnPDevice] GetPositionInfo: pos=00:00:28 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:04.901] [25137105ms] sendAudio #35000 in=16384 out=16384 avail=2109440 [PCM]
+[21:31:05.299] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:05.299] [UPnPDevice] GetPositionInfo: pos=00:00:29 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:05.299] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:05.299] [UPnPDevice] GetPositionInfo: pos=00:00:29 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:06.233] [25138442ms] sendAudio #35500 in=16384 out=16384 avail=2111488 [PCM]
+[21:31:06.300] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:06.300] [UPnPDevice] GetPositionInfo: pos=00:00:30 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:06.300] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:06.300] [UPnPDevice] GetPositionInfo: pos=00:00:30 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:06.909] [25139114ms] getNewStream #95000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:31:07.300] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:07.300] [UPnPDevice] GetPositionInfo: pos=00:00:31 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:07.301] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:07.301] [UPnPDevice] GetPositionInfo: pos=00:00:31 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:07.575] [25139778ms] sendAudio #36000 in=16384 out=16384 avail=2082816 [PCM]
+[21:31:08.301] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:08.301] [UPnPDevice] GetPositionInfo: pos=00:00:32 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:08.301] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:08.301] [UPnPDevice] GetPositionInfo: pos=00:00:32 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:08.907] [25141116ms] sendAudio #36500 in=16384 out=16384 avail=2054144 [PCM]
+[21:31:09.302] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:09.302] [UPnPDevice] GetPositionInfo: pos=00:00:33 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:09.302] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:09.302] [UPnPDevice] GetPositionInfo: pos=00:00:33 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:10.238] [25142442ms] sendAudio #37000 in=16384 out=16384 avail=2093056 [PCM]
+[21:31:10.302] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:10.302] [UPnPDevice] GetPositionInfo: pos=00:00:34 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:10.302] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:10.302] [UPnPDevice] GetPositionInfo: pos=00:00:34 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:11.303] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:11.303] [UPnPDevice] GetPositionInfo: pos=00:00:35 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:11.303] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:11.303] [UPnPDevice] GetPositionInfo: pos=00:00:35 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:11.570] [25143777ms] sendAudio #37500 in=16384 out=16384 avail=2095104 [PCM]
+[21:31:11.913] [25144114ms] getNewStream #100000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:31:12.303] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:12.303] [UPnPDevice] GetPositionInfo: pos=00:00:36 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:12.304] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:12.304] [UPnPDevice] GetPositionInfo: pos=00:00:36 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:12.911] [25145113ms] sendAudio #38000 in=16384 out=16384 avail=2066432 [PCM]
+[21:31:13.304] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:13.304] [UPnPDevice] GetPositionInfo: pos=00:00:37 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:13.304] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:13.304] [UPnPDevice] GetPositionInfo: pos=00:00:37 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:14.242] [25146448ms] sendAudio #38500 in=16384 out=16384 avail=2068480 [PCM]
+[21:31:14.305] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:14.305] [UPnPDevice] GetPositionInfo: pos=00:00:38 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:14.305] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:14.305] [UPnPDevice] GetPositionInfo: pos=00:00:38 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:15.305] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:15.305] [UPnPDevice] GetPositionInfo: pos=00:00:39 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:15.306] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:15.306] [UPnPDevice] GetPositionInfo: pos=00:00:39 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:15.572] [25147773ms] sendAudio #39000 in=16384 out=16384 avail=2101248 [PCM]
+[21:31:16.306] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:16.306] [UPnPDevice] GetPositionInfo: pos=00:00:40 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:16.306] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:16.306] [UPnPDevice] GetPositionInfo: pos=00:00:40 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:16.901] [25149108ms] sendAudio #39500 in=16384 out=16384 avail=2103296 [PCM]
+[21:31:16.912] [25149116ms] getNewStream #105000 bpb=6144 avail=2054144 (49.0%) [PCM]
+[21:31:17.307] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:17.307] [UPnPDevice] GetPositionInfo: pos=00:00:41 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:17.307] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:17.307] [UPnPDevice] GetPositionInfo: pos=00:00:41 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:18.241] [25150443ms] sendAudio #40000 in=16384 out=16384 avail=2111488 [PCM]
+[21:31:18.308] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:18.308] [UPnPDevice] GetPositionInfo: pos=00:00:42 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:18.308] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:18.308] [UPnPDevice] GetPositionInfo: pos=00:00:42 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:19.308] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:19.308] [UPnPDevice] GetPositionInfo: pos=00:00:43 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:19.308] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:19.308] [UPnPDevice] GetPositionInfo: pos=00:00:43 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:19.571] [25151778ms] sendAudio #40500 in=16384 out=16384 avail=2076672 [PCM]
+[21:31:20.309] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:20.309] [UPnPDevice] GetPositionInfo: pos=00:00:44 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:20.309] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:20.309] [UPnPDevice] GetPositionInfo: pos=00:00:44 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:20.911] [25153115ms] sendAudio #41000 in=16384 out=16384 avail=2084864 [PCM]
+[21:31:21.310] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:21.310] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:21.310] [UPnPDevice] GetPositionInfo: pos=00:00:45 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:21.310] [UPnPDevice] GetPositionInfo: pos=00:00:45 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:21.907] [25154116ms] getNewStream #110000 bpb=6144 avail=2054144 (49.0%) [PCM]
+[21:31:22.246] [25154446ms] sendAudio #41500 in=16384 out=16384 avail=2086912 [PCM]
+[21:31:22.310] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:22.310] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:22.310] [UPnPDevice] GetPositionInfo: pos=00:00:46 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:22.310] [UPnPDevice] GetPositionInfo: pos=00:00:46 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:23.311] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:23.311] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:23.311] [UPnPDevice] GetPositionInfo: pos=00:00:47 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:23.311] [UPnPDevice] GetPositionInfo: pos=00:00:47 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:23.582] [25155785ms] sendAudio #42000 in=16384 out=16384 avail=2058240 [PCM]
+[21:31:24.312] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:24.312] [UPnPDevice] GetPositionInfo: pos=00:00:48 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:24.312] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:24.312] [UPnPDevice] GetPositionInfo: pos=00:00:48 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:24.906] [25157113ms] sendAudio #42500 in=16384 out=16384 avail=2060288 [PCM]
+[21:31:25.312] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:25.312] [UPnPDevice] GetPositionInfo: pos=00:00:49 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:25.312] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:25.312] [UPnPDevice] GetPositionInfo: pos=00:00:49 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:26.239] [25158441ms] sendAudio #43000 in=16384 out=16384 avail=2093056 [PCM]
+[21:31:26.313] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:26.313] [UPnPDevice] GetPositionInfo: pos=00:00:50 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:26.313] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:26.313] [UPnPDevice] GetPositionInfo: pos=00:00:50 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:26.914] [25159116ms] getNewStream #115000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:31:27.313] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:27.313] [UPnPDevice] GetPositionInfo: pos=00:00:51 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:27.314] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:27.314] [UPnPDevice] GetPositionInfo: pos=00:00:51 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:27.569] [25159779ms] sendAudio #43500 in=16384 out=16384 avail=2095104 [PCM]
+[21:31:28.314] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:28.314] [UPnPDevice] GetPositionInfo: pos=00:00:52 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:28.314] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:28.314] [UPnPDevice] GetPositionInfo: pos=00:00:52 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:28.910] [25161112ms] sendAudio #44000 in=16384 out=16384 avail=2066432 [PCM]
+[21:31:29.315] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:29.315] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:29.315] [UPnPDevice] GetPositionInfo: pos=00:00:53 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:29.315] [UPnPDevice] GetPositionInfo: pos=00:00:53 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:30.244] [25162445ms] sendAudio #44500 in=16384 out=16384 avail=2068480 [PCM]
+[21:31:30.316] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:30.316] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:30.316] [UPnPDevice] GetPositionInfo: pos=00:00:54 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:30.316] [UPnPDevice] GetPositionInfo: pos=00:00:54 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:31.317] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:31.317] [UPnPDevice] GetPositionInfo: pos=00:00:55 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:31.317] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:31.317] [UPnPDevice] GetPositionInfo: pos=00:00:55 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:31.567] [25163772ms] sendAudio #45000 in=16384 out=16384 avail=2107392 [PCM]
+[21:31:31.910] [25164119ms] getNewStream #120000 bpb=6144 avail=2103296 (50.1%) [PCM]
+[21:31:32.317] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:32.317] [UPnPDevice] GetPositionInfo: pos=00:00:56 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:32.317] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:32.318] [UPnPDevice] GetPositionInfo: pos=00:00:56 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:32.915] [25165115ms] sendAudio #45500 in=16384 out=16384 avail=2078720 [PCM]
+[21:31:33.318] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:33.318] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:33.318] [UPnPDevice] GetPositionInfo: pos=00:00:57 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:33.318] [UPnPDevice] GetPositionInfo: pos=00:00:57 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:34.230] [25166441ms] sendAudio #46000 in=16384 out=16384 avail=2111488 [PCM]
+[21:31:34.319] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:34.319] [UPnPDevice] Action: [21:31:34.319] [UGetPositionInfoP nPDevice(service] GetP:o urn:upnp-orsgitionInfo: pos=:serviceId:AVTransport)
+[21:31:34.319] 00:00:58 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:34.319] [UPnPDevice] GetPositionInfo: pos=00:00:58 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:35.320] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:35.320] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:35.320] [UPnPDevice] GetPositionInfo: pos=00:00:59 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:35.320] [UPnPDevice] GetPositionInfo: pos=00:00:59 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:35.571] [25167772ms] sendAudio #46500 in=16384 out=16384 avail=2113536 [PCM]
+[21:31:36.321] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:36.321] [UPnPDevice] GetPositionInfo: pos=00:01:00 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:36.321] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:36.321] [UPnPDevice] GetPositionInfo: pos=00:01:00 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:36.911] [25169111ms] sendAudio #47000 in=16384 out=16384 avail=2084864 [PCM]
+[21:31:36.911] [25169119ms] getNewStream #125000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:31:37.322] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:37.322] [UPnPDevice] GetPositionInfo: pos=00:01:01 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:37.322] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:37.322] [UPnPDevice] GetPositionInfo: pos=00:01:01 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:38.241] [25170448ms] sendAudio #47500 in=16384 out=16384 avail=2056192 [PCM]
+[21:31:38.322] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:38.322] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:38.322] [UPnPDevice] GetPositionInfo: pos=00:01:02 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:38.322] [UPnPDevice] GetPositionInfo: pos=00:01:02 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:39.323] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:39.323] [UPnPDevice] GetPositionInfo: pos=00:01:03 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:39.323] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:39.323] [UPnPDevice] GetPositionInfo: pos=00:01:03 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:39.573] [25171777ms] sendAudio #48000 in=16384 out=16384 avail=2095104 [PCM]
+[21:31:40.324] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:40.324] [UPnPDevice] GetPositionInfo: pos=00:01:04 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:40.324] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:40.324] [UPnPDevice] GetPositionInfo: pos=00:01:04 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:40.902] [25173112ms] sendAudio #48500 in=16384 out=16384 avail=2097152 [PCM]
+[21:31:41.325] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:41.325] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:41.325] [UPnPDevice] GetPositionInfo: pos=00:01:05 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:41.325] [UPnPDevice] GetPositionInfo: pos=00:01:05 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:41.913] [25174115ms] getNewStream #130000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:31:42.240] [25174441ms] sendAudio #49000 in=16384 out=16384 avail=2099200 [PCM]
+[21:31:42.325] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:42.325] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:42.325] [UPnPDevice] GetPositionInfo: pos=00:01:06 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:42.325] [UPnPDevice] GetPositionInfo: pos=00:01:06 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:43.326] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:43.326] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:43.326] [UPnPDevice] GetPositionInfo: pos=00:01:07 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:43.326] [UPnPDevice] GetPositionInfo: pos=00:01:07 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:43.574] [25175780ms] sendAudio #49500 in=16384 out=16384 avail=2070528 [PCM]
+[21:31:44.327] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:44.327] [UPnPDevice] GetPositionInfo: pos=00:01:08 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:44.327] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:44.327] [UPnPDevice] GetPositionInfo: pos=00:01:08 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:44.904] [25177108ms] sendAudio #50000 in=16384 out=16384 avail=2103296 [PCM]
+[21:31:45.327] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:45.327] [UPnPDevice] GetPositionInfo: pos=00:01:09 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:45.328] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:45.328] [UPnPDevice] GetPositionInfo: pos=00:01:09 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:46.243] [25178444ms] sendAudio #50500 in=16384 out=16384 avail=2074624 [PCM]
+[21:31:46.328] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:46.328] [UPnPDevice] GetPositionInfo: pos=00:01:10 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:46.328] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:46.328] [UPnPDevice] GetPositionInfo: pos=00:01:10 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:46.913] [25179115ms] getNewStream #135000 bpb=6144 avail=2054144 (49.0%) [PCM]
+[21:31:47.329] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[[21:31:47.329] [UPnPDevice] GetPositionInfo: pos=00:01:11 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:47.329] UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:47.329] [UPnPDevice] GetPositionInfo: pos=00:01:11 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:47.568] [25179771ms] sendAudio #51000 in=16384 out=16384 avail=2113536 [PCM]
+[21:31:48.329] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:48.329] [UPnPDevice] GetPositionInfo: pos=00:01:12 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:48.329] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:48.329] [UPnPDevice] GetPositionInfo: pos=00:01:12 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:48.915] [25181116ms] sendAudio #51500 in=16384 out=16384 avail=2048000 [PCM]
+[21:31:49.330] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:49.330] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:49.330] [UPnPDevice] GetPositionInfo: pos=00:01:13 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:49.330] [UPnPDevice] GetPositionInfo: pos=00:01:13 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:50.242] [25182448ms] sendAudio #52000 in=16384 out=16384 avail=2050048 [PCM]
+[21:31:50.331] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:50.331] [UPnPDevice] GetPositionInfo: pos=00:01:14 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:50.331] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:50.331] [UPnPDevice] GetPositionInfo: pos=00:01:14 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:51.331] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:51.331] [UPnPDevice] GetPositionInfo: pos=00:01:15 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:51.331] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:51.331] [UPnPDevice] GetPositionInfo: pos=00:01:15 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:51.572] [25183775ms] sendAudio #52500 in=16384 out=16384 avail=2088960 [PCM]
+[21:31:51.905] [25184115ms] getNewStream #140000 bpb=6144 avail=2054144 (49.0%) [PCM]
+[21:31:52.332] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:52.332] [UPnPDevice] GetPositionInfo: pos=00:01:16 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:52.332] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:52.332] [UPnPDevice] GetPositionInfo: pos=00:01:16 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:52.902] [25185111ms] sendAudio #53000 in=16384 out=16384 avail=2091008 [PCM]
+[21:31:53.332] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:53.333] [UPnPDevice] GetPositionInfo: pos=00:01:17 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:53.333] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:53.333] [UPnPDevice] GetPositionInfo: pos=00:01:17 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:54.247] [25186450ms] sendAudio #53500 in=16384 out=16384 avail=2062336 [PCM]
+[21:31:54.333] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:54.333] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:54.333] [UPnPDevice] GetPositionInfo: pos=00:01:18 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:54.333] [UPnPDevice] GetPositionInfo: pos=00:01:18 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:55.334] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:55.334] [UPnPDevice] GetPositionInfo: pos=00:01:19 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:55.334] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:55.334] [UPnPDevice] GetPositionInfo: pos=00:01:19 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:55.571] [25187777ms] sendAudio #54000 in=16384 out=16384 avail=2095104 [PCM]
+[21:31:56.335] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:56.335] [UPnPDevice] Action: GetPositionInfo[21:31:56.335]  [UPnPDevice](service: urn: uGetPositionInfo: pos=pnp-org:serviceId:AVTransport)
+[21:31:56.335] 00:01:20 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:56.335] [UPnPDevice] GetPositionInfo: pos=00:01:20 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:56.904] [25189108ms] sendAudio #54500 in=16384 out=16384 avail=2097152 [PCM]
+[21:31:56.914] [25189116ms] getNewStream #145000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:31:57.336] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:57.336] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:57.336] [UPnPDevice] GetPositionInfo: pos=00:01:21 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:57.336] [UPnPDevice] GetPositionInfo: pos=00:01:21 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:58.239] [25190440ms] sendAudio #55000 in=16384 out=16384 avail=2105344 [PCM]
+[21:31:58.337] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:58.337] [UPnPDevice] GetPositionInfo: pos=00:01:22 dur=0[UPnPDevice] Action: 0:02:49 URI=htGtp://192.168.1.104:49152etPositionInf/audirvoa (servicna/audio_fe_: urn:upnp-org:serviceId:AVTr5a.nsport)w
+[21:31:58.337] av
+[21:31:58.337] [UPnPDevice] GetPositionInfo: pos=00:01:22 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:59.337] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:59.337] [UPnPDevice] GetPositionInfo: pos=00:01:23 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:59.337] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:31:59.337] [UPnPDevice] GetPositionInfo: pos=00:01:23 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:31:59.571] [25191775ms] sendAudio #55500 in=16384 out=16384 avail=2107392 [PCM]
+[21:32:00.338] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:00.338] [UPnPDevice] GetPositionInfo: pos=00:01:24 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:00.338] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:00.338] [UPnPDevice] GetPositionInfo: pos=00:01:24 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:00.898] [25193106ms] sendAudio #56000 in=16384 out=16384 avail=2109440 [PCM]
+[21:32:01.339] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:01.339] [UPnPDevice] GetPositionInfo: pos=00:01:25 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:01.339] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:01.339] [UPnPDevice] GetPositionInfo: pos=00:01:25 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:01.915] [25194117ms] getNewStream #150000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:32:02.237] [25194442ms] sendAudio #56500 in=16384 out=16384 avail=2111488 [PCM]
+[21:32:02.340] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:02.340] [UPnPDevice] GetPositionInfo: pos=00:01:26 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:02.340] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:02.340] [UPnPDevice] GetPositionInfo: pos=00:01:26 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:03.340] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:03.340] [UPnPDevice] GetPositionInfo: pos=00:01:27 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:03.340] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:03.340] [UPnPDevice] GetPositionInfo: pos=00:01:27 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:03.567] [25195777ms] sendAudio #57000 in=16384 out=16384 avail=2082816 [PCM]
+[21:32:04.341] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:04.341] [UPnPDevice] GetPositionInfo: pos=00:01:28 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:04.341] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:04.341] [UPnPDevice] GetPositionInfo: pos=00:01:28 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:04.918] [25197119ms] sendAudio #57500 in=16384 out=16384 avail=2054144 [PCM]
+[21:32:05.342] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:05.342] [UPnPDevice] GetPositionInfo: pos=00:01:29 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:05.342] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:05.342] [UPnPDevice] GetPositionInfo: pos=00:01:29 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:06.240] [25198445ms] sendAudio #58000 in=16384 out=16384 avail=2086912 [PCM]
+[21:32:06.342] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:06.342] [UPnPDevice] GetPositionInfo: pos=00:01:30 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:06.342] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:06.342] [UPnPDevice] GetPositionInfo: pos=00:01:30 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:06.916] [25199117ms] getNewStream #155000 bpb=6144 avail=2103296 (50.1%) [PCM]
+[21:32:07.343] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:07.343] [UPnPDevice] GetPositionInfo: pos=00:01:31 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:07.343] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:07.343] [UPnPDevice] GetPositionInfo: pos=00:01:31 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:07.572] [25199781ms] sendAudio #58500 in=16384 out=16384 avail=2058240 [PCM]
+[21:32:08.343] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:08.344] [UPnPDevice] GetPositionInfo: pos=00:01:32 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:08.344] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:08.344] [UPnPDevice] GetPositionInfo: pos=00:01:32 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:08.904] [25201106ms] sendAudio #59000 in=16384 out=16384 avail=2097152 [PCM]
+[21:32:09.344] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:09.344] [UPnPDevice] GetPositionInfo: pos=00:01:33 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:09.344] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:09.344] [UPnPDevice] GetPositionInfo: pos=00:01:33 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:10.235] [25202441ms] sendAudio #59500 in=16384 out=16384 avail=2099200 [PCM]
+[21:32:10.345] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:10.345] [UPnPDevice] GetPositionInfo: pos=00:01:34 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:10.345] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:10.345] [UPnPDevice] GetPositionInfo: pos=00:01:34 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:11.345] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:11.345] [UPnPDevice] GetPositionInfo: pos=00:01:35 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:11.345] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:11.345] [UPnPDevice] GetPositionInfo: pos=00:01:35 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:11.568] [25203777ms] sendAudio #60000 in=16384 out=16384 avail=2070528 [PCM]
+[21:32:11.911] [25204118ms] getNewStream #160000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:32:12.346] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:12.346] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:12.346] [UPnPDevice] GetPositionInfo: pos=00:01:36 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:12.346] [UPnPDevice] GetPositionInfo: pos=00:01:36 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:12.911] [25205115ms] sendAudio #60500 in=16384 out=16384 avail=2072576 [PCM]
+[21:32:13.347] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:13.347] [UPnPDevice] GetPositionInfo: pos=00:01:37 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:13.347] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:13.347] [UPnPDevice] GetPositionInfo: pos=00:01:37 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:14.231] [25206442ms] sendAudio #61000 in=16384 out=16384 avail=2105344 [PCM]
+[21:32:14.347] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:14.347] [UPnPDevice] GetPositionInfo: pos=00:01:38 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:14.347] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:14.347] [UPnPDevice] GetPositionInfo: pos=00:01:38 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:15.348] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:15.348] [UPnPDevice] GetPositionInfo: pos=00:01:39 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:15.348] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:15.348] [UPnPDevice] GetPositionInfo: pos=00:01:39 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:15.576] [25207778ms] sendAudio #61500 in=16384 out=16384 avail=2076672 [PCM]
+[21:32:16.349] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:16.349] [UPnPDevice] GetPositionInfo: pos=00:01:40 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:16.349] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:16.349] [UPnPDevice] GetPositionInfo: pos=00:01:40 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:16.901] [25209108ms] sendAudio #62000 in=16384 out=16384 avail=2078720 [PCM]
+[21:32:16.911] [25209114ms] getNewStream #165000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:32:17.349] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:17.349] [UPnPDevice] GetPositionInfo: pos=00:01:41 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:17.350] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:17.350] [UPnPDevice] GetPositionInfo: pos=00:01:41 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:18.240] [25210447ms] sendAudio #62500 in=16384 out=16384 avail=2086912 [PCM]
+[21:32:18.350] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:18.350] [UPnPDevice] GetPositionInfo: pos=00:01:42 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:18.350] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:18.350] [UPnPDevice] GetPositionInfo: pos=00:01:42 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:19.351] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:19.351] [UPnPDevice] GetPositionInfo: pos=00:01:43 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:19.351] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:19.351] [UPnPDevice] GetPositionInfo: pos=00:01:43 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:19.580] [25211784ms] sendAudio #63000 in=16384 out=16384 avail=2052096 [PCM]
+[21:32:20.351] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:20.351] [UPnPDevice] GetPositionInfo: pos=00:01:44 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:20.351] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:20.351] [UPnPDevice] GetPositionInfo: pos=00:01:44 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:20.916] [25213117ms] sendAudio #63500 in=16384 out=16384 avail=2060288 [PCM]
+[21:32:21.352] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:21.352] [UPnPDevice] GetPositionInfo: pos=00:01:45 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:21.352] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:21.352] [UPnPDevice] GetPositionInfo: pos=00:01:45 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:21.904] [25214114ms] getNewStream #170000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:32:22.236] [25214445ms] sendAudio #64000 in=16384 out=16384 avail=2093056 [PCM]
+[21:32:22.352] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:22.352] [UPnPDevice] GetPositionInfo: pos=00:01:46 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:22.353] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:22.353] [UPnPDevice] GetPositionInfo: pos=00:01:46 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:23.353] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:23.353] [UPnPDevice] GetPositionInfo: pos=00:01:47 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:23.353] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:23.353] [UPnPDevice] GetPositionInfo: pos=00:01:47 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:23.577] [25215782ms] sendAudio #64500 in=16384 out=16384 avail=2064384 [PCM]
+[21:32:24.354] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:24.354] [UPnPDevice] GetPositionInfo: pos=00:01:48 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:24.354] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:24.354] [UPnPDevice] GetPositionInfo: pos=00:01:48 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:24.915] [25217116ms] sendAudio #65000 in=16384 out=16384 avail=2066432 [PCM]
+[21:32:25.354] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:25.354] [UPnPDevice] GetPositionInfo: pos=00:01:49 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:25.355] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:25.355] [UPnPDevice] GetPositionInfo: pos=00:01:49 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:26.236] [25218441ms] sendAudio #65500 in=16384 out=16384 avail=2105344 [PCM]
+[21:32:26.355] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:26.355] [UPnPDevice] GetPositionInfo: pos=00:01:50 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:26.355] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:26.355] [UPnPDevice] GetPositionInfo: pos=00:01:50 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:26.912] [25219116ms] getNewStream #175000 bpb=6144 avail=2054144 (49.0%) [PCM]
+[21:32:27.355] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:27.355] [UPnPDevice] GetPositionInfo: pos=00:01:51 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:27.356] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:27.356] [UPnPDevice] GetPositionInfo: pos=00:01:51 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:27.568] [25219778ms] sendAudio #66000 in=16384 out=16384 avail=2070528 [PCM]
+[21:32:28.356] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:28.356] [UPnPDevice] GetPositionInfo: pos=00:01:52 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:28.356] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:28.356] [UPnPDevice] GetPositionInfo: pos=00:01:52 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:28.898] [25221106ms] sendAudio #66500 in=16384 out=16384 avail=2109440 [PCM]
+[21:32:29.357] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:29.357] [UPnPDevice] GetPositionInfo: pos=00:01:53 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:29.357] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:29.357] [UPnPDevice] GetPositionInfo: pos=00:01:53 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:30.244] [25222446ms] sendAudio #67000 in=16384 out=16384 avail=2080768 [PCM]
+[21:32:30.358] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:30.358] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport[21:32:30.358] )[
+[21:32:30.358] UPnPDevice] GetPositionInfo: pos=00:01:54 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:30.358] [UPnPDevice] GetPositionInfo: pos=00:01:54 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:31.358] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:31.358] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:31.358] [UPnPDevice] GetPositionInfo: pos=00:01:55 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:31.358] [UPnPDevice] GetPositionInfo: pos=00:01:55 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:31.568] [25223777ms] sendAudio #67500 in=16384 out=16384 avail=2082816 [PCM]
+[21:32:31.913] [25224116ms] getNewStream #180000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:32:32.359] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:32.359] [UPnPDevice] GetPositionInfo: pos=00:01:56 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:32.359] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:32.359] [UPnPDevice] GetPositionInfo: pos=00:01:56 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:32.902] [25225109ms] sendAudio #68000 in=16384 out=16384 avail=2084864 [PCM]
+[21:32:33.360] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:33.360] [UPnPDevice] GetPositionInfo: pos=00:01:57 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:33.360] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:33.360] [UPnPDevice] GetPositionInfo: pos=00:01:57 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:34.246] [25226450ms] sendAudio #68500 in=16384 out=16384 avail=2056192 [PCM]
+[21:32:34.360] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:34.360] [UPnPDevice] GetPositionInfo: pos=00:01:58 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:34.360] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:34.360] [UPnPDevice] GetPositionInfo: pos=00:01:58 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:35.361] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:35.361] [UPnPDevice] GetPositionInfo: pos=00:01:59 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:35.361] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:35.361] [UPnPDevice] GetPositionInfo: pos=00:01:59 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:35.577] [25227778ms] sendAudio #69000 in=16384 out=16384 avail=2088960 [PCM]
+[21:32:36.361] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:36.361] [UPnPDevice] GetPositionInfo: pos=00:02:00 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:36.362] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:36.362] [UPnPDevice] GetPositionInfo: pos=00:02:00 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:36.907] [25229108ms] sendAudio #69500 in=16384 out=16384 avail=2097152 [PCM]
+[21:32:36.907] [25229117ms] getNewStream #185000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:32:37.362] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:37.362] [UPnPDevice] GetPositionInfo: pos=00:02:01 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:37.362] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:37.362] [UPnPDevice] GetPositionInfo: pos=00:02:01 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:38.239] [25230445ms] sendAudio #70000 in=16384 out=16384 avail=2062336 [PCM]
+[21:32:38.363] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:38.363] [UPnPDevice] GetPositionInfo: pos=00:02:02 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:38.363] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:38.363] [UPnPDevice] GetPositionInfo: pos=00:02:02 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:39.363] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:39.363] [UPnPDevice] GetPositionInfo: pos=00:02:03 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:39.363] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:39.363] [UPnPDevice] GetPositionInfo: pos=00:02:03 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:39.573] [25231776ms] sendAudio #70500 in=16384 out=16384 avail=2101248 [PCM]
+[21:32:40.364] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:40.364] [UPnPDevice] GetPositionInfo: pos=00:02:04 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:40.364] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:40.364] [UPnPDevice] GetPositionInfo: pos=00:02:04 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:40.905] [25233106ms] sendAudio #71000 in=16384 out=16384 avail=2103296 [PCM]
+[21:32:41.365] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:41.365] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:ser[21:32:41.365] [UPnPDevice] GetPositionInfo: pos=00:02:05 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+v[21:32:41.365] iceId:AVTransport)
+[21:32:41.365] [UPnPDevice] GetPositionInfo: pos=00:02:05 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:41.911] [25234119ms] getNewStream #190000 bpb=6144 avail=2103296 (50.1%) [PCM]
+[21:32:42.234] [25234439ms] sendAudio #71500 in=16384 out=16384 avail=2105344 [PCM]
+[21:32:42.366] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:42.366] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:42.366] [UPnPDevice] GetPositionInfo: pos=00:02:06 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:42.366] [UPnPDevice] GetPositionInfo: pos=00:02:06 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:43.366] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:43.366] [UPnPDevice] GetPositionInfo: pos=00:02:07 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:43.366] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:43.366] [UPnPDevice] GetPositionInfo: pos=00:02:07 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:43.574] [25235775ms] sendAudio #72000 in=16384 out=16384 avail=2107392 [PCM]
+[21:32:44.367] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:44.367] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:44.367] [UPnPDevice] GetPositionInfo: pos=00:02:08 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:44.367] [UPnPDevice] GetPositionInfo: pos=00:02:08 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:44.906] [25237113ms] sendAudio #72500 in=16384 out=16384 avail=2078720 [PCM]
+[21:32:45.368] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:45.368] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:45.368] [UPnPDevice] GetPositionInfo: pos=00:02:09 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:45.368] [UPnPDevice] GetPositionInfo: pos=00:02:09 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:46.242] [25238448ms] sendAudio #73000 in=16384 out=16384 avail=2050048 [PCM]
+[21:32:46.368] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:46.368] [UPnPDevice] GetPositionInfo: pos=00:02:10 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:46.368] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:46.368] [UPnPDevice] GetPositionInfo: pos=00:02:10 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:46.917] [25239119ms] getNewStream #195000 bpb=6144 avail=2103296 (50.1%) [PCM]
+[21:32:47.369] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:47.369] [UPnPDevice] GetPositionInfo: pos=00:02:11 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:47.369] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:47.369] [UPnPDevice] GetPositionInfo: pos=00:02:11 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:47.583] [25239784ms] sendAudio #73500 in=16384 out=16384 avail=2052096 [PCM]
+[21:32:48.369] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:48.369] [UPnPDevice] GetPositionInfo: pos=00:02:12 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:48.370] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:48.370] [UPnPDevice] GetPositionInfo: pos=00:02:12 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:48.903] [25241111ms] sendAudio #74000 in=16384 out=16384 avail=2091008 [PCM]
+[21:32:49.370] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:49.370] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:49.370] [UPnPDevice] GetPositionInfo: pos=00:02:13 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:49.370] [UPnPDevice] GetPositionInfo: pos=00:02:13 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:50.244] [25242448ms] sendAudio #74500 in=16384 out=16384 avail=2062336 [PCM]
+[21:32:50.371] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-[org:serviceId:AVTransport)UP
+[21:32:50.371] nPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:50.371] [UPnPDevice] GetPositionInfo: pos=00:02:14 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:50.371] [UPnPDevice] GetPositionInfo: pos=00:02:14 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:51.371] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:51.371] [UPnPDevice] GetPositionInfo: pos=00:02:15 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:51.371] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:51.371] [UPnPDevice] GetPositionInfo: pos=00:02:15 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:51.564] [25243774ms] sendAudio #75000 in=16384 out=16384 avail=2095104 [PCM]
+[21:32:51.907] [25244114ms] getNewStream #200000 bpb=6144 avail=2037760 (48.6%) [PCM]
+[21:32:52.372] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:52.372] [UPnPDevice] GetPositionInfo: pos=00:02:16 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:52.372] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:52.372] [UPnPDevice] GetPositionInfo: pos=00:02:16 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:52.904] [25245110ms] sendAudio #75500 in=16384 out=16384 avail=2097152 [PCM]
+[21:32:53.372] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:53.373] [UPnPDevice] GetPositionInfo: pos=00:02:17 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:53.373] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:53.373] [UPnPDevice] GetPositionInfo: pos=00:02:17 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:54.244] [25246446ms] sendAudio #76000 in=16384 out=16384 avail=2068480 [PCM]
+[21:32:54.373] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:54.373] [UPnPDevice] GetPositionInfo: pos=00:02:18 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:54.373] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:54.373] [UPnPDevice] GetPositionInfo: pos=00:02:18 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:55.374] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:55.374] [UPnPDevice] GetPositionInfo: pos=00:02:19 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:55.374] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:55.374] [UPnPDevice] GetPositionInfo: pos=00:02:19 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:55.576] [25247781ms] sendAudio #76500 in=16384 out=16384 avail=2070528 [PCM]
+[21:32:56.375] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:56.375] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:56.375] [UPnPDevice] GetPositionInfo: pos=00:02:20 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:56.375] [UPnPDevice] GetPositionInfo: pos=00:02:20 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:56.906] [25249107ms] sendAudio #77000 in=16384 out=16384 avail=2109440 [PCM]
+[21:32:56.906] [25249113ms] getNewStream #205000 bpb=6144 avail=2054144 (49.0%) [PCM]
+[21:32:57.376] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:57.376] [UPnPDevice] GetPositionInfo: pos=00:02:21 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:57.376] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:57.376] [UPnPDevice] GetPositionInfo: pos=00:02:21 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:58.237] [25250442ms] sendAudio #77500 in=16384 out=16384 avail=2111488 [PCM]
+[21:32:58.376] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:58.376] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:58.376] [UPnPDevice] GetPositionInfo: pos=00:02:22 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:58.376] [UPnPDevice] GetPositionInfo: pos=00:02:22 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:59.377] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:59.377] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:32:59.377] [UPnPDevice] GetPositionInfo: pos=00:02:23 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:59.377] [UPnPDevice] GetPositionInfo: pos=00:02:23 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:32:59.577] [25251778ms] sendAudio #78000 in=16384 out=16384 avail=2082816 [PCM]
+[21:33:00.378] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:00.378] [UPnPDevice] GetPositionInfo: pos=00:02:24 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:00.378] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:00.378] [UPnPDevice] GetPositionInfo: pos=00:02:24 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:00.907] [25253115ms] sendAudio #78500 in=16384 out=16384 avail=2054144 [PCM]
+[21:33:01.379] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:01.379] [UPnPDevice] GetPositionInfo: pos=00:02:25 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:01.379] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:01.379] [UPnPDevice] GetPositionInfo: pos=00:02:25 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:01.909] [25254114ms] getNewStream #210000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:33:02.246] [25254447ms] sendAudio #79000 in=16384 out=16384 avail=2056192 [PCM]
+[21:33:02.379] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:02.379] [UPnPDevice] GetPositionInfo: pos=00:02:26 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:02.380] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:02.380] [UPnPDevice] GetPositionInfo: pos=00:02:26 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:03.380] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:03.380] [UPnPDevice] GetPositionInfo: pos=00:02:27 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:03.380] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:03.380] [UPnPDevice] GetPositionInfo: pos=00:02:27 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:03.577] [25255784ms] sendAudio #79500 in=16384 out=16384 avail=2058240 [PCM]
+[21:33:04.381] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:04.381] [UPnPDevice] GetPositionInfo: pos=00:02:28 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:04.381] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:04.381] [UPnPDevice] GetPositionInfo: pos=00:02:28 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:04.913] [25257114ms] sendAudio #80000 in=16384 out=16384 avail=2060288 [PCM]
+[21:33:05.381] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:05.381] [UPnPDevice] GetPositionInfo: pos=00:02:29 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:05.382] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:05.382] [UPnPDevice] GetPositionInfo: pos=00:02:29 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:06.241] [25258441ms] sendAudio #80500 in=16384 out=16384 avail=2099200 [PCM]
+[21:33:06.382] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:06.382] [UPnPDevice] GetPositionInfo: pos=00:02:30 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:06.382] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:06.382] [UPnPDevice] GetPositionInfo: pos=00:02:30 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:06.915] [25259118ms] getNewStream #215000 bpb=6144 avail=2086912 (49.8%) [PCM]
+[21:33:07.383] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:07.383] [UPnPDevice] GetPositionInfo: pos=00:02:31 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:07.383] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:07.383] [UPnPDevice] GetPositionInfo: pos=00:02:31 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:07.583] [25259783ms] sendAudio #81000 in=16384 out=16384 avail=2070528 [PCM]
+[21:33:08.384] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:08.384] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:08.384] [UPnPDevice] GetPositionInfo: pos=00:02:32 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:08.384] [UPnPDevice] GetPositionInfo: pos=00:02:32 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:08.906] [25261106ms] sendAudio #81500 in=16384 out=16384 avail=2103296 [PCM]
+[21:33:09.385] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:09.385] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:09.385] [UPnPDevice] GetPositionInfo: pos=00:02:33 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:09.385] [UPnPDevice] GetPositionInfo: pos=00:02:33 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:10.248] [25262448ms] sendAudio #82000 in=16384 out=16384 avail=2074624 [PCM]
+[21:33:10.386] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:10.386] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:10.386] [UPnPDevice] GetPositionInfo: pos=00:02:34 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:10.386] [UPnPDevice] GetPositionInfo: pos=00:02:34 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:11.387] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:11.387] [UPnPDevice] GetPositionInfo: pos=00:02:35 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:11.387] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:11.387] [UPnPDevice] GetPositionInfo: pos=00:02:35 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:11.571] [25263771ms] sendAudio #82500 in=16384 out=16384 avail=2107392 [PCM]
+[21:33:11.910] [25264119ms] getNewStream #220000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:33:12.388] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:12.388] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:12.388] [UPnPDevice] GetPositionInfo: pos=00:02:36 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:12.388] [UPnPDevice] GetPositionInfo: pos=00:02:36 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:12.913] [25265114ms] sendAudio #83000 in=16384 out=16384 avail=2078720 [PCM]
+[21:33:13.389] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport[UPnPDevice] Action: Get)
+P[21:33:13.389] [UPnPDevice] GetPositionInfo: pos=00:02:37 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:13.389] ositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:13.389] [UPnPDevice] GetPositionInfo: pos=00:02:37 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:14.248] [25266450ms] sendAudio #83500 in=16384 out=16384 avail=2050048 [PCM]
+[21:33:14.390] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:14.390] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:14.390] [UPnPDevice] GetPositionInfo: pos=00:02:38 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:14.390] [UPnPDevice] GetPositionInfo: pos=00:02:38 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:15.391] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:15.391] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:15.391] [UPnPDevice] GetPositionInfo: pos=00:02:39 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:15.391] [UPnPDevice] GetPositionInfo: pos=00:02:39 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:15.582] [25267783ms] sendAudio #84000 in=16384 out=16384 avail=2052096 [PCM]
+[21:33:16.392] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:16.392] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:16.392] [UPnPDevice] GetPositionInfo: pos=00:02:40 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:16.392] [UPnPDevice] GetPositionInfo: pos=00:02:40 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:16.908] [25269108ms] sendAudio #84500 in=16384 out=16384 avail=2091008 [PCM]
+[21:33:16.908] [25269118ms] getNewStream #225000 bpb=6144 avail=2070528 (49.4%) [PCM]
+[21:33:17.393] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:17.393] [UPnPDevice] GetPositionInfo: pos=00:02:41 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:17.393] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:17.393] [UPnPDevice] GetPositionInfo: pos=00:02:41 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:18.248] [25270450ms] sendAudio #85000 in=16384 out=16384 avail=2062336 [PCM]
+[21:33:18.394] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:18.394] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:18.394] [UPnPDevice] GetPositionInfo: pos=00:02:42 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:18.394] [UPnPDevice] GetPositionInfo: pos=00:02:42 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:19.394] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:19.394] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:19.394] [UPnPDevice] GetPositionInfo: pos=00:02:43 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:19.394] [UPnPDevice] GetPositionInfo: pos=00:02:43 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:19.577] [25271778ms] sendAudio #85500 in=16384 out=16384 avail=2095104 [PCM]
+[21:33:20.395] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:20.395] [UPnPDevice] GetPositionInfo: pos=00:02:44 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:20.395] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:20.395] [UPnPDevice] GetPositionInfo: pos=00:02:44 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:20.905] [25273105ms] sendAudio #86000 in=16384 out=16384 avail=2097152 [PCM]
+[21:33:21.396] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:21.396] [UPnPDevice] GetPositionInfo: pos=00:02:45 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:21.396] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:21.396] [UPnPDevice] GetPositionInfo: pos=00:02:45 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:21.919] [25274121ms] getNewStream #230000 bpb=6144 avail=2103296 (50.1%) [PCM]
+[21:33:22.247] [25274448ms] sendAudio #86500 in=16384 out=16384 avail=2068480 [PCM]
+[21:33:22.397] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:22.397] [UPnPDevice] GetPositionInfo: pos=00:02:46 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:22.397] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:22.397] [UPnPDevice] GetPositionInfo: pos=00:02:46 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:23.398] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:23.398] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:23.398] [UPnPDevice] GetPositionInfo: pos=00:02:47 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:23.398] [UPnPDevice] GetPositionInfo: pos=00:02:47 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:23.577] [25275778ms] sendAudio #87000 in=16384 out=16384 avail=2070528 [PCM]
+[21:33:24.398] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:24.398] [UPnPDevice] GetPositionInfo: pos=00:02:48 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:24.398] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:24.399] [UPnPDevice] GetPositionInfo: pos=00:02:48 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:24.909] [25277110ms] sendAudio #87500 in=16384 out=16384 avail=2109440 [PCM]
+[21:33:25.399] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:25.399] [UPnPDevice] GetPositionInfo: pos=00:02:48 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:25.400] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:25.400] [UPnPDevice] GetPositionInfo: pos=00:02:48 dur=00:02:49 URI=http://192.168.1.104:49152/audirvana/audio_f_5.wav
+[21:33:25.464] [AudioDecoder] Bytes read from stream: 1041776684
+[21:33:25.464] [AudioDecoder] EOF reached
+[21:33:25.464] [AudioDecoder] Samples decoded: 0
+[21:33:25.464] [AudioEngine] No more samples available from decoder
+[21:33:25.464] [AudioEngine] Transitioning to next track (gapless)...
+[21:33:25.464] [AudioEngine] Transition to next track (gapless)
+[21:33:25.464] [DirettaRenderer] Track 3: pcm_s32le 768000Hz/32bit/2ch
+[21:33:25.464] [UPnPDevice] Event sent: state=PLAYING dur=216s
+[21:33:25.464] [AudioDecoder] canBypass: YES (bit-perfect path enabled)
+[21:33:25.464] [AudioDecoder] PCM BYPASS enabled - bit-perfect path (s32/768000Hz/32bit)
+[21:33:26.244] [25278447ms] sendAudio #88000 in=16384 out=16384 avail=2080768 [PCM]
+[21:33:26.400] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:26.400] [UPnPDevice] GetPositionInfo: pos=00:00:00 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:26.400] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:26.400] [UPnPDevice] GetPositionInfo: pos=00:00:00 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:26.905] [25279114ms] getNewStream #235000 bpb=6144 avail=2054144 (49.0%) [PCM]
+[21:33:27.401] [21:33:27.401] [[UPnPDevice] Action: GetPositionIUnPnPDevice] Action: GetPositifonInfo (service: urn:upnp-org:serviceId:AoVTra (service: urn:upnp-org:serviceId:AVTransportn)
+[21:33:27.401] sport)
+[21:33:27.401] [UPnPDevice] GetPositionInfo: pos=00:00:01 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:27.401] [UPnPDevice] GetPositionInfo: pos=00:00:01 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:27.573] [25279777ms] sendAudio #88500 in=16384 out=16384 avail=2082816 [PCM]
+[21:33:27.600] [UPnPDevice] Action: SetNextAVTransportURI (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:27.600] [UPnPDevice] SetNextAVTransportURI: http://192.168.1.104:49152/audirvana/audio_f_7.wav
+[21:33:27.600] [DirettaRenderer] SetNextURI for gapless
+[21:33:27.600] [AudioEngine] Next URI queued (gapless)
+[21:33:27.608] [AudioEngine] Pending next URI applied (gapless)
+[21:33:27.608] [AudioEngine] Anticipated preload started
+[21:33:27.608] [AudioEngine] Preloading next track for gapless...
+[21:33:27.608] [AudioDecoder] Opening: http://192.168.1.104:49152/audirvana/audio_f_7.wav...
+[21:33:27.608] [AudioDecoder] Local server detected - using simple HTTP options
+[21:33:27.612] [AudioDecoder] Stream duration: 349.522 seconds
+
+[21:33:27.612] ════════════════════════════════════════════════════════
+[21:33:27.612] Audirvana detected - applying special handling
+[21:33:27.612] ════════════════════════════════════════════════════════
+[21:33:27.612] Stream analysis:
+[21:33:27.612]    Codec: pcm_s32le
+[21:33:27.612]    Sample rate: 768000 Hz
+[21:33:27.612]    Channels: 2
+[21:33:27.612]    Bit depth: 32 bits
+[21:33:27.612]    -> Already-decoded PCM detected
+[21:33:27.612]    -> Will use passthrough mode (no re-decoding)
+[21:33:27.612] ════════════════════════════════════════════════════════
+
+[21:33:27.612] [AudioDecoder] Uncompressed PCM (WAV/AIFF) - low latency path
+[21:33:27.612] [AudioDecoder] Real bit depth from bits_per_raw_sample: 32 bits
+[21:33:27.612] [AudioDecoder] PCM: pcm_s32le 768000Hz/32bit/2ch
+[21:33:27.612] [AudioDecoder] Opened successfully
+[21:33:27.612] [AudioEngine] Next track preloaded: pcm_s32le
+[21:33:28.402] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:28.402] [UPnPDevice] GetPositionInfo: pos=00:00:02 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:28.402] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:28.402] [UPnPDevice] GetPositionInfo: pos=00:00:02 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:28.917] [25281118ms] sendAudio #89000 in=16384 out=16384 avail=2054144 [PCM]
+[21:33:29.402] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:29.402] [UPnPDevice] GetPositionInfo: pos=00:00:03 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:29.402] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:29.402] [UPnPDevice] GetPositionInfo: pos=00:00:03 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:30.239] [25282445ms] sendAudio #89500 in=16384 out=16384 avail=2086912 [PCM]
+[21:33:30.403] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:30.403] [UPnPDevice] GetPositionInfo: pos=00:00:04 dur=00:03:36 URI=http[://192.168.1.104:49152/audirvana/audio_f_6.UwPnPDevice] Action: GetPositionInfo (servicaev:
+[21:33:30.403]  urn:upnp-org:serviceId:AVTransport)
+[21:33:30.403] [UPnPDevice] GetPositionInfo: pos=00:00:04 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:31.404] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:31.404] [UPnPDevice] GetPositionInfo: pos=00:00:05 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:31.404] [UPnPDevice] Action: GetPositionInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:31.404] [UPnPDevice] GetPositionInfo: pos=00:00:05 dur=00:03:36 URI=http://192.168.1.104:49152/audirvana/audio_f_6.wav
+[21:33:31.556] [UPnPDevice] Action: Pause (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:31.556] [UPnPDevice] Pause
+[21:33:31.556] [DirettaRenderer] Pause
+[21:33:31.556] [AudioEngine] Pause requested
+[21:33:31.556] [AudioEngine] State changed to PAUSED
+[21:33:31.556] [AudioEngine] Pause
+[21:33:31.556] [DirettaSync] Requested 10 shutdown silence buffers
+[21:33:31.565] [UPnPDevice] Event sent: state=PAUSED_PLAYBACK dur=216s
+[21:33:31.565] [UPnPDevice] Event sent: state=PAUSED_PLAYBACK dur=216s
+[21:33:32.321] [UPnPDevice] Action: Stop (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:32.321] ════════════════════════════════════════
+[21:33:32.321] [UPnPDevice] ⛔ STOP ACTION RECEIVED
+[21:33:32.321] ════════════════════════════════════════
+[21:33:32.321] [UPnPDevice] Changing state: PAUSED_PLAYBACK → STOPPED
+[21:33:32.321] [UPnPDevice] ✓ Clearing gapless queue: http://192.168.1.104:49152/audirvana/audio_f_7.wav
+[21:33:32.321] [UPnPDevice] ✓ Calling onStop callback...
+[21:33:32.321] [DirettaRenderer] Stop
+[21:33:32.321] [AudioEngine] stop() called, current state = 2
+[21:33:32.321] [AudioEngine] State changed to STOPPED
+[21:33:32.321] [AudioEngine] Cleaning up decoders and state...
+[21:33:32.322] [AudioEngine] Full cleanup completed
+[21:33:32.322] [AudioEngine] Forced reopen - closing decoders to load new track
+[21:33:32.322] [AudioEngine] Gapless queue cleared
+[21:33:32.322] [AudioEngine] Current URI set
+[21:33:32.322] [DirettaSync] Close()
+[21:33:32.322] [DirettaSync] Requested 20 shutdown silence buffers
+[21:33:32.472] [DirettaSync] Silence timeout
+[21:33:32.573] [DirettaSync] Close() done (SDK closed)
+[21:33:32.573] [UPnPDevice] Event sent: state=STOPPED dur=216s
+[21:33:32.573] [UPnPDevice] ✓ onStop callback completed
+[21:33:32.573] [UPnPDevice] Event sent: state=STOPPED dur=216s
+[21:33:32.573] [UPnPDevice] Creating response...
+[21:33:32.573] [UPnPDevice] ✓ Stop action completed
+[21:33:32.574] [UPnPDevice] Action: SetNextAVTransportURI (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:32.574] [UPnPDevice] SetNextAVTransportURI: 
+[21:33:32.574] [DirettaRenderer] SetNextURI for gapless
+[21:33:32.574] [AudioEngine] Next URI queued (gapless)
+[21:33:32.574] [UPnPDevice] Action: SetAVTransportURI (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:32.773] [UPnPDevice] Action: GetTransportInfo (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:32.854] [UPnPDevice] Action: GetProtocolInfo (service: urn:upnp-org:serviceId:ConnectionManager)
+[21:33:32.854] [UPnPDevice] Action: SetAVTransportURI (service: urn:upnp-org:serviceId:AVTransport)
+[21:33:32.854] [UPnPDevice] SetAVTransportURI: http://192.168.1.104:49152/audirvana/audioTest.pcm
+[21:33:32.854] [DirettaRenderer] SetURI: http://192.168.1.104:49152/audirvana/audioTest.pcm
+[21:33:32.854] [AudioEngine] URI changed - closing decoders to load new track
+[21:33:32.854] [AudioEngine] Gapless queue cleared
+[21:33:32.854] [AudioEngine] Current URI set
+[21:33:32.854] [UPnPDevice] Event sent: state=STOPPED dur=0s
+
+[21:33:49.018] Signal 2 received, shutting down...
+[21:33:49.018] [DirettaRenderer] Stopping...
+[21:33:49.018] [AudioEngine] stop() called, current state = 0
+[21:33:49.018] [AudioEngine] State changed to STOPPED
+[21:33:49.018] [AudioEngine] Cleaning up decoders and state...
+[21:33:49.018] [Audi

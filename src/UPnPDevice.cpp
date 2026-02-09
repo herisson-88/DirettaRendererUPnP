@@ -578,14 +578,13 @@ int UPnPDevice::actionPause(UpnpActionRequest* request) {
         m_transportState = "PAUSED_PLAYBACK";
     }
     
-    // Callback
+    // Callback - onPause handler already sends the event via
+    // notifyStateChange("PAUSED_PLAYBACK"). No need to send another here;
+    // redundant events cause progress bar hiccups on Audirvana.
     if (m_callbacks.onPause) {
         m_callbacks.onPause();
     }
-    
-    // Send event notification
-    sendAVTransportEvent();
-    
+
     // Response
     IXML_Document* response = createActionResponse("Pause");
     UpnpActionRequest_set_ActionResult(request, response);
@@ -613,16 +612,16 @@ int UPnPDevice::actionStop(UpnpActionRequest* request) {
         }
     }
     
-    // Callback
+    // Callback - onStop handler already sends the event via
+    // notifyStateChange("STOPPED"). No need to send another here;
+    // redundant events cause progress bar hiccups on Audirvana.
     if (m_callbacks.onStop) {
         DEBUG_LOG("[UPnPDevice] ✓ Calling onStop callback...");
         m_callbacks.onStop();
         DEBUG_LOG("[UPnPDevice] ✓ onStop callback completed");
     } else {
         std::cout << "[UPnPDevice] ❌ NO onStop CALLBACK CONFIGURED!" << std::endl;
-    }    
-    // Send event notification
-    sendAVTransportEvent();
+    }
     
     // Response
     DEBUG_LOG("[UPnPDevice] Creating response...");
