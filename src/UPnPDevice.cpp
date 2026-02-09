@@ -419,8 +419,14 @@ int UPnPDevice::handleSubscriptionRequest(UpnpSubscriptionRequest* request) {
         lastChange = ss.str();
     }
 
+    // Pre-escape: libupnp inserts raw XML as child nodes of <LastChange>,
+    // but UPnP spec requires the LastChange value to be XML-escaped text.
+    // Without this, control points (e.g. Audirvana) get empty text content
+    // and report "Invalid AVT/RCS last change value".
+    std::string escapedLastChange = xmlEscape(lastChange);
+
     const char* varNames[] = { "LastChange" };
-    const char* varValues[] = { lastChange.c_str() };
+    const char* varValues[] = { escapedLastChange.c_str() };
 
     int ret = UpnpAcceptSubscription(
         m_deviceHandle,
@@ -989,8 +995,12 @@ void UPnPDevice::sendAVTransportEvent() {
         lastChange = ss.str();
     }
 
+    // Pre-escape: libupnp inserts raw XML as child nodes of <LastChange>,
+    // but UPnP spec requires the LastChange value to be XML-escaped text.
+    std::string escapedLastChange = xmlEscape(lastChange);
+
     const char* varNames[] = { "LastChange" };
-    const char* varValues[] = { lastChange.c_str() };
+    const char* varValues[] = { escapedLastChange.c_str() };
 
     std::string udn = "uuid:" + m_config.uuid;
     int ret = UpnpNotify(
@@ -1024,8 +1034,12 @@ void UPnPDevice::sendRenderingControlEvent() {
         lastChange = ss.str();
     }
 
+    // Pre-escape: libupnp inserts raw XML as child nodes of <LastChange>,
+    // but UPnP spec requires the LastChange value to be XML-escaped text.
+    std::string escapedLastChange = xmlEscape(lastChange);
+
     const char* varNames[] = { "LastChange" };
-    const char* varValues[] = { lastChange.c_str() };
+    const char* varValues[] = { escapedLastChange.c_str() };
 
     std::string udn = "uuid:" + m_config.uuid;
     int ret = UpnpNotify(
