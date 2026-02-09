@@ -507,11 +507,21 @@ int UPnPDevice::actionSetAVTransportURI(UpnpActionRequest* request) {
 }
 
 int UPnPDevice::actionSetNextAVTransportURI(UpnpActionRequest* request) {
+    // When gapless is disabled (--no-gapless), reject SetNextAVTransportURI
+    // so the control point manages track transitions itself (Stop→SetURI→Play).
+    // This fixes Audirvana UI not updating during gapless transitions.
+    if (!m_config.gaplessEnabled) {
+        DEBUG_LOG("[UPnPDevice] SetNextAVTransportURI rejected (--no-gapless mode)");
+        UpnpActionRequest_set_ErrCode(request, 602);
+        UpnpActionRequest_set_ErrStr(request, "Optional action not implemented");
+        return UPNP_E_SUCCESS;
+    }
+
     IXML_Document* actionDoc = UpnpActionRequest_get_ActionRequest(request);
-    
+
     std::string uri = getArgumentValue(actionDoc, "NextURI");
     std::string metadata = getArgumentValue(actionDoc, "NextURIMetaData");
-    
+
     DEBUG_LOG("[UPnPDevice] SetNextAVTransportURI: " << uri);
     
     {
@@ -1910,23 +1920,12 @@ void UPnPDevice::notifyTrackChange(const std::string& uri, const std::string& me
     m_nextMetadata.clear();
 }
 
-// Atomic gapless transition: simulate STOPPED → PLAYING cycle for control points
-// Audio continues seamlessly (ring buffer never stops), but events mimic a
-// "next track" sequence so control points like Audirvana update their UI.
+// Atomic gapless transition: update all track data + send single event
+// This prevents the race condition where the position thread (1s polling)
+// reads stale values from AudioEngine and overwrites the fresh track change
+// data between notifyTrackChange() and notifyStateChange() calls.
 // The epoch counter allows the position thread to detect and skip stale writes.
 void UPnPDevice::notifyGaplessTransition(const std::string& uri, const std::string& metadata, int durationSeconds) {
-    // Step 1: Send STOPPED event with OLD track data (simulates track end)
-    {
-        std::lock_guard<std::mutex> lock(m_stateMutex);
-        m_transportState = "STOPPED";
-        m_trackEpoch.fetch_add(1, std::memory_order_release);
-    }
-    sendAVTransportEvent();
-
-    // Brief pause so control point processes the STOPPED event
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // Step 2: Update to new track + send PLAYING event (simulates new track start)
     {
         std::lock_guard<std::mutex> lock(m_stateMutex);
         m_currentURI = uri;
@@ -1937,8 +1936,11 @@ void UPnPDevice::notifyGaplessTransition(const std::string& uri, const std::stri
         m_trackDuration = durationSeconds;
         m_nextURI.clear();
         m_nextMetadata.clear();
-        m_transportState = "PLAYING";
+        // TransportState stays PLAYING - no change needed for gapless
+        // Increment epoch so position thread detects the transition
+        m_trackEpoch.fetch_add(1, std::memory_order_release);
     }
+    // Send event with all consistent data in one shot
     sendAVTransportEvent();
 }
 

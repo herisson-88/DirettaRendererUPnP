@@ -151,6 +151,7 @@ bool DirettaRenderer::start() {
         upnpConfig.uuid = m_config.uuid;
         upnpConfig.port = m_config.port;
         upnpConfig.networkInterface = m_config.networkInterface;
+        upnpConfig.gaplessEnabled = m_config.gaplessEnabled;
 
         m_upnp = std::make_unique<UPnPDevice>(upnpConfig);
 

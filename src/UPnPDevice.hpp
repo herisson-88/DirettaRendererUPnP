@@ -52,7 +52,9 @@ public:
             , uuid("uuid:diretta-renderer-12345")
             , port(0)  // 0 = auto
             , networkInterface("")  // Empty = auto-detect
+            , gaplessEnabled(true)
         {}
+        bool gaplessEnabled;
     };
     
     UPnPDevice(const Config& config);
