@@ -91,6 +91,12 @@ http://<RENDERER_IP>:4006/description.xml
 
 ## Playback Problems
 
+### Audirvana: Progress Bar and Track Title Not Updating During Gapless
+
+**Symptoms**: When playing an album with Audirvana, the audio plays correctly through all tracks but the progress bar stays stuck at the end of the first track and the track title doesn't change.
+
+**Solution**: Enable **Universal Gapless** in Audirvana settings. This allows Audirvana to properly detect gapless transitions performed by the renderer and update its UI accordingly.
+
 ### No Audio Output
 
 **Symptoms**: Track plays on control point but no sound from DAC.
