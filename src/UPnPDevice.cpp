@@ -533,10 +533,12 @@ int UPnPDevice::actionSetNextAVTransportURI(UpnpActionRequest* request) {
     if (m_callbacks.onSetNextURI) {
         m_callbacks.onSetNextURI(uri, metadata);
     }
-    
-    // Send event notification
-    sendAVTransportEvent();
-    
+
+    // No event here: sending a full AVTransport event (with TransportState=PLAYING)
+    // confuses control points like Audirvana into thinking a state change occurred.
+    // Standard renderers (gmrender-resurrect, upmpdcli) don't event on SetNextAVTransportURI.
+    // The control point already knows the next URI since it sent it.
+
     // Response
     IXML_Document* response = createActionResponse("SetNextAVTransportURI");
     UpnpActionRequest_set_ActionResult(request, response);
