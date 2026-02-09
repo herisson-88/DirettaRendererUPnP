@@ -513,7 +513,6 @@ int UPnPDevice::actionSetNextAVTransportURI(UpnpActionRequest* request) {
     if (!m_config.gaplessEnabled) {
         DEBUG_LOG("[UPnPDevice] SetNextAVTransportURI rejected (--no-gapless mode)");
         UpnpActionRequest_set_ErrCode(request, 602);
-        UpnpActionRequest_set_ErrStr(request, "Optional action not implemented");
         return UPNP_E_SUCCESS;
     }
 
