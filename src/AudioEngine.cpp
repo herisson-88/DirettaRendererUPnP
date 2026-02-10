@@ -1665,6 +1665,7 @@ void AudioEngine::setCurrentURI(const std::string& uri, const std::string& metad
         m_samplesPlayed = 0;
         m_silenceCount = 0;
         m_isDraining = false;
+        m_formatChangePending = false;
 
         // Arrêter le préchargement en cours si existant
         if (m_preloadRunning.load(std::memory_order_acquire)) {
@@ -1773,6 +1774,7 @@ void AudioEngine::stop() {
         m_samplesPlayed = 0;
         m_silenceCount = 0;
         m_isDraining = false;
+        m_formatChangePending = false;
 
         // CRITICAL: NE PAS effacer m_currentURI !
         // On veut pouvoir redémarrer la même piste depuis le début
@@ -1927,7 +1929,8 @@ bool AudioEngine::process(size_t samplesNeeded) {
     // CRITICAL: Preload next track as soon as EOF flag is set (for gapless)
     // Check AFTER readSamples() because EOF flag is set during the read
     // With anticipated preload, this should rarely trigger (preload already running/done)
-    if (!m_nextDecoder && !m_nextURI.empty() && m_currentDecoder->isEOF()) {
+    // Skip if format change already detected - avoids reopening the same URL repeatedly
+    if (!m_nextDecoder && !m_nextURI.empty() && !m_formatChangePending && m_currentDecoder->isEOF()) {
         // Check if preload is already running in background
         if (m_preloadRunning.load(std::memory_order_acquire)) {
             // Wait for background preload to complete (non-blocking would be better but complex)
@@ -1983,6 +1986,9 @@ bool AudioEngine::process(size_t samplesNeeded) {
         if (!m_nextURI.empty()) {
             std::cout << "[AudioEngine] Next track with format change detected" << std::endl;
             std::cout << "[AudioEngine] Transitioning with stop/start sequence..." << std::endl;
+
+            // Clear format change flag - we're now handling it
+            m_formatChangePending = false;
 
             // Save next URI before stopping
             std::string nextURI = m_nextURI;
@@ -2132,6 +2138,11 @@ bool AudioEngine::preloadNextTrack() {
         // m_nextURI.clear();     // REMOVED - was causing next track to be lost
         // m_nextMetadata.clear(); // REMOVED
 
+        // Prevent repeated preload attempts from EOF handler.
+        // Without this flag, process() would re-call preloadNextTrack() on every
+        // iteration because !m_nextDecoder && !m_nextURI.empty() stays true.
+        m_formatChangePending = true;
+
         return false;
     }
 
@@ -2151,6 +2162,7 @@ void AudioEngine::transitionToNextTrack() {
     m_currentDecoder = std::move(m_nextDecoder);
     m_trackNumber++;
     m_samplesPlayed = 0;
+    m_formatChangePending = false;
 
     // Clear next URI after moving to current
     m_nextURI.clear();

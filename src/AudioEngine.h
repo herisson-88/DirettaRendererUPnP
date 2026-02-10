@@ -437,6 +437,7 @@ private:
     uint64_t m_samplesPlayed;
     int m_silenceCount;  // Pour drainage du buffer Diretta
     bool m_isDraining;   // Flag pour éviter de re-logger "Track finished"
+    std::atomic<bool> m_formatChangePending{false};  // Preload detected format change, don't re-preload
 
     // Helper functions
     bool openCurrentTrack();

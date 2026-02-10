@@ -504,10 +504,12 @@ int UPnPDevice::actionSetAVTransportURI(UpnpActionRequest* request) {
     if (m_callbacks.onSetURI) {
         m_callbacks.onSetURI(uri, metadata);
     }
-    
-    // Send event notification
-    sendAVTransportEvent();
-    
+
+    // v2.0.3: Removed redundant sendAVTransportEvent() here.
+    // If playing/paused, onSetURI callback triggers auto-stop which sends
+    // the event via notifyStateChange("STOPPED"). If already stopped,
+    // no state change occurred so no event is needed.
+
     // Response
     IXML_Document* response = createActionResponse("SetAVTransportURI");
     UpnpActionRequest_set_ActionResult(request, response);

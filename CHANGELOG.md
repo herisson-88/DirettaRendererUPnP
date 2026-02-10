@@ -9,10 +9,17 @@
 - Each UPnP action (Play, Pause, Stop, SetNextAVTransportURI) now sends exactly one `LastChange` event
 - Root cause: action handlers called `sendAVTransportEvent()` redundantly — the DirettaRenderer callbacks already send the event via `notifyStateChange()`
 - **Play**: Fixed by **herisson-88** ([PR #53](https://github.com/cometdom/DirettaRendererUPnP/pull/53))
+- **SetAVTransportURI**: Removed duplicate `STOPPED` event during track-to-track transitions (auto-stop callback already sends it)
 - **SetNextAVTransportURI**: Removed spurious event that triggered re-synchronization during gapless queueing
 - **Pause**: Removed duplicate `PAUSED_PLAYBACK` event
 - **Stop**: Removed duplicate `STOPPED` event
 - Fixes progress bar stuttering/jumping in Audirvana and other control points that react to duplicate state notifications
+
+**Format Change Preload Guard (squeeze2UPnP/LMS fix):**
+- Prevented repeated preloading of the same next track during format changes (e.g., bit depth or sample rate change between tracks)
+- The anticipated preload (from `SetNextAVTransportURI`) and EOF preload were not coordinated: when a format change was detected, the EOF path would re-open the same URL 2-3 additional times
+- Added `m_formatChangePending` flag to skip redundant preloads once a format change transition is already scheduled
+- Reduces unnecessary HTTP connections, especially beneficial for squeeze2UPnP/LMS setups that use ephemeral ports per track
 
 ### ✅ Compatibility
 
