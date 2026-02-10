@@ -725,14 +725,9 @@ void DirettaSync::close() {
     stop();
     disconnect(true);  // Wait for proper disconnection before returning
 
-    // SDK 148: Close SDK completely to allow clean reopen on next track
-    DIRETTA::Sync::close();
-    m_sdkOpen = false;
-
-    // Brief delay for target to process disconnect (like reopenForFormatChange)
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    // Stop worker thread
+    // CRITICAL: Stop worker thread BEFORE closing SDK to prevent use-after-free
+    // (Same pattern as format transition paths in open() - lines 481-491, 532-542)
+    // Without this, the worker calls syncWorker() on freed SDK memory for ~100ms
     m_running = false;
     {
         std::lock_guard<std::mutex> lock(m_workerMutex);
@@ -740,6 +735,13 @@ void DirettaSync::close() {
             m_workerThread.join();
         }
     }
+
+    // Now safe to close SDK - worker thread is stopped
+    DIRETTA::Sync::close();
+    m_sdkOpen = false;
+
+    // Brief delay for target to process disconnect
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     m_open = false;
     m_playing = false;
