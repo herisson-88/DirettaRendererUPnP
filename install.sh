@@ -698,8 +698,8 @@ download_ffmpeg_headers() {
     print_info "Extracting headers..."
     tar xf "$tarball"
 
-    # Create symlinks to header directories
-    rm -f libavformat libavcodec libavutil libswresample
+    # Create symlinks to header directories (rm -rf handles both stale symlinks and dirs from previous runs)
+    rm -rf libavformat libavcodec libavutil libswresample
     ln -sf "ffmpeg-${version}/libavformat" libavformat
     ln -sf "ffmpeg-${version}/libavcodec" libavcodec
     ln -sf "ffmpeg-${version}/libavutil" libavutil
