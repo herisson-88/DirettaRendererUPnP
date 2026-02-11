@@ -223,9 +223,9 @@ void UPnPDevice::setCallbacks(const Callbacks& callbacks) {
 }
 
 // Static callback dispatcher
-int UPnPDevice::upnpCallbackStatic(Upnp_EventType eventType, 
-                                   const void* event, 
-                                   void* cookie) 
+int UPnPDevice::upnpCallbackStatic(Upnp_EventType eventType,
+                                   upnp_compat::EventPtr event,
+                                   void* cookie)
 {
     UPnPDevice* device = static_cast<UPnPDevice*>(cookie);
     return device->upnpCallback(eventType, event);

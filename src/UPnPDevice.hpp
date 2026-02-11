@@ -9,6 +9,14 @@
 #include <atomic>
 #include "ProtocolInfoBuilder.h"
 
+// Compatibility: libupnp changed Upnp_FunPtr Event parameter from void* to const void*
+// between 1.14.25 and 1.14.26. Detect the correct type at compile time.
+namespace upnp_compat {
+    template<typename R, typename A1, typename A2, typename A3>
+    A2 event_param(R(*)(A1, A2, A3));
+    using EventPtr = decltype(event_param(Upnp_FunPtr{}));
+}
+
 /**
  * UPnP MediaRenderer Device using libupnp
  * 
@@ -99,9 +107,9 @@ public:
     void setCurrentMetadata(const std::string& metadata);
 
 private:
-    // libupnp callback (static)
-    static int upnpCallbackStatic(Upnp_EventType eventType, 
-                                  const void* event, 
+    // libupnp callback (static) - uses upnp_compat::EventPtr for version portability
+    static int upnpCallbackStatic(Upnp_EventType eventType,
+                                  upnp_compat::EventPtr event,
                                   void* cookie);
     
     // Instance callback

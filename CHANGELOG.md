@@ -21,6 +21,11 @@
 - Added `m_formatChangePending` flag to skip redundant preloads once a format change transition is already scheduled
 - Reduces unnecessary HTTP connections, especially beneficial for squeeze2UPnP/LMS setups that use ephemeral ports per track
 
+**libupnp Callback Compatibility:**
+- Fixed compilation error with libupnp <= 1.14.25 where `Upnp_FunPtr` Event parameter is `void*` instead of `const void*` (changed in 1.14.26)
+- Compile-time detection of the callback signature using C++17 template type deduction
+- Builds correctly with all libupnp 1.14.x versions without manual configuration
+
 ### ✅ Compatibility
 
 **Audirvana (macOS/Windows):**
