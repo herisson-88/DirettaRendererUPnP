@@ -88,7 +88,7 @@ public:
      * @param url Audio file URL
      * @return true if successful, false otherwise
      */
-    bool open(const std::string& url);
+    bool open(const std::string& url, bool preloadOnly = false);
 
     /**
      * @brief Close the decoder

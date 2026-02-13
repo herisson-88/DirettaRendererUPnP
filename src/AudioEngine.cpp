@@ -97,7 +97,7 @@ AudioDecoder::~AudioDecoder() {
     close();
 }
 
-bool AudioDecoder::open(const std::string& url) {
+bool AudioDecoder::open(const std::string& url, bool preloadOnly) {
     std::cout << "[AudioDecoder] Opening: " << url.substr(0, 80) << "..." << std::endl;
 
     // Open input file
@@ -163,7 +163,12 @@ bool AudioDecoder::open(const std::string& url) {
         DEBUG_LOG("[AudioDecoder] Streaming proxy detected (Qobuz/Tidal via local server) - using robust HTTP options");
     }
 
-    if (isLoopback) {
+    if (preloadOnly) {
+        // Preload mode: minimal buffer, just enough for header/format detection
+        // Avoids saturating Audirvana's HTTP server with a concurrent 512KB read
+        DEBUG_LOG("[AudioDecoder] Preload mode - using minimal HTTP buffer");
+        av_dict_set(&options, "buffer_size", "8192", 0);  // 8KB - headers only
+    } else if (isLoopback) {
         // Loopback (same machine) - minimal buffer, no reconnect needed
         DEBUG_LOG("[AudioDecoder] Loopback server detected - using minimal HTTP options");
         av_dict_set(&options, "buffer_size", "32768", 0);  // 32KB - memory-to-memory, ultra-low latency
@@ -2120,7 +2125,7 @@ bool AudioEngine::preloadNextTrack() {
     // Create decoder for next track
     m_nextDecoder = std::make_unique<AudioDecoder>();
 
-    if (!m_nextDecoder->open(m_nextURI)) {
+    if (!m_nextDecoder->open(m_nextURI, true)) {  // preloadOnly: minimal HTTP buffer
         std::cerr << "[AudioEngine] Failed to preload next track" << std::endl;
         m_nextDecoder.reset();
         return false;
@@ -2180,7 +2185,15 @@ void AudioEngine::transitionToNextTrack() {
     m_currentURI = m_nextURI;
     m_currentMetadata = m_nextMetadata;
 
-    m_currentDecoder = std::move(m_nextDecoder);
+    // Close the preload decoder (8KB buffer) and reopen with full buffer.
+    // The preload was only used for format verification.
+    // Ring buffer has ~500ms of margin to absorb the ~50ms reopen.
+    m_nextDecoder.reset();
+    m_currentDecoder = std::make_unique<AudioDecoder>();
+    if (!m_currentDecoder->open(m_currentURI)) {
+        std::cerr << "[AudioEngine] Failed to reopen track at transition" << std::endl;
+    }
+
     m_trackNumber++;
     m_samplesPlayed = 0;
     m_formatChangePending = false;
