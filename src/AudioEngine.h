@@ -1,6 +1,8 @@
 #ifndef AUDIO_ENGINE_H
 #define AUDIO_ENGINE_H
 
+#include "SourceType.h"
+
 #include <string>
 #include <memory>
 #include <atomic>
@@ -30,7 +32,7 @@ struct TrackInfo {
     bool isDSD;        // true if DSD format
     int dsdRate;       // DSD rate (64, 128, 256, 512, 1024)
     bool isCompressed; // true if format requires decoding (FLAC/ALAC), false for WAV/AIFF
-    bool isRemoteStream; // true if streaming from internet (Qobuz/Tidal/remote)
+    SourceType sourceType; // Loopback (same machine), LAN (local network), Remote (internet)
 
     // DSD source format detection (for correct bit ordering)
     enum class DSDSourceFormat { Unknown, DSF, DFF };
@@ -42,7 +44,7 @@ struct TrackInfo {
     S24Alignment s24Alignment;
 
     TrackInfo() : sampleRate(0), bitDepth(0), channels(2), duration(0),
-                  isDSD(false), dsdRate(0), isCompressed(true), isRemoteStream(false),
+                  isDSD(false), dsdRate(0), isCompressed(true), sourceType(SourceType::LAN),
                   dsdSourceFormat(DSDSourceFormat::Unknown),
                   s24Alignment(S24Alignment::Unknown) {}
 };

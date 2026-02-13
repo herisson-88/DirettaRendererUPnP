@@ -126,12 +126,19 @@ bool AudioDecoder::open(const std::string& url) {
     bool isStreamingProxy = (urlLower.find("qobuz") != std::string::npos ||
                              urlLower.find("tidal") != std::string::npos);
 
-    bool isLocalServer = !isStreamingProxy &&
-                         (url.find("://192.168.") != std::string::npos ||
-                          url.find("://10.") != std::string::npos ||
-                          url.find("://172.") != std::string::npos ||
-                          url.find("://localhost") != std::string::npos ||
-                          url.find("://127.") != std::string::npos);
+    // 3-level source detection: Loopback < LAN < Remote
+    bool isLoopback = !isStreamingProxy &&
+                      (url.find("://localhost") != std::string::npos ||
+                       url.find("://127.") != std::string::npos);
+
+    bool isLAN = !isStreamingProxy && !isLoopback &&
+                 (url.find("://192.168.") != std::string::npos ||
+                  url.find("://10.") != std::string::npos ||
+                  url.find("://172.") != std::string::npos);
+
+    SourceType sourceType = isLoopback ? SourceType::Loopback :
+                            isLAN      ? SourceType::LAN :
+                                         SourceType::Remote;
 
     if (url.find(".dsf") != std::string::npos || url.find(".DSF") != std::string::npos) {
         inputFormat = av_find_input_format("dsf");
@@ -156,18 +163,21 @@ bool AudioDecoder::open(const std::string& url) {
         DEBUG_LOG("[AudioDecoder] Streaming proxy detected (Qobuz/Tidal via local server) - using robust HTTP options");
     }
 
-    if (isLocalServer) {
-        // Local servers (Audirvana, JRiver, etc.) - use simple HTTP options
-        // These servers often don't support persistent connections or reconnection
-        DEBUG_LOG("[AudioDecoder] Local server detected - using simple HTTP options");
-        av_dict_set(&options, "buffer_size", "262144", 0);  // 256KB - avoids excessive HTTP reads at high sample rates
+    if (isLoopback) {
+        // Loopback (same machine) - minimal buffer, no reconnect needed
+        DEBUG_LOG("[AudioDecoder] Loopback server detected - using minimal HTTP options");
+        av_dict_set(&options, "buffer_size", "32768", 0);  // 32KB - memory-to-memory, ultra-low latency
+    } else if (isLAN) {
+        // LAN servers (Audirvana, JRiver on another machine) - larger buffer, no reconnect
+        DEBUG_LOG("[AudioDecoder] LAN server detected - using simple HTTP options");
+        av_dict_set(&options, "buffer_size", "524288", 0);  // 512KB - absorbs network jitter
     } else {
-        // Remote servers (Qobuz, Tidal, etc.) - use robust streaming options
+        // Remote/streaming proxy (Qobuz, Tidal, etc.) - larger buffer + robust reconnection
         DEBUG_LOG("[AudioDecoder] Remote server - using streaming options (reconnect enabled)");
+        av_dict_set(&options, "buffer_size", "524288", 0);  // 512KB
         av_dict_set(&options, "reconnect", "1", 0);
         av_dict_set(&options, "reconnect_streamed", "1", 0);
         av_dict_set(&options, "reconnect_delay_max", "5", 0);
-        av_dict_set(&options, "buffer_size", "524288", 0);  // 512KB to absorb network jitter
         av_dict_set(&options, "http_persistent", "1", 0);
         av_dict_set(&options, "multiple_requests", "1", 0);
         av_dict_set(&options, "ignore_eof", "1", 0);
@@ -312,7 +322,7 @@ bool AudioDecoder::open(const std::string& url) {
     );
 
     m_trackInfo.isCompressed = !isUncompressedPCM;
-    m_trackInfo.isRemoteStream = !isLocalServer;
+    m_trackInfo.sourceType = sourceType;
 
     if (isUncompressedPCM) {
         DEBUG_LOG("[AudioDecoder] Uncompressed PCM (WAV/AIFF) - low latency path");
