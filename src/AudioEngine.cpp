@@ -168,9 +168,10 @@ bool AudioDecoder::open(const std::string& url) {
         DEBUG_LOG("[AudioDecoder] Loopback server detected - using minimal HTTP options");
         av_dict_set(&options, "buffer_size", "32768", 0);  // 32KB - memory-to-memory, ultra-low latency
     } else if (isLAN) {
-        // LAN servers (Audirvana, JRiver on another machine) - larger buffer, no reconnect
-        DEBUG_LOG("[AudioDecoder] LAN server detected - using simple HTTP options");
+        // LAN servers (Audirvana, JRiver on another machine) - larger buffer, ignore transient EOF
+        DEBUG_LOG("[AudioDecoder] LAN server detected - using LAN HTTP options");
         av_dict_set(&options, "buffer_size", "524288", 0);  // 512KB - absorbs network jitter
+        av_dict_set(&options, "ignore_eof", "1", 0);        // survive transient TCP hiccups
     } else {
         // Remote/streaming proxy (Qobuz, Tidal, etc.) - larger buffer + robust reconnection
         DEBUG_LOG("[AudioDecoder] Remote server - using streaming options (reconnect enabled)");
