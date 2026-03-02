@@ -1,4 +1,4 @@
-# Diretta UPnP Renderer v2.0.4
+# Diretta UPnP Renderer v2.0.6
 
 **The world's first native UPnP/DLNA renderer with Diretta protocol support - Low-Latency Edition**
 
@@ -8,24 +8,22 @@
 
 ---
 
-![Version](https://img.shields.io/badge/version-2.0.5-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.6-blue.svg)
 ![Low Latency](https://img.shields.io/badge/Latency-Low-green.svg)
 ![SDK](https://img.shields.io/badge/SDK-DIRETTA::Sync-orange.svg)
 ![Audirvana](https://img.shields.io/badge/Audirvana-Compatible-green.svg)
 
 ---
 
-## What's New in v2.0.4
+## What's New in v2.0.6
 
-**Security, reliability & streaming resilience.**
+**Advanced SDK settings, stability & compatibility fixes.**
 
-- **Rebuffering on underrun** — when a network stall empties the buffer (Tidal/Qobuz streaming), holds clean silence until the buffer refills to 20%, preventing the "CD skip" stuttering effect
-- **Centralized logging** with 3 verbosity levels: `--quiet` (warnings only), default (INFO), `--verbose` (DEBUG)
-- **Runtime statistics** via `kill -USR1 <pid>` — dump live playback state, buffer fill, and counters to journal
-- **Privilege drop** (`--user <name>`) — start as root for network init, then drop to unprivileged user while retaining required Linux capabilities
-- **Systemd hardening** — 20+ security directives (filesystem isolation, kernel protection, syscall filtering)
-- **ARM NEON SIMD** — hand-optimized DSD (4 modes) and PCM format conversions for Raspberry Pi 4/5
-- **20 unit tests** for DirettaRingBuffer covering all conversion functions (`make test`)
+- **Advanced Diretta SDK settings** — All tuning options from v1.3.3 are back: `--thread-mode`, `--cycle-time`, `--info-cycle`, `--transfer-mode`, `--target-profile-limit`, `--mtu` (see [Command Line Options](#advanced-diretta-sdk-settings) and [docs/CONFIGURATION.md](docs/CONFIGURATION.md))
+- **Automatic config migration** — Upgrading from a previous version? `install.sh` now automatically migrates your settings to the new config file (backup saved as `.bak`)
+- **Stop action fix** (by herisson-88) — uses `stopPlayback()` instead of `close()` on UPnP Stop, keeping the SDK connection open for faster resume and preventing white noise on hi-res transitions (Holo Red and similar targets)
+- **libupnp auto-detection** — Makefile uses `pkg-config` to detect libupnp include paths, fixing compilation on GentooPlayer and other non-standard distributions
+- **Privilege drop removed** — The `--user`/`DROP_USER` feature has been removed (caused SCHED_FIFO loss on worker threads)
 
 See [CHANGELOG.md](CHANGELOG.md) for details.
 
@@ -33,6 +31,7 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 
 | Version | Highlights |
 |---------|-----------|
+| **v2.0.4** | Centralized logging, rebuffering on underrun, ARM NEON SIMD, systemd hardening, unit tests |
 | **v2.0.3** | Audirvana compatibility (UPnP event deduplication), adaptive buffer for remote streaming |
 | **v2.0.2** | Native DSD from Audirvana (DSDIFF parser), UPnP event notifications, gapless preload |
 | **v2.0.1** | 24-bit white noise fix for DACs without 32-bit support |
@@ -230,27 +229,34 @@ The renderer automatically detects and optimizes for your CPU:
 
 ## Upgrading
 
-### From v2.0.3 to v2.0.4
+### From v2.0.4/v2.0.5 to v2.0.6
 
-No configuration changes needed. Just rebuild and reinstall:
+The configuration file has changed significantly in v2.0.6 (new SDK settings, removed options). The installer **automatically migrates your settings**:
 
 ```bash
 # 1. Stop the service
 sudo systemctl stop diretta-renderer
 
-# 2. Pull the latest version and rebuild
+# 2. Pull the latest version
 cd ~/DirettaRendererUPnP
 git pull
 
-
-# 3. Re-run the installer (reinstalls binary + systemd service)
+# 3. Re-run the installer (rebuilds, migrates config, reinstalls service)
 ./install.sh
+# Select: Full install or Build + Service
 
 # 4. Restart the service
 sudo systemctl start diretta-renderer
 ```
 
-> **Note:** Your existing configuration (`diretta-renderer.conf`) is preserved.
+**What happens during upgrade:**
+- Your old `diretta-renderer.conf` is backed up as `diretta-renderer.conf.bak`
+- A fresh config template is installed with all new v2.0.6 options
+- Your existing settings (TARGET, PORT, NETWORK_INTERFACE, etc.) are **automatically migrated** to the new file
+- Obsolete settings (e.g., `DROP_USER`) are detected and skipped with a warning
+- New advanced SDK settings appear commented with their default values, ready to customize
+
+> **Tip:** After upgrading, review the new options in `/opt/diretta-renderer-upnp/diretta-renderer.conf` — the advanced Diretta SDK settings section allows fine-tuning of thread priority, transfer mode, and timing parameters.
 
 ### From v1.x (clean install required)
 
@@ -575,9 +581,24 @@ For a dedicated audio server, **nosmt** mode provides more consistent latency be
 --list-targets          List available Diretta targets and exit
 --verbose, -v           Enable verbose debug output (log level: DEBUG)
 --quiet, -q             Quiet mode - only errors and warnings (log level: WARN)
---user, -u <name>       Drop privileges to user after network init
 --interface <name>      Bind to specific network interface
 ```
+
+### Advanced Diretta SDK Settings
+
+These options allow fine-tuning the Diretta SDK transmission behavior. **Leave at defaults unless you have a specific reason to change them.** See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for detailed documentation.
+
+```bash
+--thread-mode <mode>        SDK thread mode bitmask (default: 1=CRITICAL)
+--cycle-time <us>           Max cycle time in microseconds (333-10000, default: auto)
+--cycle-min-time <us>       Min cycle time in microseconds (random mode only)
+--info-cycle <us>           Info packet cycle in microseconds (default: 100000)
+--transfer-mode <mode>      Transfer mode: auto, varmax, varauto, fixauto, random
+--target-profile-limit <us> Target profile limit (0=SelfProfile, default: 200)
+--mtu <bytes>               MTU override (default: auto-detect)
+```
+
+> **Note:** These options were available in v1.3.3 and have been reintroduced with the v2.x architecture. They can also be set in `diretta-renderer.conf` for systemd service use.
 
 ### Examples
 
@@ -596,6 +617,9 @@ sudo ./bin/DirettaRendererUPnP --target 1 --verbose
 
 # Bind to specific network interface
 sudo ./bin/DirettaRendererUPnP --target 1 --interface eth0
+
+# Advanced: Custom thread mode and transfer mode
+sudo ./bin/DirettaRendererUPnP --target 1 --thread-mode 17 --transfer-mode fixauto
 ```
 
 ---
@@ -703,4 +727,4 @@ This software is provided "as is" without warranty. While designed for high-qual
 
 **Enjoy bit-perfect, low-latency audio streaming!**
 
-*Last updated: 2026-02-24 (v2.0.4)*
+*Last updated: 2026-02-28 (v2.0.6)*

@@ -7,7 +7,6 @@
 #include "DirettaSync.h"
 #include "LogLevel.h"
 #include "TimestampedLogger.h"
-#include "PrivilegeDrop.h"
 #include <iostream>
 #include <csignal>
 #include <memory>
@@ -15,7 +14,7 @@
 #include <chrono>
 #include <iomanip>
 
-#define RENDERER_VERSION "2.0.5"
+#define RENDERER_VERSION "2.0.6"
 #define RENDERER_BUILD_DATE __DATE__
 #define RENDERER_BUILD_TIME __TIME__
 
@@ -120,9 +119,6 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
         else if (arg == "--interface" && i + 1 < argc) {
             config.networkInterface = argv[++i];
         }
-        else if ((arg == "--user" || arg == "-u") && i + 1 < argc) {
-            config.dropUser = argv[++i];
-        }
         else if (arg == "--list-targets" || arg == "-l") {
             listTargets();
             exit(0);
@@ -145,6 +141,37 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
             g_logLevel = LogLevel::WARN;
             std::cout << "Quiet mode enabled (log level: WARN)" << std::endl;
         }
+        // Advanced Diretta SDK settings
+        else if (arg == "--thread-mode" && i + 1 < argc) {
+            config.threadMode = std::atoi(argv[++i]);
+        }
+        else if (arg == "--cycle-time" && i + 1 < argc) {
+            config.cycleTime = std::atoi(argv[++i]);
+            if (config.cycleTime < 333 || config.cycleTime > 10000) {
+                std::cerr << "Warning: cycle-time should be between 333-10000 us" << std::endl;
+            }
+        }
+        else if (arg == "--info-cycle" && i + 1 < argc) {
+            config.infoCycle = std::atoi(argv[++i]);
+        }
+        else if (arg == "--cycle-min-time" && i + 1 < argc) {
+            config.cycleMinTime = std::atoi(argv[++i]);
+        }
+        else if (arg == "--transfer-mode" && i + 1 < argc) {
+            config.transferMode = argv[++i];
+            if (config.transferMode != "auto" && config.transferMode != "varmax" &&
+                config.transferMode != "varauto" && config.transferMode != "fixauto" &&
+                config.transferMode != "random") {
+                std::cerr << "Invalid transfer-mode. Use: auto, varmax, varauto, fixauto, random" << std::endl;
+                exit(1);
+            }
+        }
+        else if (arg == "--target-profile-limit" && i + 1 < argc) {
+            config.targetProfileLimitTime = std::atoi(argv[++i]);
+        }
+        else if (arg == "--mtu" && i + 1 < argc) {
+            config.mtu = std::atoi(argv[++i]);
+        }
         else if (arg == "--help" || arg == "-h") {
             std::cout << "Diretta UPnP Renderer (Simplified Architecture)\n\n"
                       << "Usage: " << argv[0] << " [options]\n\n"
@@ -155,12 +182,23 @@ DirettaRenderer::Config parseArguments(int argc, char* argv[]) {
                       << "  --no-gapless          Disable gapless playback\n"
                       << "  --target, -t <index>  Select Diretta target by index (1, 2, 3...)\n"
                       << "  --interface <name>    Network interface to bind (e.g., eth0)\n"
-                      << "  --user, -u <name>     Drop privileges to user after init\n"
                       << "  --list-targets, -l    List available Diretta targets and exit\n"
                       << "  --verbose, -v         Enable verbose debug output (log level: DEBUG)\n"
                       << "  --quiet, -q           Quiet mode - only errors and warnings (log level: WARN)\n"
                       << "  --version, -V         Show version information\n"
                       << "  --help, -h            Show this help\n"
+                      << "\n"
+                      << "Advanced Diretta SDK settings:\n"
+                      << "  --thread-mode <mode>       SDK thread mode bitmask (default: 1=CRITICAL)\n"
+                      << "                             Flags: 1=CRITICAL, 2=NOSHORTSLEEP, 4=NOSLEEP4CORE,\n"
+                      << "                             8=SOCKETNOBLOCK, 16=OCCUPIED, 2048=NOSLEEPFORCE,\n"
+                      << "                             8192=NOJUMBOFRAME, 16384=NOFIREWALL, 32768=NORAWSOCKET\n"
+                      << "  --cycle-time <us>          Max cycle time in microseconds (333-10000, default: auto)\n"
+                      << "  --cycle-min-time <us>      Min cycle time in microseconds (random mode only)\n"
+                      << "  --info-cycle <us>          Info packet cycle in microseconds (default: 100000)\n"
+                      << "  --transfer-mode <mode>     Transfer mode: auto, varmax, varauto, fixauto, random\n"
+                      << "  --target-profile-limit <us> Target profile limit time (0=self, default: 200)\n"
+                      << "  --mtu <bytes>              MTU override (default: auto-detect)\n"
                       << std::endl;
             exit(0);
         }
@@ -220,16 +258,6 @@ int main(int argc, char* argv[]) {
         }
 
         std::cout << "Renderer started!" << std::endl;
-
-        // Drop privileges after all network init is complete
-        if (!config.dropUser.empty()) {
-            if (!dropPrivileges(config.dropUser)) {
-                std::cerr << "Failed to drop privileges to user '"
-                          << config.dropUser << "'" << std::endl;
-                shutdownAsyncLogging();
-                return 1;
-            }
-        }
 
         std::cout << std::endl;
         std::cout << "Waiting for UPnP control points..." << std::endl;

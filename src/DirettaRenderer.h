@@ -32,7 +32,15 @@ public:
         bool gaplessEnabled = true;
         int targetIndex = -1;  // -1 = interactive, >= 0 = specific
         std::string networkInterface;  // Empty = auto-detect
-        std::string dropUser;  // Empty = no privilege drop
+
+        // Advanced Diretta SDK settings (-1 = use default)
+        int threadMode = -1;       // SDK THRED_MODE bitmask (default: 1 = CRITICAL)
+        int cycleTime = -1;        // Cycle time in µs (default: 2620, auto-calculated)
+        int infoCycle = -1;        // Info packet cycle in µs (default: 100000 = 100ms)
+        int cycleMinTime = -1;     // Min cycle time in µs (default: unused, random mode only)
+        std::string transferMode;  // Transfer mode: auto|varmax|varauto|fixauto|random
+        int mtu = -1;             // MTU override in bytes (default: auto-detect)
+        int targetProfileLimitTime = -1;  // 0=SelfProfile, >0=TargetProfile limit in µs (default: 200)
 
         Config();
     };
@@ -84,4 +92,8 @@ private:
 
     // DAC stabilization timing
     std::chrono::steady_clock::time_point m_lastStopTime;
+
+    // Auto-release: free Diretta target after idle timeout for coexistence
+    std::atomic<bool> m_idleTimerActive{false};
+    std::atomic<bool> m_direttaReleased{false};
 };

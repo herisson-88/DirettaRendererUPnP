@@ -1099,14 +1099,6 @@ setup_systemd_service() {
     print_info "1. Creating installation directory..."
     sudo mkdir -p "$INSTALL_DIR"
 
-    print_info "1b. Creating system user for privilege drop..."
-    if ! id -u diretta &>/dev/null; then
-        sudo useradd -r -s /usr/sbin/nologin -d "$INSTALL_DIR" diretta
-        print_success "System user 'diretta' created"
-    else
-        print_info "System user 'diretta' already exists"
-    fi
-
     print_info "2. Copying binary..."
     sudo cp "$BINARY_PATH" "$INSTALL_DIR/"
     sudo chmod +x "$INSTALL_DIR/DirettaRendererUPnP"
@@ -1131,12 +1123,13 @@ TARGET="${TARGET:-1}"
 PORT="${PORT:-4005}"
 GAPLESS="${GAPLESS:-}"
 VERBOSE="${VERBOSE:-}"
-DROP_USER="${DROP_USER:-}"
 NETWORK_INTERFACE="${NETWORK_INTERFACE:-}"
 THREAD_MODE="${THREAD_MODE:-}"
 CYCLE_TIME="${CYCLE_TIME:-}"
 CYCLE_MIN_TIME="${CYCLE_MIN_TIME:-}"
 INFO_CYCLE="${INFO_CYCLE:-}"
+TRANSFER_MODE="${TRANSFER_MODE:-}"
+TARGET_PROFILE_LIMIT="${TARGET_PROFILE_LIMIT:-}"
 MTU_OVERRIDE="${MTU_OVERRIDE:-}"
 
 RENDERER_BIN="/opt/diretta-renderer-upnp/DirettaRendererUPnP"
@@ -1162,11 +1155,6 @@ if [ -n "$NETWORK_INTERFACE" ]; then
         echo "Binding to network interface: $NETWORK_INTERFACE"
         CMD="$CMD --interface $NETWORK_INTERFACE"
     fi
-fi
-
-# Privilege drop
-if [ -n "$DROP_USER" ] && [ "$DROP_USER" != "root" ]; then
-    CMD="$CMD --user $DROP_USER"
 fi
 
 # Gapless
@@ -1196,6 +1184,14 @@ if [ -n "$INFO_CYCLE" ]; then
     CMD="$CMD --info-cycle $INFO_CYCLE"
 fi
 
+if [ -n "$TRANSFER_MODE" ]; then
+    CMD="$CMD --transfer-mode $TRANSFER_MODE"
+fi
+
+if [ -n "$TARGET_PROFILE_LIMIT" ]; then
+    CMD="$CMD --target-profile-limit $TARGET_PROFILE_LIMIT"
+fi
+
 if [ -n "$MTU_OVERRIDE" ]; then
     CMD="$CMD --mtu $MTU_OVERRIDE"
 fi
@@ -1222,144 +1218,69 @@ WRAPPER_EOF
         print_success "Wrapper script created: $WRAPPER_SCRIPT"
     fi
 
-    print_info "4. Creating configuration file..."
-    if [ ! -f "$CONFIG_FILE" ]; then
+    print_info "4. Installing configuration file..."
+    if [ -f "$CONFIG_FILE" ]; then
+        # ---- Upgrade: migrate old settings to new config template ----
+        print_info "Existing configuration found, upgrading..."
+
+        # Backup old config
+        local BACKUP_FILE="$CONFIG_FILE.bak"
+        sudo cp "$CONFIG_FILE" "$BACKUP_FILE"
+        print_success "Old config backed up to: $BACKUP_FILE"
+
+        # Install new config template
         if [ -f "$SYSTEMD_DIR/diretta-renderer.conf" ]; then
             sudo cp "$SYSTEMD_DIR/diretta-renderer.conf" "$CONFIG_FILE"
         else
-            # Create default configuration (v2.0.0 compatible)
-            sudo tee "$CONFIG_FILE" > /dev/null <<'CONFIG_EOF'
-# Diretta UPnP Renderer Configuration
-#
-# This file is sourced by the systemd service unit.
-# Modify these values to change renderer behavior.
-#
-# After changing values, reload:
-#   sudo systemctl daemon-reload
-#   sudo systemctl restart diretta-renderer
+            print_error "New config template not found at: $SYSTEMD_DIR/diretta-renderer.conf"
+            print_info "Restoring old config..."
+            sudo cp "$BACKUP_FILE" "$CONFIG_FILE"
+            return 1
+        fi
 
-# ============================================================================
-# BASIC SETTINGS
-# ============================================================================
+        # Migrate settings from old config
+        # Known keys in v2.0.6 (all others are considered obsolete)
+        local KNOWN_KEYS="TARGET PORT GAPLESS VERBOSE NETWORK_INTERFACE THREAD_MODE CYCLE_TIME CYCLE_MIN_TIME INFO_CYCLE TRANSFER_MODE TARGET_PROFILE_LIMIT MTU_OVERRIDE"
+        local migrated_keys=""
+        local obsolete_keys=""
 
-# Target Diretta device number (1 = first found)
-TARGET=1
+        while IFS= read -r line; do
+            # Skip comments and empty lines
+            [[ "$line" =~ ^[[:space:]]*# ]] && continue
+            [[ "$line" =~ ^[[:space:]]*$ ]] && continue
 
-# UPnP port (default: 4005)
-PORT=4005
+            # Match KEY=VALUE (with or without quotes)
+            if [[ "$line" =~ ^([A-Z_]+)=(.*) ]]; then
+                local key="${BASH_REMATCH[1]}"
+                local val="${BASH_REMATCH[2]}"
 
-# Gapless playback
-# Add "--no-gapless" to disable, leave empty to enable
-GAPLESS=""
+                # Check if this key is known in current version
+                if echo "$KNOWN_KEYS" | grep -qw "$key"; then
+                    # Apply to new config: replace commented or uncommented line
+                    if sudo grep -q "^#\?${key}=" "$CONFIG_FILE" 2>/dev/null; then
+                        sudo sed -i "s|^#\?${key}=.*|${key}=${val}|" "$CONFIG_FILE"
+                        migrated_keys="$migrated_keys $key"
+                    fi
+                else
+                    obsolete_keys="$obsolete_keys $key"
+                fi
+            fi
+        done < "$BACKUP_FILE"
 
-# Log verbosity
-# Options:
-#   ""          - Normal output (INFO level, default)
-#   "--verbose" - Debug logs (all messages)
-#   "--quiet"   - Warnings and errors only
-VERBOSE=""
-
-# Drop privileges to this user after initialization
-# The 'diretta' user is created automatically by install.sh
-# Set to "" to stay as root (not recommended for production)
-DROP_USER="diretta"
-
-# ============================================================================
-# NETWORK INTERFACE SETTINGS (for multi-homed systems)
-# ============================================================================
-#
-# For systems with multiple network interfaces (e.g., 3-tier architecture),
-# specify which interface to use for UPnP discovery and SSDP broadcasts.
-#
-# This is essential for proper operation when you have:
-#   - Multiple network cards (eth0, eth1, eno1, eno2, etc.)
-#   - VPN connections
-#   - Bridged networks
-#   - Separate control and audio networks
-#
-# IMPORTANT: Choose the interface connected to your UPnP control points
-#            (e.g., JPlay, Roon, BubbleUPnP), NOT the Diretta audio network!
-#
-# Examples:
-#   NETWORK_INTERFACE="eth0"           # Use interface name (recommended)
-#   NETWORK_INTERFACE="192.168.1.10"  # Use specific IP address
-#   NETWORK_INTERFACE=""               # Auto-detect (default)
-#
-NETWORK_INTERFACE=""
-
-# ============================================================================
-# ADVANCED DIRETTA SDK SETTINGS
-# ============================================================================
-# Leave commented to use defaults. Uncomment and modify to override.
-
-# Thread Mode (bitmask - add values together)
-# Default: 1 (Critical only)
-#
-# Available flags:
-#   1     = Critical (REALTIME priority)
-#   2     = NoShortSleep
-#   4     = NoSleep4Core
-#   8     = SocketNoBlock
-#   16    = OccupiedCPU
-#   32    = FEEDBACK (moving average)
-#   64    = FEEDBACK (moving average)
-#   128   = FEEDBACK (moving average)
-#   256   = NOFASTFEEDBACK
-#   512   = IDLEONE
-#   1024  = IDLEALL
-#   2048  = NOSLEEPFORCE
-#   4096  = LIMITRESEND
-#   8192  = NOJUMBOFRAME
-#   16384 = NOFIREWALL
-#   32768 = NORAWSOCKET
-#
-# Examples:
-#   1     = Default (Critical only)
-#   17    = Critical + OccupiedCPU (1+16)
-#   33    = Critical + FEEDBACK32 (1+32)
-#
-#THREAD_MODE=1
-
-# Transfer Packet Cycle Maximum Time (microseconds)
-# Default: 10000 (10ms)
-# Range: 333-10000
-#CYCLE_TIME=10000
-
-# Transfer Packet Cycle Minimum Time (microseconds)
-# Only used in random mode
-# Default: 333
-#CYCLE_MIN_TIME=333
-
-# Information Packet Cycle Time (microseconds)
-# Default: 5000 (5ms)
-#INFO_CYCLE=5000
-
-# MTU Override (bytes)
-# Default: auto-detect
-# Common values: 1500 (standard), 9000 (jumbo), 16128 (max jumbo)
-#MTU_OVERRIDE=""
-
-# ============================================================================
-# TROUBLESHOOTING
-# ============================================================================
-#
-# Problem: Renderer not discovered by control points in 3-tier setup
-# Solution: Set NETWORK_INTERFACE to the interface with control points
-#           Example: NETWORK_INTERFACE="eth0"
-#
-# Problem: How to find which interface to use?
-# Solution: Run: ip addr show
-#           Look for the IP on the same subnet as your control points
-#
-# Problem: Renderer discovered but no audio
-# Solution: Check TARGET points to correct Diretta DAC IP on audio network
-#
-# For more help: https://github.com/cometdom/DirettaRendererUPnP/issues
-CONFIG_EOF
+        if [ -n "$migrated_keys" ]; then
+            print_success "Settings migrated:$migrated_keys"
+        fi
+        if [ -n "$obsolete_keys" ]; then
+            print_warning "Obsolete settings skipped (no longer used):$obsolete_keys"
+        fi
+        print_success "Configuration upgraded: $CONFIG_FILE"
+        print_info "Old config saved as: $BACKUP_FILE"
+    else
+        # ---- Fresh install ----
+        if [ -f "$SYSTEMD_DIR/diretta-renderer.conf" ]; then
+            sudo cp "$SYSTEMD_DIR/diretta-renderer.conf" "$CONFIG_FILE"
         fi
         print_success "Configuration file created: $CONFIG_FILE"
-    else
-        print_info "Configuration file already exists, keeping current settings"
     fi
 
     print_info "5. Installing systemd service..."
@@ -1391,11 +1312,10 @@ StandardError=journal
 SyslogIdentifier=diretta-renderer
 
 # --- Capabilities ---
-# CAP_SETUID/CAP_SETGID: needed for privilege drop (setuid/setgid)
 # CAP_NET_RAW/CAP_NET_ADMIN: needed for Diretta raw sockets
-# CAP_SYS_NICE: needed for real-time thread priority
-AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_SETUID CAP_SETGID
-CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE CAP_SETUID CAP_SETGID
+# CAP_SYS_NICE: needed for real-time thread priority (SCHED_FIFO)
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN CAP_SYS_NICE
 
 # --- Filesystem isolation ---
 ProtectSystem=strict

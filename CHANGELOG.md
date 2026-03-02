@@ -1,14 +1,50 @@
 # Changelog
 
-## [2.0.5] - 2026-02-27
+## [2.0.6] - Unreleased
+
+### ✨ New Features
+
+**Advanced Diretta SDK Settings Exposed via CLI:**
+- `--thread-mode <mode>`: SDK thread mode bitmask (CRITICAL, NOSHORTSLEEP, SOCKETNOBLOCK, OCCUPIED, etc.)
+- `--cycle-time <us>`: Max packet transmission cycle time in microseconds (disables auto-calculation)
+- `--cycle-min-time <us>`: Min cycle time in microseconds (random mode only)
+- `--info-cycle <us>`: Info packet cycle time (default: 100000µs = 100ms)
+- `--transfer-mode <mode>`: Transfer mode (auto, varmax, varauto, fixauto, random)
+- `--target-profile-limit <us>`: Target profile limit time (0=SelfProfile, default: 200=TargetProfile with auto-adaptation)
+- `--mtu <bytes>`: MTU override (skip auto-detection)
+- These options were available in v1.3.3 and have been reintroduced with the new DirettaSync architecture
+- TargetProfile mode uses SDK `getProfileMaker()` for target-adaptive transmission profiles
+- Refactored SDK `open()` calls into a single `openSDK()` helper to eliminate code duplication
+
+**Automatic Configuration Migration on Upgrade:**
+- When upgrading, `install.sh` now automatically migrates your settings from the old `diretta-renderer.conf` to the new template
+- Old config is backed up as `diretta-renderer.conf.bak`
+- User settings (TARGET, PORT, NETWORK_INTERFACE, etc.) are preserved and applied to the new file
+- New options (SDK settings) appear with their default values, ready to customize
+- Obsolete settings (e.g., `DROP_USER` from v2.0.5) are detected and reported
 
 ### 🐛 Bug Fixes
 
-**Fix white noise on Stop for some DACs (contributed by herisson-88):**
-- Changed `onStop` callback to use `stopPlayback()` instead of `close()` on DirettaSync
-- Keeps SDK connection open for quick resume path, preventing DAC resync failures
-- Fixes intermittent white noise on hi-res track transitions reported with Audirvana
-- Added defensive `isOpen()` guard before calling `stopPlayback()`
+**Stop Action Uses stopPlayback() Instead of close() (fix by herisson-88):**
+- Changed UPnP Stop handler from `close()` to `stopPlayback(false)` in DirettaSync
+- Keeps SDK connection open for faster "quick resume" path on next Play
+- Prevents intermittent white noise on hi-res track transitions caused by target (e.g., Holo Red) failing to resync after SDK reopen
+
+**Auto-Detect libupnp Include Path:**
+- Makefile now uses `pkg-config --cflags libupnp` to detect the correct include path
+- Falls back to standard path detection if pkg-config is not available
+- Fixes compilation on systems where libupnp headers are in non-standard locations (e.g., GentooPlayer on RPi4)
+
+### 🗑️ Removed
+
+**Privilege Drop (`--user` / `DROP_USER`) Removed:**
+- Removed `--user` / `-u` command-line option and `DROP_USER` configuration setting
+- Removed `PrivilegeDrop.h` module
+- All users run dedicated audio machines where privilege isolation provides no benefit
+- Running as root guarantees SCHED_FIFO real-time priority on worker threads — a bug in capability inheritance caused worker threads to lose SCHED_FIFO when dropping to an unprivileged user, resulting in degraded audio quality
+- Systemd service simplified: removed `CAP_SETUID`/`CAP_SETGID` from `AmbientCapabilities` and `CapabilityBoundingSet`
+
+---
 
 ## [2.0.4] - 2026-02-24
 

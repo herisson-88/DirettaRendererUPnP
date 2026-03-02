@@ -33,6 +33,12 @@ namespace FlowControl {
 }
 
 //=============================================================================
+// Auto-release: free Diretta target after idle for coexistence
+//=============================================================================
+
+static constexpr int IDLE_RELEASE_TIMEOUT_S = 5;
+
+//=============================================================================
 // UUID Generation
 //=============================================================================
 
@@ -133,6 +139,52 @@ bool DirettaRenderer::start() {
         }
 
         DirettaConfig syncConfig;
+
+        // Apply user-specified SDK settings (override defaults)
+        if (m_config.threadMode >= 0)
+            syncConfig.threadMode = m_config.threadMode;
+        if (m_config.cycleTime >= 0) {
+            syncConfig.cycleTime = static_cast<unsigned int>(m_config.cycleTime);
+            syncConfig.cycleTimeAuto = false;
+        }
+        if (m_config.infoCycle >= 0)
+            syncConfig.infoCycle = static_cast<unsigned int>(m_config.infoCycle);
+        if (m_config.cycleMinTime >= 0)
+            syncConfig.cycleMinTime = static_cast<unsigned int>(m_config.cycleMinTime);
+        if (m_config.mtu >= 0)
+            syncConfig.mtu = static_cast<unsigned int>(m_config.mtu);
+        if (!m_config.transferMode.empty()) {
+            if (m_config.transferMode == "varmax")
+                syncConfig.transferMode = DirettaTransferMode::VAR_MAX;
+            else if (m_config.transferMode == "varauto")
+                syncConfig.transferMode = DirettaTransferMode::VAR_AUTO;
+            else if (m_config.transferMode == "fixauto")
+                syncConfig.transferMode = DirettaTransferMode::FIX_AUTO;
+            else if (m_config.transferMode == "random")
+                syncConfig.transferMode = DirettaTransferMode::RANDOM;
+            else
+                syncConfig.transferMode = DirettaTransferMode::AUTO;
+        }
+        if (m_config.targetProfileLimitTime >= 0)
+            syncConfig.targetProfileLimitTime = static_cast<unsigned int>(m_config.targetProfileLimitTime);
+
+        // Log non-default SDK settings
+        if (m_config.threadMode >= 0)
+            std::cout << "[DirettaRenderer] Thread mode: " << syncConfig.threadMode << std::endl;
+        if (m_config.cycleTime >= 0)
+            std::cout << "[DirettaRenderer] Cycle time: " << syncConfig.cycleTime << " us (auto disabled)" << std::endl;
+        if (m_config.infoCycle >= 0)
+            std::cout << "[DirettaRenderer] Info cycle: " << syncConfig.infoCycle << " us" << std::endl;
+        if (m_config.cycleMinTime >= 0)
+            std::cout << "[DirettaRenderer] Cycle min time: " << syncConfig.cycleMinTime << " us" << std::endl;
+        if (!m_config.transferMode.empty())
+            std::cout << "[DirettaRenderer] Transfer mode: " << m_config.transferMode << std::endl;
+        if (m_config.mtu >= 0)
+            std::cout << "[DirettaRenderer] MTU override: " << syncConfig.mtu << std::endl;
+        if (m_config.targetProfileLimitTime >= 0)
+            std::cout << "[DirettaRenderer] Target profile limit: " << syncConfig.targetProfileLimitTime
+                      << " us (" << (syncConfig.targetProfileLimitTime > 0 ? "TargetProfile" : "SelfProfile") << ")" << std::endl;
+
         if (!m_direttaSync->enable(syncConfig)) {
             std::cerr << "[DirettaRenderer] Failed to enable DirettaSync" << std::endl;
             return false;
@@ -442,6 +494,10 @@ bool DirettaRenderer::start() {
             std::cout << "[DirettaRenderer] Play" << std::endl;
             std::lock_guard<std::mutex> lock(m_mutex);
 
+            // Cancel idle release timer
+            m_idleTimerActive.store(false, std::memory_order_release);
+            m_direttaReleased.store(false, std::memory_order_release);
+
             // Resume from pause?
             if (m_direttaSync && m_direttaSync->isOpen() && m_direttaSync->isPaused()) {
                 DEBUG_LOG("[DirettaRenderer] Resuming from pause");
@@ -521,6 +577,9 @@ bool DirettaRenderer::start() {
             }
 
             m_upnp->notifyStateChange("STOPPED");
+
+            // Start idle release timer
+            m_idleTimerActive.store(true, std::memory_order_release);
         };
 
         callbacks.onSeek = [this](const std::string& target) {
@@ -680,6 +739,23 @@ void DirettaRenderer::audioThreadFunc() {
                 }
             }
         } else {
+            // Auto-release Diretta target after idle timeout
+            if (m_idleTimerActive.load(std::memory_order_acquire) &&
+                !m_direttaReleased.load(std::memory_order_acquire)) {
+                auto elapsed = std::chrono::steady_clock::now() - m_lastStopTime;
+                if (elapsed >= std::chrono::seconds(IDLE_RELEASE_TIMEOUT_S)) {
+                    std::lock_guard<std::mutex> lock(m_mutex);
+                    if (m_direttaSync && m_direttaSync->isOpen()) {
+                        std::cout << "[DirettaRenderer] No activity for "
+                                  << IDLE_RELEASE_TIMEOUT_S
+                                  << "s — releasing Diretta target for other sources"
+                                  << std::endl;
+                        m_direttaSync->release();
+                    }
+                    m_direttaReleased.store(true, std::memory_order_release);
+                    m_idleTimerActive.store(false, std::memory_order_release);
+                }
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             lastSampleRate = 0;
         }

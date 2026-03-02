@@ -158,9 +158,15 @@ void DirettaSync::disable() {
     DIRETTA_LOG("Disabled");
 }
 
-bool DirettaSync::openSyncConnection() {
-    ACQUA::Clock cycleTime = ACQUA::Clock::MicroSeconds(m_config.cycleTime);
+bool DirettaSync::openSDK() {
+    ACQUA::Clock infoCycle = ACQUA::Clock::MicroSeconds(m_config.infoCycle);
+    return DIRETTA::Sync::open(
+        DIRETTA::Sync::THRED_MODE(m_config.threadMode),
+        infoCycle, 0, "DirettaRenderer", 0x44525400,
+        -1, -1, 0, DIRETTA::Sync::MSMODE_AUTO);
+}
 
+bool DirettaSync::openSyncConnection() {
     DIRETTA_LOG("Opening DIRETTA::Sync with threadMode=" << m_config.threadMode);
 
     bool opened = false;
@@ -169,10 +175,7 @@ bool DirettaSync::openSyncConnection() {
             DIRETTA_LOG("open() retry #" << attempt);
             std::this_thread::sleep_for(std::chrono::milliseconds(DirettaRetry::OPEN_DELAY_MS));
         }
-        opened = DIRETTA::Sync::open(
-            DIRETTA::Sync::THRED_MODE(m_config.threadMode),
-            cycleTime, 0, "DirettaRenderer", 0x44525400,
-            -1, -1, 0, DIRETTA::Sync::MSMODE_AUTO);
+        opened = openSDK();
     }
 
     if (!opened) {
@@ -533,11 +536,7 @@ bool DirettaSync::open(const AudioFormat& format) {
                 interruptibleWait(m_transitionMutex, m_transitionCv, m_transitionWakeup, resetDelayMs);
 
                 // Reopen DIRETTA::Sync fresh
-                ACQUA::Clock cycleTime = ACQUA::Clock::MicroSeconds(m_config.cycleTime);
-                if (!DIRETTA::Sync::open(
-                        DIRETTA::Sync::THRED_MODE(m_config.threadMode),
-                        cycleTime, 0, "DirettaRenderer", 0x44525400,
-                        -1, -1, 0, DIRETTA::Sync::MSMODE_AUTO)) {
+                if (!openSDK()) {
                     std::cerr << "[DirettaSync] Failed to re-open DIRETTA::Sync" << std::endl;
                     return false;
                 }
@@ -581,11 +580,7 @@ bool DirettaSync::open(const AudioFormat& format) {
                 interruptibleWait(m_transitionMutex, m_transitionCv, m_transitionWakeup, resetDelayMs);
 
                 // Reopen DIRETTA::Sync fresh
-                ACQUA::Clock cycleTime = ACQUA::Clock::MicroSeconds(m_config.cycleTime);
-                if (!DIRETTA::Sync::open(
-                        DIRETTA::Sync::THRED_MODE(m_config.threadMode),
-                        cycleTime, 0, "DirettaRenderer", 0x44525400,
-                        -1, -1, 0, DIRETTA::Sync::MSMODE_AUTO)) {
+                if (!openSDK()) {
                     std::cerr << "[DirettaSync] Failed to re-open DIRETTA::Sync" << std::endl;
                     return false;
                 }
@@ -862,12 +857,7 @@ bool DirettaSync::reopenForFormatChange() {
     interruptibleWait(m_transitionMutex, m_transitionCv, m_transitionWakeup,
                       static_cast<int>(m_config.formatSwitchDelayMs));
 
-    ACQUA::Clock cycleTime = ACQUA::Clock::MicroSeconds(m_config.cycleTime);
-
-    if (!DIRETTA::Sync::open(
-            DIRETTA::Sync::THRED_MODE(m_config.threadMode),
-            cycleTime, 0, "DirettaRenderer", 0x44525400,
-            -1, -1, 0, DIRETTA::Sync::MSMODE_AUTO)) {
+    if (!openSDK()) {
         std::cerr << "[DirettaSync] Failed to re-open sync" << std::endl;
         return false;
     }
@@ -1751,27 +1741,72 @@ bool DirettaSync::waitForOnline(unsigned int timeoutMs) {
 }
 
 void DirettaSync::applyTransferMode(DirettaTransferMode mode, ACQUA::Clock cycleTime) {
+    // Resolve AUTO mode
+    DirettaTransferMode effectiveMode = mode;
     if (mode == DirettaTransferMode::AUTO) {
         if (m_isLowBitrate.load(std::memory_order_acquire) ||
             m_isDsdMode.load(std::memory_order_acquire)) {
-            DIRETTA_LOG("Using VarAuto");
-            configTransferVarAuto(cycleTime);
+            effectiveMode = DirettaTransferMode::VAR_AUTO;
         } else {
-            DIRETTA_LOG("Using VarMax");
-            configTransferVarMax(cycleTime);
+            effectiveMode = DirettaTransferMode::VAR_MAX;
         }
+    }
+
+    // TargetProfile path: use ProfileMaker for target-adaptive profile
+    if (m_config.targetProfileLimitTime > 0) {
+        ACQUA::Clock limitCycle = ACQUA::Clock::MicroSeconds(m_config.targetProfileLimitTime);
+        auto pm = getProfileMaker(limitCycle);
+
+        switch (effectiveMode) {
+            case DirettaTransferMode::FIX_AUTO:
+                DIRETTA_LOG("Using TargetProfile FixAuto (limit=" << m_config.targetProfileLimitTime << "us)");
+                pm.configTransferFixAuto(cycleTime);
+                break;
+            case DirettaTransferMode::RANDOM: {
+                ACQUA::Clock minCycle = (m_config.cycleMinTime > 0)
+                    ? ACQUA::Clock::MicroSeconds(m_config.cycleMinTime)
+                    : ACQUA::Clock::MicroSeconds(333);
+                DIRETTA_LOG("Using TargetProfile Random (limit=" << m_config.targetProfileLimitTime
+                            << "us, min=" << m_config.cycleMinTime << "us)");
+                pm.configTransferRandom(minCycle, cycleTime, 1);
+                break;
+            }
+            case DirettaTransferMode::VAR_MAX:
+                DIRETTA_LOG("Using TargetProfile VarMax (limit=" << m_config.targetProfileLimitTime << "us)");
+                pm.configTransferSizeMax();
+                break;
+            case DirettaTransferMode::VAR_AUTO:
+            default:
+                DIRETTA_LOG("Using TargetProfile VarAuto (limit=" << m_config.targetProfileLimitTime << "us)");
+                pm.configTransferVarAuto(cycleTime);
+                break;
+        }
+
+        setConfigTransfer(static_cast<DIRETTA::Profile>(pm));
         return;
     }
 
-    switch (mode) {
+    // SelfProfile path: direct Sync calls (no target adaptation)
+    switch (effectiveMode) {
         case DirettaTransferMode::FIX_AUTO:
+            DIRETTA_LOG("Using FixAuto");
             configTransferFixAuto(cycleTime);
             break;
         case DirettaTransferMode::VAR_AUTO:
+            DIRETTA_LOG("Using VarAuto");
             configTransferVarAuto(cycleTime);
             break;
+        case DirettaTransferMode::RANDOM: {
+            ACQUA::Clock minCycle = (m_config.cycleMinTime > 0)
+                ? ACQUA::Clock::MicroSeconds(m_config.cycleMinTime)
+                : ACQUA::Clock::MicroSeconds(333);
+            DIRETTA_LOG("Using Random (min=" << m_config.cycleMinTime << "us, max=" << cycleTime.getMicroSeconds() << "us)");
+            configTransferRandom(minCycle, cycleTime, 1);
+            break;
+        }
         case DirettaTransferMode::VAR_MAX:
         default:
+            DIRETTA_LOG("Using VarMax");
             configTransferVarMax(cycleTime);
             break;
     }

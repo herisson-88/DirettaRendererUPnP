@@ -94,16 +94,108 @@ sudo ./DirettaRendererUPnP --target 1 --verbose
 sudo ./DirettaRendererUPnP --target 1 --quiet
 ```
 
-#### `--user, -u <name>`
-**Default**: No privilege drop (stays as root)
-**Description**: Drop root privileges to the specified user after network initialization. The process retains `CAP_NET_RAW`, `CAP_NET_ADMIN`, and `CAP_SYS_NICE` capabilities via Linux `capset()` syscall. Requires starting as root.
-**Example**:
-```bash
-sudo ./DirettaRendererUPnP --target 1 --user diretta
-```
-
 #### `--version, -V`
 **Description**: Show version information and exit
+
+### Advanced Diretta SDK Settings
+
+These options allow fine-tuning the Diretta SDK transmission behavior. **Leave at defaults unless you have a specific reason to change them.**
+
+#### `--thread-mode <mode>`
+**Default**: 1 (CRITICAL)
+**Description**: SDK thread mode bitmask. Flags can be combined by adding values together.
+
+| Flag | Value | Description |
+|------|-------|-------------|
+| CRITICAL | 1 | Set sending thread to critical priority |
+| NOSHORTSLEEP | 2 | Busy-loop for short waits (reduces jitter, uses more CPU) |
+| NOSLEEP4CORE | 4 | Only busy-loop if >= 4 CPU cores available |
+| SOCKETNOBLOCK | 8 | Non-blocking socket |
+| OCCUPIED | 16 | Pin SDK thread to CPU core |
+| FEEDBACK | 32/64/128 | Moving average feedback (3 bits) |
+| NOFASTFEEDBACK | 256 | Disable fast feedback mechanism |
+| IDLEONE | 512 | Run idle handler once per cycle |
+| IDLEALL | 1024 | Always run idle handler (busy-loop variant) |
+| NOSLEEPFORCE | 2048 | Force busy-loop regardless of core count |
+| LIMITRESEND | 4096 | Limit retransmission buffer |
+| NOJUMBOFRAME | 8192 | Disable jumbo frame support |
+| NOFIREWALL | 16384 | Don't send firewall discovery packets |
+| NORAWSOCKET | 32768 | Disable raw socket mode |
+
+**Examples**:
+```bash
+# Critical + NoShortSleep (reduced jitter)
+sudo ./DirettaRendererUPnP --target 1 --thread-mode 3
+
+# Critical + Occupied CPU
+sudo ./DirettaRendererUPnP --target 1 --thread-mode 17
+```
+
+#### `--cycle-time <microseconds>`
+**Default**: Auto-calculated (2620 µs base, adapts to format)
+**Range**: 333-10000
+**Description**: Maximum packet transmission cycle time. When specified, disables automatic cycle time calculation. Lower values = more frequent transmissions = lower latency but higher CPU.
+**Example**:
+```bash
+sudo ./DirettaRendererUPnP --target 1 --cycle-time 5000
+```
+
+#### `--info-cycle <microseconds>`
+**Default**: 100000 (100ms)
+**Description**: Information packet cycle time passed to the SDK `open()` method. Controls the interval for control/info packets, separate from the data transmission cycle.
+**Example**:
+```bash
+sudo ./DirettaRendererUPnP --target 1 --info-cycle 50000
+```
+
+#### `--cycle-min-time <microseconds>`
+**Default**: Unused
+**Description**: Minimum cycle time, only used in `random` transfer mode.
+**Example**:
+```bash
+sudo ./DirettaRendererUPnP --target 1 --transfer-mode random --cycle-min-time 333
+```
+
+#### `--transfer-mode <mode>`
+**Default**: auto
+**Description**: Data transfer mode. Controls how packets are sized and scheduled.
+
+| Mode | Description |
+|------|-------------|
+| `auto` | Automatic (VarMax for PCM Hi-Res, VarAuto for DSD/low-bitrate) |
+| `varmax` | Flex cycle, maximum packet size |
+| `varauto` | Flex cycle, auto-tuned |
+| `fixauto` | Fixed cycle, auto-tuned |
+| `random` | Random cycle (uses `--cycle-min-time` as minimum) |
+
+**Example**:
+```bash
+sudo ./DirettaRendererUPnP --target 1 --transfer-mode fixauto
+```
+
+#### `--target-profile-limit <microseconds>`
+**Default**: 200
+**Description**: Controls how the SDK manages transmission profiles.
+- `0` = **SelfProfile**: the renderer manages its own profile directly
+- `>0` = **TargetProfile**: the SDK auto-adapts the profile based on the target device capabilities, with the specified value as the minimum cycle time limit. Under high system load, the SDK automatically falls back to lighter processing.
+
+**Example**:
+```bash
+# Use TargetProfile with 200µs limit (default)
+sudo ./DirettaRendererUPnP --target 1 --target-profile-limit 200
+
+# Use SelfProfile (direct control)
+sudo ./DirettaRendererUPnP --target 1 --target-profile-limit 0
+```
+
+#### `--mtu <bytes>`
+**Default**: Auto-detect
+**Description**: Override MTU detection. Useful when auto-detection fails or for testing.
+**Common values**: 1500 (standard), 9000 (jumbo), 16128 (max jumbo)
+**Example**:
+```bash
+sudo ./DirettaRendererUPnP --target 1 --mtu 9000
+```
 
 ### Combined Example
 
@@ -113,6 +205,17 @@ sudo ./DirettaRendererUPnP \
   --target 1 \
   --name "Bedroom Diretta" \
   --uuid "uuid:bedroom-audio-001"
+```
+
+### Advanced Example
+
+```bash
+sudo ./DirettaRendererUPnP \
+  --target 1 \
+  --thread-mode 3 \
+  --cycle-time 5000 \
+  --transfer-mode fixauto \
+  --mtu 9000
 ```
 
 ---

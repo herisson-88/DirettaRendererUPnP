@@ -282,19 +282,22 @@ private:
 // Transfer Mode
 //=============================================================================
 
-enum class DirettaTransferMode { FIX_AUTO, VAR_AUTO, VAR_MAX, AUTO };
+enum class DirettaTransferMode { FIX_AUTO, VAR_AUTO, VAR_MAX, RANDOM, AUTO };
 
 //=============================================================================
 // Configuration
 //=============================================================================
 
 struct DirettaConfig {
-    unsigned int cycleTime = 2620;
+    unsigned int cycleTime = 10000;
     bool cycleTimeAuto = true;
     DirettaTransferMode transferMode = DirettaTransferMode::AUTO;
     int threadMode = 1;
     unsigned int mtu = 0;  // 0 = auto-detect
     unsigned int mtuFallback = 1500;
+    unsigned int infoCycle = 100000;  // Info packet cycle in µs (SDK default: 100ms)
+    unsigned int cycleMinTime = 0;   // 0 = unused (only for random transfer mode)
+    unsigned int targetProfileLimitTime = 200;  // 0=SelfProfile, other=TargetProfile(LimitCycleTime µs)
     unsigned int dacStabilizationMs = DirettaBuffer::DAC_STABILIZATION_MS;
     unsigned int onlineWaitMs = DirettaBuffer::ONLINE_WAIT_MS;
     unsigned int formatSwitchDelayMs = DirettaBuffer::FORMAT_SWITCH_DELAY_MS;
@@ -469,6 +472,7 @@ private:
     bool discoverTarget();
     bool measureMTU();
     bool openSyncConnection();
+    bool openSDK();  // Helper: calls DIRETTA::Sync::open() with config params
     bool reopenForFormatChange();
     void fullReset();
     void shutdownWorker();

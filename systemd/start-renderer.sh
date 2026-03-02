@@ -9,12 +9,13 @@ TARGET="${TARGET:-1}"
 PORT="${PORT:-4005}"
 GAPLESS="${GAPLESS:-}"
 VERBOSE="${VERBOSE:-}"
-DROP_USER="${DROP_USER:-}"
 NETWORK_INTERFACE="${NETWORK_INTERFACE:-}"
 THREAD_MODE="${THREAD_MODE:-}"
 CYCLE_TIME="${CYCLE_TIME:-}"
 CYCLE_MIN_TIME="${CYCLE_MIN_TIME:-}"
 INFO_CYCLE="${INFO_CYCLE:-}"
+TRANSFER_MODE="${TRANSFER_MODE:-}"
+TARGET_PROFILE_LIMIT="${TARGET_PROFILE_LIMIT:-}"
 MTU_OVERRIDE="${MTU_OVERRIDE:-}"
 
 RENDERER_BIN="/opt/diretta-renderer-upnp/DirettaRendererUPnP"
@@ -42,11 +43,6 @@ if [ -n "$NETWORK_INTERFACE" ]; then
     fi
 fi
 
-# Privilege drop
-if [ -n "$DROP_USER" ] && [ "$DROP_USER" != "root" ]; then
-    CMD="$CMD --user $DROP_USER"
-fi
-
 # Gapless
 if [ -n "$GAPLESS" ]; then
     CMD="$CMD $GAPLESS"
@@ -72,6 +68,14 @@ fi
 
 if [ -n "$INFO_CYCLE" ]; then
     CMD="$CMD --info-cycle $INFO_CYCLE"
+fi
+
+if [ -n "$TRANSFER_MODE" ]; then
+    CMD="$CMD --transfer-mode $TRANSFER_MODE"
+fi
+
+if [ -n "$TARGET_PROFILE_LIMIT" ]; then
+    CMD="$CMD --target-profile-limit $TARGET_PROFILE_LIMIT"
 fi
 
 if [ -n "$MTU_OVERRIDE" ]; then
