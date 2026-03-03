@@ -8,7 +8,7 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/diretta-renderer-upnp
-EnvironmentFile=-/opt/diretta-renderer-upnp/diretta-renderer.conf
+EnvironmentFile=-/etc/default/diretta-renderer
 ExecStart=/opt/diretta-renderer-upnp/start-renderer.sh
 
 # Restart policy

@@ -35,7 +35,7 @@ sudo systemctl status diretta-renderer
 | File | Location | Purpose |
 |------|----------|---------|
 | **Binary** | `/opt/diretta-renderer-upnp/DirettaRendererUPnP` | The renderer executable |
-| **Config** | `/opt/diretta-renderer-upnp/diretta-renderer.conf` | Service configuration |
+| **Config** | `/etc/default/diretta-renderer` | Service configuration |
 | **Service** | `/etc/systemd/system/diretta-renderer.service` | Systemd unit file |
 
 ---
@@ -45,7 +45,7 @@ sudo systemctl status diretta-renderer
 ### Edit Configuration
 
 ```bash
-sudo nano /opt/diretta-renderer-upnp/diretta-renderer.conf
+sudo nano /etc/default/diretta-renderer
 ```
 
 ### Available Options
@@ -173,7 +173,7 @@ Wants=network-online.target
 Type=simple
 User=root                          # Start as root for network init
 WorkingDirectory=/opt/diretta-renderer-upnp
-EnvironmentFile=-/opt/diretta-renderer-upnp/diretta-renderer.conf
+EnvironmentFile=-/etc/default/diretta-renderer
 ExecStart=/opt/diretta-renderer-upnp/start-renderer.sh
 
 Restart=on-failure
@@ -233,7 +233,7 @@ The service runs as root to ensure full access to raw sockets (Diretta protocol)
 
 ```bash
 # Edit config
-sudo nano /opt/diretta-renderer-upnp/diretta-renderer.conf
+sudo nano /etc/default/diretta-renderer
 # Change: PORT=4006
 
 # Restart service
@@ -334,11 +334,11 @@ sudo cp /etc/systemd/system/diretta-renderer.service \
         /etc/systemd/system/diretta-renderer-2.service
 
 # Create second config
-sudo cp /opt/diretta-renderer-upnp/diretta-renderer.conf \
-        /opt/diretta-renderer-upnp/diretta-renderer-2.conf
+sudo cp /etc/default/diretta-renderer \
+        /etc/default/diretta-renderer-2
 
 # Edit second config with different port
-sudo nano /opt/diretta-renderer-upnp/diretta-renderer-2.conf
+sudo nano /etc/default/diretta-renderer-2
 # Set: PORT=4006, TARGET=2
 
 # Edit second service to use second config

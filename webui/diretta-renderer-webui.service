@@ -11,6 +11,8 @@ ExecStart=/usr/bin/python3 /opt/diretta-renderer-upnp/webui/diretta_webui.py \
 Restart=on-failure
 RestartSec=5
 
+ProtectSystem=strict
+ReadWritePaths=/etc/default
 ProtectHome=true
 PrivateTmp=true
 

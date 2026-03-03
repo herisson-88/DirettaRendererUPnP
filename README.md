@@ -281,7 +281,7 @@ sudo systemctl start diretta-renderer
 - Obsolete settings (e.g., `DROP_USER`) are detected and skipped with a warning
 - New advanced SDK settings appear commented with their default values, ready to customize
 
-> **Tip:** After upgrading, review the new options in `/opt/diretta-renderer-upnp/diretta-renderer.conf` — the advanced Diretta SDK settings section allows fine-tuning of thread priority, transfer mode, and timing parameters.
+> **Tip:** After upgrading, review the new options in `/etc/default/diretta-renderer` — the advanced Diretta SDK settings section allows fine-tuning of thread priority, transfer mode, and timing parameters.
 
 ### From v1.x (clean install required)
 

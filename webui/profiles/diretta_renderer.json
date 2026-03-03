@@ -1,7 +1,7 @@
 {
     "product_name": "Diretta UPnP Renderer",
     "service_name": "diretta-renderer",
-    "config_path": "/opt/diretta-renderer-upnp/diretta-renderer.conf",
+    "config_path": "/etc/default/diretta-renderer",
     "config_type": "shell_vars",
     "groups": [
         {

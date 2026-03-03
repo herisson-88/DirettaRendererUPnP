@@ -27,8 +27,15 @@
 - TargetProfile mode uses SDK `getProfileMaker()` for target-adaptive transmission profiles
 - Refactored SDK `open()` calls into a single `openSDK()` helper to eliminate code duplication
 
+**Configuration File Moved to `/etc/default/diretta-renderer`:**
+- Config file relocated from `/opt/diretta-renderer-upnp/diretta-renderer.conf` to `/etc/default/diretta-renderer`
+- Follows standard Linux convention (`/etc/default/` for service configuration)
+- Fixes `Read-only file system` error on machines with read-only `/opt` partition
+- Existing installations are automatically migrated: old config backed up, settings preserved
+- Web UI can now save settings on all system configurations
+
 **Automatic Configuration Migration on Upgrade:**
-- When upgrading, `install.sh` now automatically migrates your settings from the old `diretta-renderer.conf` to the new template
+- When upgrading, `install.sh` automatically migrates settings from old location to `/etc/default/diretta-renderer`
 - Old config is backed up as `diretta-renderer.conf.bak`
 - User settings (TARGET, PORT, NETWORK_INTERFACE, etc.) are preserved and applied to the new file
 - New options (SDK settings) appear with their default values, ready to customize

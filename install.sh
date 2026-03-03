@@ -1077,7 +1077,8 @@ setup_systemd_service() {
 
     local INSTALL_DIR="/opt/diretta-renderer-upnp"
     local SERVICE_FILE="/etc/systemd/system/diretta-renderer.service"
-    local CONFIG_FILE="$INSTALL_DIR/diretta-renderer.conf"
+    local CONFIG_FILE="/etc/default/diretta-renderer"
+    local OLD_CONFIG_FILE="$INSTALL_DIR/diretta-renderer.conf"
     local WRAPPER_SCRIPT="$INSTALL_DIR/start-renderer.sh"
     local BINARY_PATH="$SCRIPT_DIR/bin/DirettaRendererUPnP"
     local SYSTEMD_DIR="$SCRIPT_DIR/systemd"
@@ -1219,13 +1220,25 @@ WRAPPER_EOF
     fi
 
     print_info "4. Installing configuration file..."
+
+    # Determine the source of existing settings (new or old path)
+    local EXISTING_CONFIG=""
     if [ -f "$CONFIG_FILE" ]; then
+        EXISTING_CONFIG="$CONFIG_FILE"
+    elif [ -f "$OLD_CONFIG_FILE" ]; then
+        # Migrate from old location (/opt/diretta-renderer-upnp/diretta-renderer.conf)
+        EXISTING_CONFIG="$OLD_CONFIG_FILE"
+        print_info "Found config at old location: $OLD_CONFIG_FILE"
+        print_info "Migrating to new location: $CONFIG_FILE"
+    fi
+
+    if [ -n "$EXISTING_CONFIG" ]; then
         # ---- Upgrade: migrate old settings to new config template ----
         print_info "Existing configuration found, upgrading..."
 
         # Backup old config
-        local BACKUP_FILE="$CONFIG_FILE.bak"
-        sudo cp "$CONFIG_FILE" "$BACKUP_FILE"
+        local BACKUP_FILE="${EXISTING_CONFIG}.bak"
+        sudo cp "$EXISTING_CONFIG" "$BACKUP_FILE"
         print_success "Old config backed up to: $BACKUP_FILE"
 
         # Install new config template
@@ -1239,7 +1252,6 @@ WRAPPER_EOF
         fi
 
         # Migrate settings from old config
-        # Known keys in v2.0.6 (all others are considered obsolete)
         local KNOWN_KEYS="TARGET PORT GAPLESS VERBOSE NETWORK_INTERFACE THREAD_MODE CYCLE_TIME CYCLE_MIN_TIME INFO_CYCLE TRANSFER_MODE TARGET_PROFILE_LIMIT MTU_OVERRIDE"
         local migrated_keys=""
         local obsolete_keys=""
@@ -1273,8 +1285,14 @@ WRAPPER_EOF
         if [ -n "$obsolete_keys" ]; then
             print_warning "Obsolete settings skipped (no longer used):$obsolete_keys"
         fi
-        print_success "Configuration upgraded: $CONFIG_FILE"
+        print_success "Configuration installed: $CONFIG_FILE"
         print_info "Old config saved as: $BACKUP_FILE"
+
+        # Remove old config from /opt if migrated from there
+        if [ "$EXISTING_CONFIG" = "$OLD_CONFIG_FILE" ]; then
+            sudo rm -f "$OLD_CONFIG_FILE"
+            print_info "Removed old config from: $OLD_CONFIG_FILE"
+        fi
     else
         # ---- Fresh install ----
         if [ -f "$SYSTEMD_DIR/diretta-renderer.conf" ]; then
@@ -1299,7 +1317,7 @@ Wants=network-online.target
 Type=simple
 User=root
 WorkingDirectory=/opt/diretta-renderer-upnp
-EnvironmentFile=-/opt/diretta-renderer-upnp/diretta-renderer.conf
+EnvironmentFile=-/etc/default/diretta-renderer
 ExecStart=/opt/diretta-renderer-upnp/start-renderer.sh
 
 # Restart policy
@@ -1442,6 +1460,8 @@ ExecStart=/usr/bin/python3 /opt/diretta-renderer-upnp/webui/diretta_webui.py \
     --port 8080
 Restart=on-failure
 RestartSec=5
+ProtectSystem=strict
+ReadWritePaths=/etc/default
 ProtectHome=true
 PrivateTmp=true
 
@@ -1640,7 +1660,7 @@ run_full_installation() {
     echo "Quick Start:"
     echo ""
     echo "  1. Edit configuration (optional):"
-    echo "     sudo nano /opt/diretta-renderer-upnp/diretta-renderer.conf"
+    echo "     sudo nano /etc/default/diretta-renderer"
     echo ""
     echo "  2. Start the service:"
     echo "     sudo systemctl start diretta-renderer"
