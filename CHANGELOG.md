@@ -1,8 +1,19 @@
 # Changelog
 
-## [2.0.6] - Unreleased
+## [2.1.0] - 2026-03-03
 
 ### ✨ New Features
+
+**Web Configuration UI (diretta-webui):**
+- Browser-based settings interface — no SSH needed to configure the renderer
+- Accessible at `http://<ip>:8080` via a lightweight Python HTTP server
+- Edit all renderer settings: target, port, gapless, verbose, network interface
+- Advanced Diretta SDK settings: thread-mode, transfer-mode, cycle-time, info-cycle, target-profile-limit, MTU
+- Save & Restart: applies settings and restarts the systemd service in one click
+- Zero dependencies beyond Python 3 (stdlib only)
+- Separate systemd service (`diretta-renderer-webui.service`) — transparent for audio quality
+- Profile-based architecture: reusable for other Diretta projects (slim2diretta)
+- Installable via `install.sh` option 6 or `./install.sh --webui`
 
 **Advanced Diretta SDK Settings Exposed via CLI:**
 - `--thread-mode <mode>`: SDK thread mode bitmask (CRITICAL, NOSHORTSLEEP, SOCKETNOBLOCK, OCCUPIED, etc.)
