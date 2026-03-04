@@ -53,6 +53,12 @@
 
 ### 🐛 Bug Fixes
 
+**UAPP (USB Audio Player Pro) Position Tracking Compatibility:**
+- GetPositionInfo now returns real-time position with sub-second precision (`HH:MM:SS.FFF`)
+- Previously returned `00:00:00` on first poll because position thread (1s update interval) hadn't updated yet
+- UAPP polls only once and stopped tracking position when it received `00:00:00`
+- Position is now computed directly from AudioEngine via callback, bypassing the cached value
+
 **Stop Action Uses stopPlayback() Instead of close() (fix by herisson-88):**
 - Changed UPnP Stop handler from `close()` to `stopPlayback(false)` in DirettaSync
 - Keeps SDK connection open for faster "quick resume" path on next Play
