@@ -7,6 +7,7 @@ set -e
 # Default values (can be overridden by config file)
 TARGET="${TARGET:-1}"
 PORT="${PORT:-4005}"
+RENDERER_NAME="${RENDERER_NAME:-}"
 GAPLESS="${GAPLESS:-}"
 VERBOSE="${VERBOSE:-}"
 NETWORK_INTERFACE="${NETWORK_INTERFACE:-}"
@@ -26,15 +27,20 @@ RT_PRIORITY="${RT_PRIORITY:-50}"
 
 RENDERER_BIN="/opt/diretta-renderer-upnp/DirettaRendererUPnP"
 
-# Build command with options
-CMD="$RENDERER_BIN"
+# Build command as array (preserves arguments with spaces)
+CMD=("$RENDERER_BIN")
 
 # Basic options
-CMD="$CMD --target $TARGET"
+CMD+=("--target" "$TARGET")
+
+# Renderer name (supports spaces, e.g., "Devialet Target")
+if [ -n "$RENDERER_NAME" ]; then
+    CMD+=("--name" "$RENDERER_NAME")
+fi
 
 # UPnP port (if specified)
 if [ -n "$PORT" ]; then
-    CMD="$CMD --port $PORT"
+    CMD+=("--port" "$PORT")
 fi
 
 # Network interface option (CRITICAL for multi-homed systems)
@@ -42,62 +48,62 @@ if [ -n "$NETWORK_INTERFACE" ]; then
     # Check if it looks like an IP address or interface name
     if [[ "$NETWORK_INTERFACE" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo "Binding to IP address: $NETWORK_INTERFACE"
-        CMD="$CMD --bind-ip $NETWORK_INTERFACE"
+        CMD+=("--bind-ip" "$NETWORK_INTERFACE")
     else
         echo "Binding to network interface: $NETWORK_INTERFACE"
-        CMD="$CMD --interface $NETWORK_INTERFACE"
+        CMD+=("--interface" "$NETWORK_INTERFACE")
     fi
 fi
 
 # Gapless
 if [ -n "$GAPLESS" ]; then
-    CMD="$CMD $GAPLESS"
+    CMD+=($GAPLESS)
 fi
 
 # Log verbosity (--verbose or --quiet)
 if [ -n "$VERBOSE" ]; then
-    CMD="$CMD $VERBOSE"
+    CMD+=($VERBOSE)
 fi
 
 # Advanced Diretta settings (only if specified)
 if [ -n "$THREAD_MODE" ]; then
-    CMD="$CMD --thread-mode $THREAD_MODE"
+    CMD+=("--thread-mode" "$THREAD_MODE")
 fi
 
 if [ -n "$CYCLE_TIME" ]; then
-    CMD="$CMD --cycle-time $CYCLE_TIME"
+    CMD+=("--cycle-time" "$CYCLE_TIME")
 fi
 
 if [ -n "$CYCLE_MIN_TIME" ]; then
-    CMD="$CMD --cycle-min-time $CYCLE_MIN_TIME"
+    CMD+=("--cycle-min-time" "$CYCLE_MIN_TIME")
 fi
 
 if [ -n "$INFO_CYCLE" ]; then
-    CMD="$CMD --info-cycle $INFO_CYCLE"
+    CMD+=("--info-cycle" "$INFO_CYCLE")
 fi
 
 if [ -n "$TRANSFER_MODE" ]; then
-    CMD="$CMD --transfer-mode $TRANSFER_MODE"
+    CMD+=("--transfer-mode" "$TRANSFER_MODE")
 fi
 
 if [ -n "$TARGET_PROFILE_LIMIT" ]; then
-    CMD="$CMD --target-profile-limit $TARGET_PROFILE_LIMIT"
+    CMD+=("--target-profile-limit" "$TARGET_PROFILE_LIMIT")
 fi
 
 if [ -n "$MTU_OVERRIDE" ]; then
-    CMD="$CMD --mtu $MTU_OVERRIDE"
+    CMD+=("--mtu" "$MTU_OVERRIDE")
 fi
 
 if [ -n "$RT_PRIORITY" ] && [ "$RT_PRIORITY" != "50" ]; then
-    CMD="$CMD --rt-priority $RT_PRIORITY"
+    CMD+=("--rt-priority" "$RT_PRIORITY")
 fi
 
-# Build exec prefix for process priority
-EXEC_PREFIX=""
+# Build exec prefix as array for process priority
+EXEC_PREFIX=()
 
 # Apply nice level
 if [ -n "$NICE_LEVEL" ] && [ "$NICE_LEVEL" != "0" ]; then
-    EXEC_PREFIX="nice -n $NICE_LEVEL"
+    EXEC_PREFIX=("nice" "-n" "$NICE_LEVEL")
 fi
 
 # Apply I/O scheduling
@@ -113,9 +119,9 @@ if [ -n "$IO_SCHED_CLASS" ]; then
     if [ -n "$IONICE_CLASS" ]; then
         if [ "$IONICE_CLASS" = "3" ]; then
             # idle class has no priority level
-            EXEC_PREFIX="ionice -c $IONICE_CLASS $EXEC_PREFIX"
+            EXEC_PREFIX=("ionice" "-c" "$IONICE_CLASS" "${EXEC_PREFIX[@]}")
         else
-            EXEC_PREFIX="ionice -c $IONICE_CLASS -n ${IO_SCHED_PRIORITY:-0} $EXEC_PREFIX"
+            EXEC_PREFIX=("ionice" "-c" "$IONICE_CLASS" "-n" "${IO_SCHED_PRIORITY:-0}" "${EXEC_PREFIX[@]}")
         fi
     fi
 fi
@@ -127,16 +133,17 @@ echo "════════════════════════�
 echo ""
 echo "Configuration:"
 echo "  Target:            $TARGET"
+echo "  Name:              ${RENDERER_NAME:-Diretta Renderer (default)}"
 echo "  Network Interface: ${NETWORK_INTERFACE:-auto-detect}"
 echo "  Nice level:        $NICE_LEVEL"
 echo "  I/O scheduling:    $IO_SCHED_CLASS (priority $IO_SCHED_PRIORITY)"
 echo "  RT priority:       $RT_PRIORITY (SCHED_FIFO)"
 echo ""
 echo "Command:"
-echo "  $EXEC_PREFIX $CMD"
+echo "  ${EXEC_PREFIX[*]} ${CMD[*]}"
 echo ""
 echo "════════════════════════════════════════════════════════"
 echo ""
 
 # Execute with priority settings
-exec $EXEC_PREFIX $CMD
+exec "${EXEC_PREFIX[@]}" "${CMD[@]}"

@@ -9,6 +9,13 @@
             "collapsed": false,
             "settings": [
                 {
+                    "key": "RENDERER_NAME",
+                    "type": "text",
+                    "label": "Renderer Name",
+                    "description": "UPnP friendly name visible to control points. Supports spaces (e.g., 'Devialet Target').",
+                    "default": ""
+                },
+                {
                     "key": "TARGET",
                     "type": "number",
                     "label": "Diretta Target",
