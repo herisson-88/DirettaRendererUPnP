@@ -412,6 +412,7 @@ sudo apt install build-essential libavformat-dev libavcodec-dev libavutil-dev li
 - [x] High sample rate adaptive buffers (>192kHz: 2.0s buffer, 1000ms prefill, 32MB max)
 - [x] Build capabilities logging at startup (architecture + SIMD detection)
 - [x] Resilient target discovery (retry indefinitely at startup instead of exiting)
+- [x] Fix: removed `verifyTargetAvailable()` pre-check in `DirettaRenderer::start()` that bypassed retry loop
 - [x] RENDERER_NAME configuration option
 
 ### Potential Future Work

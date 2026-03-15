@@ -1,4 +1,4 @@
-# Diretta UPnP Renderer v2.1.2
+# Diretta UPnP Renderer v2.1.3
 
 **The world's first native UPnP/DLNA renderer with Diretta protocol support - Low-Latency Edition**
 
@@ -8,18 +8,18 @@
 
 ---
 
-![Version](https://img.shields.io/badge/version-2.1.2-blue.svg)
+![Version](https://img.shields.io/badge/version-2.1.3-blue.svg)
 ![Low Latency](https://img.shields.io/badge/Latency-Low-green.svg)
 ![SDK](https://img.shields.io/badge/SDK-DIRETTA::Sync-orange.svg)
 ![Audirvana](https://img.shields.io/badge/Audirvana-Compatible-green.svg)
 
 ---
 
-## What's New in v2.1.2
+## What's New in v2.1.3
 
-**Resilient target discovery for systems without auto-restart.**
+**Fixed resilient target discovery.**
 
-- **Resilient target discovery** — When the Diretta target is not available at startup, the renderer now retries every 2 seconds instead of exiting immediately. Especially important on systems without systemd auto-restart (e.g., GentooPlayer with OpenRC). Suggested by Filippo/GentooPlayer.
+- **Target retry fix** — v2.1.2 introduced resilient target discovery (retry loop at startup), but a pre-check in `DirettaRenderer::start()` caused the process to exit before the retry loop was reached. Now works as intended.
 
 See [CHANGELOG.md](CHANGELOG.md) for details.
 
@@ -27,6 +27,7 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 
 | Version | Highlights |
 |---------|-----------|
+| **v2.1.2** | Resilient target discovery (retry at startup instead of immediate exit) |
 | **v2.1.1** | UAPP compatibility, format transition stability, high sample rate buffers, build capabilities logging |
 | **v2.1.0** | Web Configuration UI, Advanced SDK settings, stop fix (herisson-88), libupnp auto-detect |
 | **v2.0.6** | Advanced SDK settings, config migration, stop fix (herisson-88), libupnp auto-detect |
