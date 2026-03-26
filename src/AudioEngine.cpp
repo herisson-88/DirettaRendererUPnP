@@ -1694,6 +1694,15 @@ void AudioEngine::setCurrentURI(const std::string& uri, const std::string& metad
 }
 
 void AudioEngine::setNextURI(const std::string& uri, const std::string& metadata) {
+    // Audirvana sends SetNextAVTransportURI with the current track as a placeholder
+    // before replacing it with the real next track ~2s later. Accepting it would
+    // trigger an anticipated preload that opens a competing HTTP connection to the
+    // same WAV file on the local server, causing white noise.
+    if (uri == m_currentURI) {
+        DEBUG_LOG("[AudioEngine] Next URI same as current - ignoring placeholder");
+        return;
+    }
+
     // Thread-safe: Use pending mechanism to defer to audio thread
     {
         std::lock_guard<std::mutex> pendingLock(m_pendingMutex);
